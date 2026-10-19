@@ -6,7 +6,7 @@
   let editing = null;  // id of the chat being renamed
   const downs = {};    // id -> last mousedown time (double-click survives a list rebuild)
 
-  // Typewriter: the old title fades out, the new one types in with a blinking square caret.
+  // Typewriter: the old title fades out, the new one types in (v0.18.1: no caret).
   function typeTitle(el, text) {
     if (!el || el.textContent === text) return;
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = text; return; }

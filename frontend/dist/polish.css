@@ -3,14 +3,11 @@
 /* ---- chat titles ---- */
 .chat .t { transition: opacity .2s ease, filter .2s ease; }
 .chat .t.tfade { opacity: 0; filter: blur(2px); }
-.chat .t.typing::after { content: ""; display: inline-block; width: 6px; height: 11px; margin-left: 2px; vertical-align: -1px; background: var(--accent); animation: tcaret .7s steps(1) infinite; }
-@keyframes tcaret { 50% { opacity: 0; } }
 .chat.editing { background: var(--raised); box-shadow: inset 0 0 0 1px var(--accent); }
 .chat .rename { flex: 1; min-width: 0; height: 22px; padding: 0 6px; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; }
 .chat.editing .when, .chat.editing .x { display: none !important; }
 
 /* ---- mini orbs replace the small square marks ---- */
-@media (prefers-reduced-motion: reduce) { .chat .t.typing::after { animation: none; } }
 
 /* ---- personality (Settings › Behaviour) ---- */
 .pbox { margin-top: 10px; }
@@ -33,3 +30,9 @@ blaze-emblem.morb { display: block; flex: none; pointer-events: none; }
 .step.bad .st .morb { display: none; }
 .step:not(.run):not(.bad) .st .morb { opacity: .8; }
 .sprow .sp-mk.has-orb { width: 12px; height: 12px; }
+
+/* v0.18.1 StreamOrb + duoShimmer overlays (stream.js): drawn over the reply, never in its layout. */
+.msg.blaze { position: relative; }
+.msg.blaze > .sdrop, .msg.blaze > .sshim { position: absolute; left: 0; top: 0; pointer-events: none; transform-origin: 0 0; }
+.msg.blaze > .sdrop { will-change: transform; }
+

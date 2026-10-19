@@ -109,10 +109,12 @@
 
   // Desktop only: on a light ground the white glass needs something to refract. A small dark lens inside the ring,
   // and a deeper gold under the ring so the halo does not wash out on white.
-  function drawLightBacking(ctx, cx, cy, r, t = 0, alpha = 1) {
+  function drawLightBacking(ctx, cx, cy, r, t = 0, alpha = 1, lens = true) {
     ctx.save();
+    if (lens) {
     ctx.fillStyle = radial(ctx, cx, cy, r * 1.5, [[0, `rgba(44,44,50,${.92 * alpha})`], [.72, `rgba(20,20,24,${.9 * alpha})`], [1, "rgba(20,20,24,0)"]]);
     ctx.beginPath(); ctx.arc(cx, cy, r * 1.5, 0, TAU); ctx.fill();
+    }
     const ringR = r * 1.75 * (1 + .03 * Math.sin(t * 1.7));
     ctx.strokeStyle = `rgba(176,120,10,${.6 * alpha})`; ctx.lineWidth = Math.max(r * .2, 1.2) * 1.4;
     ctx.beginPath(); ctx.arc(cx, cy, ringR, 0, TAU); ctx.stroke();
@@ -149,7 +151,7 @@
   }) : null;
 
   class BlazeEmblem extends HTMLElement {
-    static get observedAttributes() { return ["live", "animate", "size", "dim"]; }
+    static get observedAttributes() { return ["live", "animate", "size", "dim", "halo-only"]; }
     constructor() {
       super();
       this.canvas = document.createElement("canvas");
@@ -187,8 +189,11 @@
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, s, s);
       const a = this.hasAttribute("dim") ? .45 : 1;
-      if (isLight() && !this.hasAttribute("bare")) drawLightBacking(ctx, s / 2, s / 2, s * .19, t, a);
-      drawDuoEmblem(ctx, s / 2, s / 2, s, t, a);
+      // halo-only: Blaze's drop is out riding a streaming reply (stream.js); the label keeps just the ring.
+      const haloOnly = this.hasAttribute("halo-only");
+      if (isLight() && !this.hasAttribute("bare")) drawLightBacking(ctx, s / 2, s / 2, s * .19, t, a, !haloOnly);
+      if (haloOnly) drawHaloRing(ctx, s / 2, s / 2, s * .19, t, a);
+      else drawDuoEmblem(ctx, s / 2, s / 2, s, t, a);
     }
   }
   customElements.define("blaze-emblem", BlazeEmblem);
