@@ -1017,7 +1017,7 @@ function particleOrb(cv, size) {
   const frame = now => {
     if (!cv.isConnected && now - t0 > 1000) return;
     const css = getComputedStyle(document.documentElement);
-    const acc = css.getPropertyValue("--accent").trim() || "#1F4BD8", ink = css.getPropertyValue("--ink").trim() || "#111110";
+    const acc = css.getPropertyValue("--accent").trim() || "#E6E6EA", ink = css.getPropertyValue("--ink").trim() || "#111110";
     const a = (now - t0) / 4000, R = size * .38 * dpr, c = size / 2 * dpr, breathe = 1 + Math.sin((now - t0) / 900) * .03;
     ctx.clearRect(0, 0, cv.width, cv.height);
     pts.forEach(([x, y, z], i) => {

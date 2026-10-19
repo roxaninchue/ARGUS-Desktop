@@ -101,7 +101,7 @@
     cv.width = px * FRAMES; cv.height = px;
     const ctx = cv.getContext("2d");
     const st = getComputedStyle(document.documentElement);
-    const acc = st.getPropertyValue("--accent").trim() || "#1F4BD8", ink = st.getPropertyValue("--ink").trim() || "#111110";
+    const acc = st.getPropertyValue("--accent").trim() || "#E6E6EA", ink = st.getPropertyValue("--ink").trim() || "#111110";
     const N = css >= 10 ? 34 : 24;
     const pts = Array.from({ length: N }, (_, i) => { const y = 1 - (i + .5) * 2 / N, r = Math.sqrt(1 - y * y), t = i * 2.39996; return [Math.cos(t) * r, y, Math.sin(t) * r]; });
     const R = px * .42, c = px / 2;

@@ -10,6 +10,34 @@ rdash = (root / "internal" / "router" / "web" / "index.html").as_uri()
 rstate = (root / "ci" / "router-state.json").read_text()
 mock = f"window.__routerDash='{rdash}';window.__routerState={rstate};" + mock
 allerrs = []
+# v0.18.1: nothing square. Before every screenshot, every visible button, input, textarea, chip, pill,
+# card, work card, step list, code block, composer, menu and popover must have a border radius.
+# The allow-list is only parts drawn inside a rounded parent (rows of the step list, segmented buttons,
+# code inside a code block) and the design stage's own content.
+RADIUS_JS = r"""() => {
+  const SEL = 'button, input:not([type=hidden]):not([type=range]):not([type=file]):not([type=color]), textarea, select, .chip, .pill, .tag, .fchip, .card, .acard, .work.live, .work.done, .steps, .step, pre, .code, .inbox, .pop, .menu, code, kbd, .kbd, .seg, .toggle input, .shavatar, #avatar';
+  const ALLOW = '.steps .step, .seg button, .mseg button, pre code, .code code, .dstage *, .artboard *, iframe, .brframe, .tl *, .winctl button';
+  const bad = [];
+  document.querySelectorAll(SEL).forEach(e => {
+    if (e.matches(ALLOW)) return;
+    const r = e.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4 || r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) return;
+    const cs = getComputedStyle(e);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity === 0) return;
+    if (e.closest('[style*="display: none"]')) return;
+    const z = ['borderTopLeftRadius','borderTopRightRadius','borderBottomLeftRadius','borderBottomRightRadius'].every(k => cs[k] === '0px');
+    if (z) bad.push(e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).join('.') : '') + ' < ' + (e.parentElement ? (e.parentElement.className || e.parentElement.tagName) : ''));
+  });
+  return [...new Set(bad)];
+}"""
+def guard(pg, errs):
+    orig = pg.screenshot
+    def shot(*a, **kw):
+        bad = pg.evaluate(RADIUS_JS)
+        if bad:
+            errs.append("square corners before " + pathlib.Path(str(kw.get("path", ""))).name + ": " + ", ".join(bad[:8]))
+        return orig(*a, **kw)
+    pg.screenshot = shot
 with sync_playwright() as p:
     b = p.chromium.launch(**({"executable_path": __import__("os").environ["CHROME"]} if __import__("os").environ.get("CHROME") else {}))
     # SHOTS_THEMES=light runs one theme (a quicker local run); CI takes both.
@@ -18,6 +46,7 @@ with sync_playwright() as p:
         pg.add_init_script(f"window.__theme='{theme}';window.__sample='{sample}';" + mock)
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
+        guard(pg, errs)
         pg.goto(url); pg.wait_for_timeout(600)
         pg.screenshot(path=str(out / f"home-{theme}.png"))
         pg.evaluate("loadConv(window.__conv); show('work')"); pg.wait_for_timeout(300)
@@ -702,6 +731,7 @@ with sync_playwright() as p:
     pg.add_init_script(f"window.__theme='light';window.__os='windows';window.__sample='{sample}';" + mock)
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
+    guard(pg, errs)
     pg.goto(url); pg.wait_for_timeout(600)
     pg.screenshot(path=str(out / "home-windows-light.png"))
     if errs:
@@ -711,6 +741,7 @@ with sync_playwright() as p:
     pg.add_init_script(f"window.__theme='light';window.__os='darwin';window.__sample='{sample}';" + mock)
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
+    guard(pg, errs)
     pg.goto(url); pg.wait_for_timeout(600)
     pg.evaluate("show('settings','notifications')"); pg.wait_for_timeout(600)
     pg.evaluate("[...document.querySelectorAll('.group')].find(g => /Screen vision/.test(g.textContent)).scrollIntoView({block: 'start'})"); pg.wait_for_timeout(200)

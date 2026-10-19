@@ -138,7 +138,7 @@
 
     readColors() {
       const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue(k).trim();
-      this.col = { ink: v("--ink") || "#111110", acc: v("--accent") || "#1F4BD8", paper: v("--paper") || "#fbfbfa", weak: v("--weak"), sub: v("--sub"), mono: v("--mono") || "monospace", dark: document.documentElement.dataset.theme === "dark" };
+      this.col = { ink: v("--ink") || "#111110", acc: v("--accent") || "#E6E6EA", paper: v("--paper") || "#fbfbfa", weak: v("--weak"), sub: v("--sub"), mono: v("--mono") || "monospace", dark: document.documentElement.dataset.theme === "dark" };
       this.labelW = new Map();
     }
 
