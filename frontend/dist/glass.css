@@ -1,4 +1,7 @@
 :root {
+  /* light: ink-based glass (ink 3-10 % fills, ink 10-15 % hairlines) */
+  --g-tile: rgba(17,17,18,.03);
+  --g-hair: rgba(17,17,18,.10);
   --glass-fill: rgba(255,255,255,.08);
   --glass-fill-strong: rgba(255,255,255,.12);
   --glass-rim-top: rgba(255,255,255,.30);
@@ -7,6 +10,8 @@
   --glass-shadow: 0 8px 28px rgba(11,11,14,.18);
 }
 :root[data-theme=dark] {
+  --g-tile: rgba(255,255,255,.04);
+  --g-hair: rgba(255,255,255,.10);
   --glass-fill: rgba(255,255,255,.08);
   --glass-fill-strong: rgba(255,255,255,.12);
   --glass-rim-top: rgba(255,255,255,.30);
@@ -61,9 +66,9 @@
   border-radius: var(--r-md);
 }
 
-#side, #top, .tabs, .pop, .menu, .field, .btn, .pill, .seg, .code, .msg.user .bubble, .msg.blaze .bubble, .steps, .step, .card, .modal, .sheet, .toast {
-  background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.10);
+#side, #top, .tabs, .pop, .menu, .field, .btn, .pill, .seg, .code, .msg.blaze .bubble, .steps, .step, .card, .modal, .sheet, .toast {
+  background: var(--g-tile);
+  border: 1px solid var(--g-hair);
 }
 
 .btn, .chip, .themebtn, .seg button, .nav, .chat, .pill {

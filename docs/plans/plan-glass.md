@@ -1,20 +1,26 @@
-# Desktop v0.18.0 plan: glass look from Blaze Mobile
+# Desktop glass look from Blaze Mobile (v0.18.0 + v0.18.1)
 
-## Ported from the Kotlin reference
-- `GlassKit.kt`: frosted glass tokens, glass intensities, and the dark/light glass recipe.
-- `Theme.kt`: dark-first palette, radii tokens, typography, and the monochrome accent scheme.
-- `BlazeGlass.kt`: glass surfaces, progress bars, and the edge-particle pattern.
-- `DuoGlow.kt`: the gold halo, orb emblem, shimmer and blur treatment.
-- `StreamOrb.kt`: drop motion, splash effect, and the streaming reply travel behaviour.
-- `Motion.kt`: motion timings, reduced motion, scale press state, shimmer and enter/exit transitions.
+Frontend only. No Go, `internal/`, `~/.blaze` or prefs changes, so Blaze CLI is unaffected.
 
-## This phase focuses on the desktop frontend only
-- CSS tokens and glass shell restyle in `frontend/dist/style.css` and `frontend/dist/glass.css`.
-- Motion timing hooks and reduced-motion utilities in `frontend/dist/motion.css` and `frontend/dist/motion.js`.
-- Live emblem drawing in `frontend/dist/duo.js` for the sidebar and onboarding surfaces.
-- Settings appearance toggle for motion reduction without any Go or prefs-key change.
+## v0.18.0 (shipped partial)
+- Glass tokens and intensities (`GlassKit.kt`) and the dark-first palette (`Theme.kt`) in `glass.css` / `style.css`.
+- Motion tokens and a Reduce motion toggle (`Motion.kt`) in `motion.css` / `motion.js`.
+- New `logo.svg` (orb + halo). The canvas emblem was an approximation, and the streaming drop, shimmer, thinking marks, progress bar and icons were not done. v0.18.0's notes said StreamOrb was ported; it was not.
 
-## What was intentionally skipped
-- Rich reply blocks (charts, forms, compare cards, choice cards, mermaid diagrams) are not part of this phase.
-- Halo persona, token ledger, rapid-message polish and Go/backend work stay out of scope.
-- The app keeps the existing event wiring and class names; the styling pass is additive and non-invasive.
+## v0.18.1 (completes the port)
+| Mobile source | Desktop file | What |
+|---|---|---|
+| `DuoGlow.kt` drawHaloRing, drawDuoEmblem | `duo.js` (`window.Duo`) | Exact halo + drop maths, shared clock, `<blaze-emblem>` |
+| `StreamOrb.kt` drawWaterOrb, drawSplash, fall/glide | `duo.js`, `stream.js` | Drop rides the last line, falls onto blocks, rests by the newest reply |
+| `DuoGlow.kt` duoShimmer | `stream.js` | Blue glow on the newest words, end sweep |
+| `BlazeGlass.kt` EdgePath, EdgeParticles | `edge.js` | 40 dots on the window edge, only during a run |
+| `BlazeGlass.kt` BrandProgress | `progress.js` | Shimmer bar on update + Whisper downloads, skeletons |
+| `Theme.kt` shapes | `round.css` | Radii for every control; CI radius check in `ci/shots.py` |
+| `Motion.kt` | `motion.js` | `BlazeMotion.sync()` + `blazemotion` event |
+
+Light theme: accent `#18181B`, new `--on-ink` token for text on ink fills, the emblem sits on a small dark lens so the white drop shows.
+
+## Skipped (and why)
+- Halo as a second speaker (gold shimmer, travelling ring): desktop has one speaker; waits on the Halo decision (Phase 2d).
+- Tilt panes and swipe gestures: touch-only.
+- Rich reply blocks, inline mermaid, selection pill, rapid messages: Phase 2a/2b.

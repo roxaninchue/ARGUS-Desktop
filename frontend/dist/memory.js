@@ -3,7 +3,7 @@
 // Cheap by design: Barnes-Hut repulsion, the simulation cools and stops, only what is on
 // screen is drawn, labels only when zoomed in, nothing runs while the screen is hidden.
 (() => {
-  const RM = matchMedia("(prefers-reduced-motion: reduce)");
+  const RM = window.BlazeMotion.query;   // OS reduced motion or Settings › Reduce motion
   const SORT_AT = 0.78;          // replay: share of the timeline spent adding memories
   const MAX_PARTICLES = 700;
   let M = null;                  // the live screen (one at a time)
@@ -138,7 +138,7 @@
 
     readColors() {
       const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue(k).trim();
-      this.col = { ink: v("--ink") || "#111110", acc: v("--accent") || "#1F4BD8", paper: v("--paper") || "#fbfbfa", weak: v("--weak"), sub: v("--sub"), mono: v("--mono") || "monospace", dark: document.documentElement.dataset.theme === "dark" };
+      this.col = { ink: v("--ink") || "#111110", acc: v("--accent") || "#E6E6EA", paper: v("--paper") || "#fbfbfa", weak: v("--weak"), sub: v("--sub"), mono: v("--mono") || "monospace", dark: document.documentElement.dataset.theme === "dark" };
       this.labelW = new Map();
     }
 

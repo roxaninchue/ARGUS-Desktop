@@ -43,7 +43,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .skeleton {
   position: relative;
   overflow: hidden;
-  background: rgba(255,255,255,.06);
+  display: block;
+  border-radius: var(--r-xs);
+  background: var(--faint2);
 }
 .skeleton::after {
   content: "";
@@ -51,8 +53,24 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
   inset: 0;
   transform: translateX(-100%);
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.36), transparent);
-  animation: skeletonSweep 1280ms ease-in-out infinite;
+  animation: skeletonSweep 1100ms linear infinite;
 }
+:root:not([data-theme=dark]) .skeleton::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.85), transparent); }
 @keyframes skeletonSweep {
   100% { transform: translateX(100%); }
 }
+.skeleton-stack { display: grid; gap: 8px; padding: 6px 2px; }
+.sk-line { height: 10px; }
+
+/* v0.18.1 BrandProgress (progress.js): 3 px rounded bar, shimmer band every 1100 ms. */
+.bprog { position: relative; height: 3px; width: 100%; border-radius: var(--r-pill); background: var(--faint2); overflow: hidden; }
+.bprog > i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--sub), var(--ink)); transition: width .25s linear; overflow: hidden; }
+.bprog > i::after { content: ""; position: absolute; top: 0; bottom: 0; width: 80px; left: -80px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); animation: bprogShine 1100ms linear infinite; }
+:root[data-theme=dark] .bprog > i { background: linear-gradient(90deg, rgba(255,255,255,.55), #FFFFFF); }
+:root[data-theme=dark] .bprog > i::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,.95), transparent); }
+.bprog.ind > i { width: 100%; opacity: .55; }
+.bprog.bad > i { background: var(--ink); }
+.bprog.bad > i::after { display: none; }
+@keyframes bprogShine { from { left: -80px; } to { left: 100%; } }
+html.reduce-motion .bprog > i::after, html.reduce-motion .skeleton::after { animation: none; display: none; }
+.selfupd .bprog { margin: -4px 0 10px; max-width: 360px; }
