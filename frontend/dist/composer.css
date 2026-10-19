@@ -65,11 +65,6 @@ body.dropping #composer .cwrap::after { content: "Drop to attach"; position: abs
 .vcard .vmodels button { font: 500 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
 .vcard .actions { display: flex; gap: 8px; margin-top: 12px; }
 .vprog { margin-top: 10px; }
-.vprog .bar { height: 4px; background: var(--sunk); position: relative; overflow: hidden; }
-.vprog .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--accent); transition: width .25s linear; }
-.vprog .bar.ind i { width: 30% !important; animation: vind 1.4s linear infinite; }
-.vprog .bar.bad i { background: var(--ink); }
-@keyframes vind { from { left: -30%; } to { left: 100%; } }
 .vprog .vpt { margin-top: 6px; }
 
 /* Autopilot notes in the chat */

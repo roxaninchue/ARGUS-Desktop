@@ -9,7 +9,7 @@
   // Typewriter: the old title fades out, the new one types in (v0.18.1: no caret).
   function typeTitle(el, text) {
     if (!el || el.textContent === text) return;
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = text; return; }
+    if (window.BlazeMotion && !window.BlazeMotion.enabled) { el.textContent = text; return; }
     clearInterval(el._tw);
     el.classList.add("tfade");
     setTimeout(() => {

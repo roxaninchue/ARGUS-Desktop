@@ -14,7 +14,7 @@ input, select, textarea, .field, input.field, select.field, textarea.field, .mse
 .pop, .menu, #menu, .shmenu, .toast { border-radius: var(--r-md); }
 
 /* cards, the composer, the work card, steps, code blocks */
-.card, .acard, .inbox, .code, .work.live, .work.done, .callout, .modal, .sheet, .freshoffer { border-radius: var(--r-card); }
+.card, .acard, .vcard, .inbox, .code, .work.live, .work.done, .callout, .modal, .sheet, .freshoffer { border-radius: var(--r-card); }
 body.shell .work.live, body.shell .work.done { border-radius: var(--r-card); padding: 6px 12px; }
 .steps { border-radius: var(--r-card); overflow: hidden; }
 .step { border-radius: var(--r-sm); }
