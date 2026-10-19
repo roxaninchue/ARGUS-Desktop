@@ -872,6 +872,8 @@ with sync_playwright() as p:
             errs.append("Settings › Models: signed out should offer Sign in")
         if errs:
             print("JS errors:", errs); allerrs.extend(f"models-{theme}: {e}" for e in errs)
+    # v0.19 Blaze Music and Video, dark and light (ci/media_shots.py).
+    allerrs.extend(__import__("media_shots").run(b, root, out, mock, url, sample, guard))
     b.close()
 # Shots still get pushed when something broke; ERRORS.txt says what (the job then fails).
 if allerrs:

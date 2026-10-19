@@ -15,6 +15,7 @@ import (
 var openableViews = map[string]string{
 	"chat": "Chat", "design": "Design", "memory": "Memory", "jobs": "Jobs", "schedule": "Schedule",
 	"accounts": "Accounts", "doctor": "Doctor", "settings": "Settings", "router": "BlazeRouter", "phone": "Phone",
+	"music": "Music", "video": "Video", // v0.19 media_app.go
 }
 
 const openViewLine = "\nVIEWS\n- When a task is visual (a website, a page, a design, 3D, a poster), call open_view with view=design and ask=false before you build. For any other view, set ask=true unless the user asked for that view. open_view chat goes back to the plain chat.\n"
@@ -25,7 +26,7 @@ func openView(view, reason string, ask bool, confirm func(title, detail string) 
 	view = strings.ToLower(strings.TrimSpace(view))
 	name, ok := openableViews[view]
 	if !ok {
-		return "Error: unknown view " + view + ". Use one of: chat, design, memory, jobs, schedule, accounts, doctor, settings, router, phone."
+		return "Error: unknown view " + view + ". Use one of: chat, design, memory, jobs, schedule, accounts, doctor, settings, router, phone, music, video."
 	}
 	if emit == nil {
 		return "Error: there is no window to switch here."
@@ -44,8 +45,8 @@ func openView(view, reason string, ask bool, confirm func(title, detail string) 
 }
 
 func init() {
-	tools.Register("open_view", "Switch Blaze's window to one of its views: design (live preview for anything visual), memory, jobs, schedule, accounts, doctor, settings, router (BlazeRouter: models and keys), phone (Blaze Link: pair the Android phone), or chat to go back. Visual work: ask=false. Other views: ask=true unless the user asked for that view.",
-		[][3]string{{"view", "string", "design, memory, jobs, schedule, accounts, doctor, settings, router, phone or chat"}, {"ask", "boolean", "Ask the user before switching"}, {"reason", "string", "One short line shown when asking"}},
+	tools.Register("open_view", "Switch Blaze's window to one of its views: design (live preview for anything visual), memory, jobs, schedule, accounts, doctor, settings, router (BlazeRouter: models and keys), phone (Blaze Link: pair the Android phone), music, video, or chat to go back. Visual work: ask=false. Other views: ask=true unless the user asked for that view.",
+		[][3]string{{"view", "string", "design, memory, jobs, schedule, accounts, doctor, settings, router, phone, music, video or chat"}, {"ask", "boolean", "Ask the user before switching"}, {"reason", "string", "One short line shown when asking"}},
 		[]string{"view"}, func(e *tools.Env, args map[string]any) string {
 			a := theApp
 			var emit func(string)
