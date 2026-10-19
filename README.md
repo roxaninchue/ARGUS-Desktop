@@ -1,7 +1,6 @@
 # Blaze Desktop
 
-Blaze, the Android assistant, as a desktop app for **Windows, macOS and Linux**, in the same look:
-paper and ink, one blue accent, square hairline cards, spaced mono labels, 01/02 lists.
+Blaze, the Android assistant, as a desktop app for **Windows, macOS and Linux**, with dark frosted glass, rounded everything, and the drop in its gold halo.
 
 Built with [Wails](https://wails.io) on the same Go core as Blaze CLI (PC detection, free model router,
 tools, scheduler). Settings, keys, memory and skills live in `~/.blaze` and are shared with the CLI.

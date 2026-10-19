@@ -2038,6 +2038,14 @@ async function setAppearance(col, redraw) {
   const seg = h("div", "seg");
   [["system", "System"], ["light", "Light"], ["dark", "Dark"]].forEach(([t, n]) => { const b = h("button", S.prefs.theme === t ? "on" : "", n); b.onclick = async () => { await API().SetTheme(t); S.prefs.theme = t; applyTheme(); redraw(); }; seg.append(b); });
   g.append(seg);
+  const motion = h("label", "toggle", `<input id="reduceMotionToggle" type="checkbox" ${localStorage.getItem('blaze.reduceMotion') === '1' ? 'checked' : ''}><span><span class="tt">Reduce motion</span><span class="td">Turns off the glass shimmer and animated effects.</span></span>`);
+  $("input", motion).onchange = e => {
+    localStorage.setItem('blaze.reduceMotion', e.target.checked ? '1' : '0');
+    if (window.BlazeMotion && typeof window.BlazeMotion.sync === 'function') window.BlazeMotion.sync();
+    else if (window.BlazeMotion) window.BlazeMotion.enabled = !e.target.checked;
+    document.documentElement.classList.toggle('reduce-motion', e.target.checked);
+  };
+  g.append(motion);
   col.append(g);
 }
 
