@@ -47,9 +47,53 @@ with sync_playwright() as p:
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
         guard(pg, errs)
-        pg.goto(url); pg.wait_for_timeout(600)
+        pg.goto(url); pg.wait_for_timeout(900)
+        # v0.19: no sidebar. Home is the tab on launch (greeting, quick ask, the board in stacks).
         pg.screenshot(path=str(out / f"home-{theme}.png"))
+        if pg.evaluate("view") != "home" or pg.evaluate("document.querySelectorAll('.hcard').length") < 6:
+            errs.append("Home should open on launch with its cards")
+        if pg.evaluate("!!document.querySelector('#side, #chats, #newChat')"):
+            errs.append("the chats sidebar should be gone")
+        if "Good afternoon, Luke." not in pg.evaluate("document.querySelector('.hgreet').textContent"):
+            errs.append("Home greeting missing")
+        if pg.evaluate("[...document.querySelectorAll('#pill button')].map(b => b.textContent).join('|')") != "Home|Chat|Projects":
+            errs.append("tabs should be Home | Chat | Projects")
+        pg.evaluate("document.querySelector('.hstack[data-key=\"s:finance\"] .hcard').click()"); pg.wait_for_timeout(300)
+        pg.evaluate("document.querySelector('.hstack[data-key=\"s:finance\"]').scrollIntoView({block: 'center'})"); pg.wait_for_timeout(200)
+        pg.screenshot(path=str(out / f"home-stack-{theme}.png"))
+        if pg.evaluate("document.querySelectorAll('.hstack[data-key=\"s:finance\"] .hcard').length") != 2:
+            errs.append("tapping a stack should expand it")
+        pg.evaluate("document.querySelector('.homepage').scrollTop = 0; document.querySelector('.hadd').click()"); pg.wait_for_timeout(300)
+        pg.screenshot(path=str(out / f"home-add-{theme}.png"))
+        pg.evaluate("closePop(); document.querySelector('.hcard[data-id=w1] .hmenu').click()"); pg.wait_for_timeout(300)
+        pg.screenshot(path=str(out / f"home-menu-{theme}.png"))
+        pg.evaluate("closePop()")
+        # v0.19 one infinite chat: the tail first, older turns page in at the top, then the earlier chats.
+        pg.evaluate("Shell.go('chat')"); pg.wait_for_timeout(500)
+        pg.screenshot(path=str(out / f"onechat-{theme}.png"))
+        if pg.evaluate("OneChat.state.start") <= 0 or not pg.evaluate("!!document.querySelector('.olderbar .olderbtn')"):
+            errs.append("one chat should open on its last turns with older ones to load")
+        pg.evaluate("""async () => { for (let i = 0; i < 6; i++) await OneChat.older(); document.querySelector('.archsep').scrollIntoView({block: 'start'}); }"""); pg.wait_for_timeout(400)
+        pg.screenshot(path=str(out / f"onechat-earlier-{theme}.png"))
+        if not pg.evaluate("OneChat.state.mainDone") or pg.evaluate("document.querySelectorAll('.archsep').length") < 2:
+            errs.append("older messages and earlier chats should page into the timeline")
+        pg.evaluate("show('history', 'postgres')"); pg.wait_for_timeout(500)
+        pg.screenshot(path=str(out / f"history-search-{theme}.png"))
+        if pg.evaluate("document.querySelectorAll('.hresults .r').length") < 2:
+            errs.append("history search should find chat and earlier-chat messages")
+        pg.evaluate("document.querySelector('.hresults .r').click()"); pg.wait_for_timeout(700)
+        if pg.evaluate("view") != "work" or not pg.evaluate("!!document.querySelector('.msg.user.flash')"):
+            errs.append("a search result should jump to the message")
+        pg.evaluate("Shell.go('projects')"); pg.wait_for_timeout(500)
+        pg.screenshot(path=str(out / f"projects-tab-{theme}.png"))
+        if pg.evaluate("view") != "projects" or "HomeGlow" not in pg.evaluate("document.querySelector('#view').innerText"):
+            errs.append("Projects tab should list projects")
+        # The rest of the run works in the HomeGlow project, as before.
+        pg.evaluate("window.__enterProject()"); pg.wait_for_timeout(400)
         pg.evaluate("loadConv(window.__conv); show('work')"); pg.wait_for_timeout(300)
+        pg.screenshot(path=str(out / f"project-chat-{theme}.png"))
+        if not pg.evaluate("!!document.querySelector('.pcrumb')") or pg.evaluate("Shell.mode") != "projects":
+            errs.append("a project chat should sit under Projects with a crumb back")
         pg.screenshot(path=str(out / f"chat-{theme}.png"))
         pg.evaluate("loadConv(window.__convAbout)"); pg.wait_for_timeout(300)
         pg.screenshot(path=str(out / f"about-phone-{theme}.png"))
@@ -150,7 +194,10 @@ with sync_playwright() as p:
             errs.append("Exit should return to the chat")
         pg.evaluate("Shell.setMode('projects')"); pg.wait_for_timeout(600)
         pg.screenshot(path=str(out / f"shell-projects-{theme}.png"))
-        pg.evaluate("Shell.setMode('chat')"); pg.wait_for_timeout(300)
+        pg.evaluate("Shell.setMode('chat')"); pg.wait_for_timeout(400)
+        if pg.evaluate("convId") != "main" or pg.evaluate("Shell.mode") != "chat":
+            errs.append("the Chat tab should always open the one main conversation")
+        pg.evaluate("window.__enterProject()"); pg.wait_for_timeout(400)
         pg.evaluate("""sendText('Make the hero section blue', []);
           for (let i = 0; i < 4; i++) { fire('tool', {id: 'lw'+i, name: 'file_read', args: '{"path":"index.html"}'}); fire('tool_done', {id: 'lw'+i, result: 'ok'}); }"""); pg.wait_for_timeout(1300)
         pg.screenshot(path=str(out / f"shell-livecard-{theme}.png"))
@@ -172,12 +219,11 @@ with sync_playwright() as p:
         if not pg.evaluate("(document.querySelector('textarea.brief') || {}).value || ''").startswith("Purpose"):
             errs.append("project brief missing")
         pg.evaluate("show('work')"); pg.wait_for_timeout(200)
-        # v0.16.0 one mind: one conversation in the sidebar, the read-only Archive, the idle-review toggle.
-        pg.evaluate("""async () => { const st = await go.main.App.State(); window.__mindProj = st.project; st.project = null;
-          Shell.setMode('chat'); show('work'); await refreshSide(); }"""); pg.wait_for_timeout(500)
-        pg.screenshot(path=str(out / f"mind-sidebar-{theme}.png"))
-        if "Archive" not in pg.evaluate("document.querySelector('#chats').innerText"):
-            errs.append("one mind: the sidebar should show the Archive")
+        # v0.16.0 one mind (v0.19: no sidebar): the one conversation, the read-only Archive, the idle-review toggle.
+        pg.evaluate("OneChat.openMain()"); pg.wait_for_timeout(500)
+        pg.screenshot(path=str(out / f"mind-onechat-{theme}.png"))
+        if not pg.evaluate("!!document.querySelector('.olderbar')"):
+            errs.append("one mind: the conversation should offer earlier messages")
         pg.evaluate("show('archive')"); pg.wait_for_timeout(500)
         pg.screenshot(path=str(out / f"mind-archive-{theme}.png"))
         if "Postgres" not in pg.evaluate("document.querySelector('#view').innerText"):
@@ -191,7 +237,7 @@ with sync_playwright() as p:
         pg.screenshot(path=str(out / f"mind-review-toggle-{theme}.png"))
         if "Review past conversations when idle" not in pg.evaluate("document.querySelector('#view').innerText"):
             errs.append("idle-review toggle missing")
-        pg.evaluate("""async () => { const st = await go.main.App.State(); st.project = window.__mindProj; show('work'); await refreshSide(); }"""); pg.wait_for_timeout(300)
+        pg.evaluate("window.__enterProject()"); pg.wait_for_timeout(400)
         # v0.17.0 marketer pack: the seller skills in Settings › Skills, and the approval a WhatsApp send needs.
         mk = [x for x in __import__("json").loads((root / "skills" / "index.json").read_text())["skills"] if x["name"] in ("content-calendar", "product-listing", "ad-lab", "research-brief", "whatsapp-replies", "weekly-digest")]
         pg.evaluate("mk => { for (const x of mk) if (!window.__skills.some(s => s.name === x.name)) window.__skills.push({ ...x, state: 'bundled', enabled: true, update: false }); }", mk)
@@ -393,19 +439,7 @@ with sync_playwright() as p:
             errs.append("specialists summary wrong: " + str(pg.evaluate("(document.querySelector('#specs .sp-sum') || {}).textContent")))
         pg.evaluate("""['theme-toggle', 'contrast-tests'].forEach(h => fire('agent', {handle: h, status: 'cancelled', ended: Date.now()}));
           fire('agent', {handle: 'css-vars', review: 'discarded'})""")
-        # v0.4.2: AI chat titles. Mid-typewriter, then settled; rename on double-click.
-        pg.evaluate("fire('title', {id: 'c2', title: 'Postgres Container For HomeGlow', source: 'auto'})"); pg.wait_for_timeout(560)
-        pg.screenshot(path=str(out / f"titles-typing-{theme}.png"))
-        pg.evaluate("fire('title', {id: 'c3', title: 'Laptop Fan Noise And Heat', source: 'auto'})"); pg.wait_for_timeout(2000)
-        pg.screenshot(path=str(out / f"titles-{theme}.png"))
-        t2 = pg.evaluate("document.querySelector('#chats .chat[data-id=c2] .t').textContent")
-        if t2 != "Postgres Container For HomeGlow":
-            errs.append("title event did not update the sidebar: " + repr(t2))
-        pg.dblclick("#chats .chat[data-id=c3] .t"); pg.wait_for_timeout(200)
-        pg.screenshot(path=str(out / f"rename-{theme}.png"))
-        if not pg.evaluate("!!document.querySelector('#chats input.rename')"):
-            errs.append("double-click did not start renaming")
-        pg.keyboard.press("Escape"); pg.wait_for_timeout(100)
+        # v0.4.2 AI chat titles: the sidebar rows they animated are gone in v0.19 (titles still show on the project page).
         # v0.4.2: mini particle-orb marks, zoomed 3x: a saved reply (frozen) and a live turn.
         zp = b.new_page(viewport={"width": 860, "height": 560}, device_scale_factor=3)
         zp.add_init_script(f"window.__theme='{theme}';window.__sample='{sample}';" + mock)
