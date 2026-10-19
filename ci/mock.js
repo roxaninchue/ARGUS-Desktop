@@ -343,6 +343,23 @@ if (/\/internal\/router\/web\//.test(location.href)) {
   window.runtime = { EventsOn(ev, fn) { (window.__ev[ev] = window.__ev[ev] || []).push(fn); } };
   window.fire = (ev, data) => (window.__ev[ev] || []).forEach(f => f(data));
   window.__conv = conv;
+  // v0.18.1 shots: play a streamed reply and hold one frame mid-stream (drop riding the text, shimmer on),
+  // and a running agent turn with the edge particles frozen on one frame.
+  window.__streamDemo = async (hold = 700) => {
+    await newChat(); sendText("Why did the price test fail?", []);
+    const parts = ["The test failed because ", "`price.ts` added floats directly, so 19.99 ", "came out as 19.989999. I now round to cents ",
+      "before returning, and all 42 tests pass again. The newest words glow blue while "];
+    for (const p of parts) { fire("delta", p); await new Promise(r => setTimeout(r, 120)); }
+    return StreamOrb.freeze(hold);
+  };
+  window.__runDemo = async () => {
+    await newChat(); sendText("Make the hero section blue", []);
+    for (let i = 0; i < 3; i++) { fire("tool", { id: "rd" + i, name: "file_read", args: '{"path":"index.html"}' }); fire("tool_done", { id: "rd" + i, result: "ok" }); }
+    fire("tool", { id: "rd9", name: "file_edit", args: '{"path":"styles.css"}' });
+    await new Promise(r => setTimeout(r, 500));
+    EdgeParticles.frame(3);
+    return EdgeParticles.active;
+  };
   // Self-knowledge (v0.12): "how do I connect my phone?" answered from about_blaze, not with questions.
   window.__convAbout = { id: "c9", title: "Connect my phone", messages: [
     { role: "user", content: "how do I connect my phone?" },

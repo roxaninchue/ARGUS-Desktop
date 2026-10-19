@@ -106,3 +106,49 @@ textarea.field, .field.brief, .pcustom { border-radius: var(--r-sm); }
 /* the BlazeRouter card's key/value list: a soft inset, not a bordered table */
 .brcard .kv { border: 0; border-radius: var(--r-sm); background: var(--sunk); padding: 12px 14px; gap: 8px 12px; }
 .brcard .kv > * { border-top: 0; padding: 0; }
+
+/* v0.18.1 radii: nothing square is left. Loaded last so these win over the older per-view rules.
+   --r-xs 8 marks / inline code · --r-sm 12 rows · --r-md 16 inputs / menus · --r-card 22 cards + composer · pill buttons / chips / avatar. */
+
+/* buttons, chips, pills, avatar: pill */
+button, .btn, .chip, .pill, .tag, .fchip, .themebtn, .routerbtn, .shavatar, #avatar, .plusbtn, #send, .code .bar .copy, .brswitch, .mplay, .mt, .skbadge, .count { border-radius: var(--r-pill); }
+.seg, .mseg, .tabs, .atabs { border-radius: var(--r-pill); overflow: hidden; }
+.seg button, .mseg button, .atabs button, .tabs button { border-radius: var(--r-pill); }
+
+/* rows inside lists and menus */
+.mi, .opt, .chat, .nav, .snav button, .mghead, .mitem, .suggest button, input.rename { border-radius: var(--r-sm); }
+
+/* inputs, menus, popovers */
+input, select, textarea, .field, input.field, select.field, textarea.field, .msearch input { border-radius: var(--r-md); }
+.pop, .menu, #menu, .shmenu, .toast { border-radius: var(--r-md); }
+
+/* cards, the composer, the work card, steps, code blocks */
+.card, .acard, .vcard, .inbox, .code, .work.live, .work.done, .callout, .modal, .sheet, .freshoffer { border-radius: var(--r-card); }
+body.shell .work.live, body.shell .work.done { border-radius: var(--r-card); padding: 6px 12px; }
+.steps { border-radius: var(--r-card); overflow: hidden; }
+.step { border-radius: var(--r-sm); }
+.steps .step { border-radius: 2px; } /* inside the rounded, clipped list (no zero radius: ci/nosquare) */
+pre { border-radius: var(--r-sm); }
+.code { overflow: hidden; }
+.code .bar { border-radius: var(--r-card) var(--r-card) 2px 2px; }
+.code pre { border-radius: 2px 2px calc(var(--r-card) - 1px) calc(var(--r-card) - 1px); }
+
+/* marks, inline code, kbd */
+code, .md code, kbd, .kbd { border-radius: var(--r-xs); }
+pre code, .code code { border-radius: 2px; }
+
+/* status dots and small marks: round */
+.dot, .brdot, .rdot, .dotnew, .sq, .sq2, .ag-sq, .sp-mk, .amk, .mk, .obtile .tick { border-radius: 50%; }
+
+/* checkboxes and toggles */
+.toggle input { border-radius: var(--r-pill); }
+.toggle input::after { border-radius: 50%; }
+.mtoggle .box { border-radius: 5px; }
+.mtoggle input:checked + .box::after { border-radius: 50%; }
+input[type=checkbox] { border-radius: 5px; }
+.toggle input[type=checkbox] { border-radius: var(--r-pill); }
+input[type=radio] { border-radius: 50%; }
+
+/* the composer's focus ring was a hard black line once the light accent became ink */
+.inbox:focus-within { border-color: var(--hair2); }
+:root[data-theme=dark] .inbox:focus-within { border-color: rgba(255,255,255,.28); }

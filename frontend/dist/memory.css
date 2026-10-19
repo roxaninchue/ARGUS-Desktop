@@ -63,7 +63,7 @@
 
 /* timeline */
 .mtime { position: absolute; left: 14px; right: 14px; bottom: 14px; height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 12px 0 8px; border: 1px solid var(--hair2); background: var(--raised); background: color-mix(in srgb, var(--raised) 92%, transparent); backdrop-filter: blur(6px); box-shadow: var(--shadow); }
-.mplay { width: 32px; height: 32px; flex: none; display: grid; place-items: center; background: var(--ink); color: var(--paper); transition: background .12s; }
+.mplay { width: 32px; height: 32px; flex: none; display: grid; place-items: center; background: var(--ink); color: var(--on-ink); transition: background .12s; }
 .mplay svg { fill: currentColor; }
 .mplay:hover, .mplay.on { background: var(--accent); color: var(--on-accent); }
 .mscrub { position: relative; flex: 1; min-width: 80px; height: 32px; }
@@ -97,7 +97,7 @@
 .lnk:hover { text-decoration: underline; text-underline-offset: 2px; }
 .mp-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .mp-acts:empty { display: none; }
-.mp-acts .armed { border-color: var(--ink); color: var(--paper); background: var(--ink); }
+.mp-acts .armed { border-color: var(--ink); color: var(--on-ink); background: var(--ink); }
 .mp-note { flex-basis: 100%; }
 .mp-links { display: grid; gap: 2px; }
 .mp-links > .label { margin-bottom: 6px; }
