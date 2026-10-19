@@ -7,31 +7,34 @@
 /* Blaze v0.3 — paper and ink, hairline borders, square edges, one blue accent.
    Three surface levels: chrome (sidebar, bars), paper (content), raised (cards, popovers). */
 :root {
-  --chrome: #F4F4F2; --paper: #FBFBFA; --raised: #FFFFFF; --sunk: #EFEFEC;
-  --ink: #111110;
-  --body: rgba(17,17,16,.84); --sub: rgba(17,17,16,.58); --weak: rgba(17,17,16,.40);
-  --hair: rgba(17,17,16,.10); --hair2: rgba(17,17,16,.18); --faint: rgba(17,17,16,.04); --faint2: rgba(17,17,16,.07);
-  --accent: #1F4BD8; --accent-ink: #1A3FB8; --accent-soft: rgba(31,75,216,.09); --on-accent: #fff;
-  --shadow: 0 1px 2px rgba(17,17,16,.06), 0 8px 24px rgba(17,17,16,.10);
-  --shadow-lg: 0 2px 6px rgba(17,17,16,.08), 0 18px 48px rgba(17,17,16,.18);
+  --ground: #F4F4F5; --ground-top: #F8F8F9; --ink: #111112;
+  --body: rgba(17,17,18,.84); --sub: rgba(17,17,18,.62); --weak: rgba(17,17,18,.36);
+  --hair: rgba(17,17,18,.15); --hair2: rgba(17,17,18,.18); --faint: rgba(17,17,18,.04); --faint2: rgba(17,17,18,.07);
+  --chrome: rgba(255,255,255,.38); --paper: rgba(255,255,255,.20); --raised: rgba(255,255,255,.50); --sunk: rgba(17,17,18,.04);
+  --accent: #E6E6EA; --accent-ink: #111112; --accent-soft: rgba(17,17,18,.08); --on-accent: #0E0E10;
+  --error: #D9918A; --warning: #D6C08E; --success: #A6C9A8;
+  --shadow: 0 8px 22px rgba(8,8,10,.12);
+  --shadow-lg: 0 18px 55px rgba(8,8,10,.18);
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
   --sans: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   --display: InterTight, Inter, system-ui, sans-serif;
   --side: 236px;
+  --r-xs: 8px; --r-sm: 12px; --r-md: 16px; --r-card: 22px; --r-lg: 24px; --r-sheet: 28px; --r-pill: 999px;
   color-scheme: light;
 }
 :root[data-theme=dark] {
-  --chrome: #1A1A1D; --paper: #202023; --raised: #28282C; --sunk: #17171A;
-  --ink: #F2F2F0;
-  --body: rgba(242,242,240,.84); --sub: rgba(242,242,240,.58); --weak: rgba(242,242,240,.38);
-  --hair: rgba(242,242,240,.09); --hair2: rgba(242,242,240,.17); --faint: rgba(242,242,240,.04); --faint2: rgba(242,242,240,.075);
-  --accent: #7B98FF; --accent-ink: #93AAFF; --accent-soft: rgba(123,152,255,.13); --on-accent: #0E0E10;
-  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
-  --shadow-lg: 0 2px 6px rgba(0,0,0,.35), 0 18px 48px rgba(0,0,0,.5);
+  --ground: #0A0A0C; --ground-top: #141417; --ink: #F2F2F3;
+  --body: rgba(242,242,243,.87); --sub: rgba(242,242,243,.62); --weak: rgba(242,242,243,.36);
+  --hair: rgba(255,255,255,.14); --hair2: rgba(255,255,255,.18); --faint: rgba(255,255,255,.06); --faint2: rgba(255,255,255,.08);
+  --chrome: rgba(17,17,19,.74); --paper: rgba(24,24,28,.72); --raised: rgba(255,255,255,.08); --sunk: rgba(0,0,0,.18);
+  --accent: #E6E6EA; --accent-ink: #0E0E10; --accent-soft: rgba(255,255,255,.16); --on-accent: #0E0E10;
+  --error: #D9918A; --warning: #D6C08E; --success: #A6C9A8;
+  --shadow: 0 8px 22px rgba(0,0,0,.26);
+  --shadow-lg: 0 18px 44px rgba(0,0,0,.42);
   color-scheme: dark;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
-html, body { height: 100%; background: var(--paper); color: var(--body); font: 13.5px/1.5 var(--sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--ground); background-image: radial-gradient(circle at 15% 10%, rgba(255,255,255,.05), transparent 18%), radial-gradient(circle at 90% 75%, rgba(255,255,255,.035), transparent 24%), linear-gradient(180deg, var(--ground-top), var(--ground)); color: var(--body); font: 13.5px/1.5 var(--sans); -webkit-font-smoothing: antialiased; overflow: hidden; }
 button, input, textarea, select { font: inherit; color: inherit; background: none; border: 0; outline: none; }
 button { cursor: pointer; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, a:focus-visible { outline: 1.5px solid var(--accent); outline-offset: 1px; }
@@ -39,7 +42,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--hair2); border: 3px solid transparent; background-clip: content-box; }
 ::-webkit-scrollbar-thumb:hover { background-color: var(--weak); }
-svg.i { width: 15px; height: 15px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: square; }
+svg.i { width: 15px; height: 15px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 svg.i.sm { width: 13px; height: 13px; }
 
 .grow { flex: 1; }
