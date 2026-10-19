@@ -2,16 +2,6 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
-## v0.19.0 (one chat, Home, Blaze Cloud, Music and Video)
-- **One endless chat**: the chats sidebar is gone. Chat is one conversation that loads older messages as you scroll up; your earlier chats sit further back under "Earlier chat" dividers, and Ctrl K searches all of it. Nothing in `~/.blaze` was moved or deleted.
-- **Topic-aware memory**: Blaze follows which topic you're on. Going back to an earlier topic brings back that topic's notes and messages and leaves unrelated ones out, while deadlines, decisions, preferences and anything you call important carry across. A quiet topic chip above the composer shows where you are. Every message stays searchable.
-- **Home tab**: Home | Chat | Projects tabs. Home has a greeting, a quick ask box and cards for weather, news, prices, sports, GitHub activity, your schedule, deadlines and "pick up where you left off". Add cards in plain words.
-- **Blaze Cloud**: every model call goes through Blaze Cloud with your Blaze account by default, picking the model per task like Blaze Mobile, with clear messages for signed out, waiting list or busy.
-- **Custom models**: Settings > Models lets you use your own providers and keys instead, optionally pin a model for chat, code or vision, and choose whether Blaze Cloud is a backup.
-- **Music**: your music folders as a library with covers, a player with queue, shuffle, repeat, EQ, sleep timer and lyrics, a mini player on every tab, playlists, mixes, Wrapped and the Store (YouTube, Jamendo, Internet Archive). Ask Blaze to "play something chill".
-- **Video**: library, Continue watching, series, subtitles, resume, speed, skip intro, up next, recap and translate.
-- Design notes: `docs/plans/plan-v0.19.md`.
-
 ## v0.18.1 (finish the glass look)
 - **The real emblem**: the drop in its gold halo is now drawn exactly like Blaze Mobile, breathing and wobbling while Blaze works and still when it's done. New app and tray icons.
 - **The drop rides your reply**: while Blaze streams, the drop follows the end of the text, falls onto code blocks, tables and cards with a little splash, and glides home when the reply ends. The newest words glow blue, and a soft sweep crosses the reply when it finishes. The blinking caret is gone.
