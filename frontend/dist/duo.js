@@ -207,25 +207,3 @@
   window.Duo = { drawWaterOrb, drawHaloRing, drawSplash, drawDuoEmblem, drawLightBacking, COLORS, now, motion, isLight, kick };
 })();
 
-// v0.18.0 edge particles (replaced in v0.18.1 step 7)
-(() => {
-  const edgeCanvas = document.createElement('canvas');
-  edgeCanvas.id = 'edge-particles';
-  Object.assign(edgeCanvas.style, { position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 });
-  document.body.appendChild(edgeCanvas);
-  const drawEdgeParticles = () => {
-    if (!window.BlazeMotion || !window.BlazeMotion.enabled) { edgeCanvas.style.opacity = '0'; return; }
-    const ctx = edgeCanvas.getContext('2d'); if (!ctx) return;
-    const w = window.innerWidth, h = window.innerHeight;
-    edgeCanvas.width = w * devicePixelRatio; edgeCanvas.height = h * devicePixelRatio; edgeCanvas.style.width = w + 'px'; edgeCanvas.style.height = h + 'px';
-    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-    edgeCanvas.style.opacity = '0.55';
-    const dots = Array.from({ length: 24 }, (_, i) => ({ x: (i / 24) * w, y: i % 2 ? h * 0.12 : h * 0.92, r: 1.5 + (i % 7) * 0.4 }));
-    dots.forEach((d, i) => {
-      ctx.beginPath(); ctx.fillStyle = i % 4 === 0 ? 'rgba(255,255,255,.88)' : i % 7 === 0 ? 'rgba(189,189,194,.85)' : 'rgba(255,255,255,.45)'; ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
-    });
-  };
-  window.addEventListener('resize', drawEdgeParticles);
-  drawEdgeParticles();
-})();

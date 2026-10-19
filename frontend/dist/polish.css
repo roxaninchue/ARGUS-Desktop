@@ -36,3 +36,9 @@ blaze-emblem.morb { display: block; flex: none; pointer-events: none; }
 .msg.blaze > .sdrop, .msg.blaze > .sshim { position: absolute; left: 0; top: 0; pointer-events: none; transform-origin: 0 0; }
 .msg.blaze > .sdrop { will-change: transform; }
 
+
+/* v0.18.1 EdgeParticles (edge.js): the body is the stacking context, so the particle canvas at z-index -1 paints
+   above the page ground but behind everything in #app. #app gets no z-index or isolation of its own: the stream
+   shimmer blends with the text through it (mix-blend-mode needs the shared stacking context). */
+body { position: relative; z-index: 0; }
+#edge-particles { transition: none; }
