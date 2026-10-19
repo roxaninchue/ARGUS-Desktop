@@ -719,6 +719,22 @@ with sync_playwright() as p:
         pg.screenshot(path=str(out / f"skills-learned-chat-{theme}.png"))
         if pg.evaluate("document.querySelectorAll('.learnmark').length") != 3:
             errs.append("learned marks missing in the chat")
+        # v0.18.1 StreamOrb + shimmer mid-stream, and an agent run with the edge particles.
+        st = pg.evaluate("window.__streamDemo()")
+        pg.screenshot(path=str(out / f"chat-midstream-{theme}.png"))
+        if not st or not st.get("pos") or st.get("glow", 0) < .5:
+            errs.append("stream drop or shimmer missing mid-stream: " + str(st))
+        if pg.evaluate("!!document.querySelector('.chat .t.typing') && getComputedStyle(document.querySelector('.chat .t.typing'), '::after').content !== 'none'"):
+            errs.append("blinking caret still drawn")
+        pg.evaluate("StreamOrb.thaw(); fire('done', {seconds: 2})"); pg.wait_for_timeout(1700)
+        if pg.evaluate("!!document.querySelector('.sdrop, .sshim')") or not pg.evaluate("(([...document.querySelectorAll('#log .msg.blaze')].pop() || document).querySelector('.who blaze-emblem') || {hasAttribute: () => false}).hasAttribute('dim')"):
+            errs.append("the drop should glide home and the pair rest dimmed beside the newest reply")
+        if not pg.evaluate("window.__runDemo()"):
+            errs.append("edge particles should be on while a run is active")
+        pg.screenshot(path=str(out / f"agent-running-{theme}.png"))
+        pg.evaluate("EdgeParticles.thaw(); fire('done', {seconds: 4})"); pg.wait_for_timeout(600)
+        if pg.evaluate("getComputedStyle(document.querySelector('#edge-particles')).display") != "none":
+            errs.append("edge particles should be gone when the run ends")
         # The indicator in the orb.
         pg.set_viewport_size({"width": 400, "height": 560})
         pg.evaluate("newChat().then(() => { fire('orb', true); fire('screen', {on: true, how: 'pixels'}); })"); pg.wait_for_timeout(700)
@@ -726,6 +742,23 @@ with sync_playwright() as p:
         pg.evaluate("fire('screen', {on: false}); fire('orb', false)"); pg.set_viewport_size({"width": 1280, "height": 820}); pg.wait_for_timeout(1700)
         if errs:
             print("JS errors:", errs); allerrs.extend(f"{theme}: {e}" for e in errs)
+    # v0.18.1 Reduce motion (the Settings toggle): the drop just sits at the end, no shimmer, no particles,
+    # no live emblems.
+    pg = b.new_page(viewport={"width": 1280, "height": 820}, device_scale_factor=1)
+    pg.add_init_script("localStorage.setItem('blaze.reduceMotion', '1');" + f"window.__theme='dark';window.__sample='{sample}';" + mock)
+    errs = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    guard(pg, errs)
+    pg.goto(url); pg.wait_for_timeout(600)
+    pg.evaluate("window.__streamDemo(300)")
+    pg.screenshot(path=str(out / "chat-reduced-motion-dark.png"))
+    still = pg.evaluate("""() => { const s = document.querySelector('.sshim'); const e = document.querySelector('#edge-particles');
+      return { motion: BlazeMotion.enabled, shimmer: !!s && getComputedStyle(s).display !== 'none', edge: !!e && getComputedStyle(e).display !== 'none',
+        drop: !!document.querySelector('.sdrop') }; }""")
+    if still["motion"] or still["shimmer"] or still["edge"] or not still["drop"]:
+        errs.append("reduced motion should leave only a still drop: " + str(still))
+    if errs:
+        print("JS errors:", errs); allerrs.extend("reduced-motion: " + e for e in errs)
     # Windows runs frameless with its own title-bar buttons.
     pg = b.new_page(viewport={"width": 1280, "height": 820}, device_scale_factor=1)
     pg.add_init_script(f"window.__theme='light';window.__os='windows';window.__sample='{sample}';" + mock)

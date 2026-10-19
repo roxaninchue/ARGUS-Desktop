@@ -3,7 +3,15 @@
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
 ## v0.18.1 (finish the glass look)
-- Work in progress.
+- **The real emblem**: the drop in its gold halo is now drawn exactly like Blaze Mobile, breathing and wobbling while Blaze works and still when it's done. New app and tray icons.
+- **The drop rides your reply**: while Blaze streams, the drop follows the end of the text, falls onto code blocks, tables and cards with a little splash, and glides home when the reply ends. The newest words glow blue, and a soft sweep crosses the reply when it finishes. The blinking caret is gone.
+- **Thinking marks**: every square status mark (thinking, steps, work cards, agents) is now a small live emblem. The old particle sprites are gone.
+- **Edge particles only while working**: a faint ring of dots travels round the window edge during a run and disappears when it ends. Fixes the rows of still dots v0.18.0 painted across the window.
+- **Rounded everywhere**: composer, buttons, cards, code chips, status dots, checkboxes and menus. CI now fails if a control comes back square.
+- **Light theme fixed**: your own messages are readable again, accent text and selected pills have proper contrast, and menus are frosted instead of see-through.
+- **Progress shimmer** on the update and voice-model downloads, and skeletons instead of "Loading…".
+- **Reduce motion** now also covers the memory graph, onboarding, chat titles and the big orb.
+- **Changelog restored**: v0.18.0 had dropped every older entry.
 
 ## v0.18.0 (glass)
 - **Dark frosted glass shell**: the desktop app now uses the same glass language as Blaze Mobile, with rounded cards, softer edges, and a translucent layer over the main surfaces.
