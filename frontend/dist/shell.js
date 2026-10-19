@@ -74,7 +74,7 @@ const Shell = (() => {
     const inView = !t || view === "design";
     const chip = $("#exitChip"); if (!chip) return;
     chip.style.display = inView ? "" : "none";
-    $("#exitName").textContent = (window.BlazeViews ? BlazeViews.label(view) : view).toUpperCase();
+    $("#exitName").textContent = (view === "history" ? "Search" : window.BlazeViews ? BlazeViews.label(view) : view).toUpperCase();
     $("#pill").classList.toggle("dim", !t);
     chips();
     if (window.OneChat) OneChat.decorate();
