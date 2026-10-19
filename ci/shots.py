@@ -414,7 +414,7 @@ with sync_playwright() as p:
         zp.evaluate("loadConv(window.__conv); show('work')"); zp.wait_for_timeout(300)
         zp.evaluate("document.querySelector('.work.done').click(); document.querySelector('#log').scrollTop = 0"); zp.wait_for_timeout(300)
         zp.locator(".msg.blaze").first.screenshot(path=str(out / f"marks-{theme}.png"))
-        if zp.evaluate("document.querySelectorAll('.msg.blaze canvas.morb').length") < 3:
+        if zp.evaluate("document.querySelectorAll('.msg.blaze blaze-emblem.morb').length") < 3:
             errs.append("mini orb marks missing")
         zp.evaluate("""newChat().then(() => { sendText('Remember that my name is Luke', []);
           fire('tool', {id: 'm1', name: 'remember', args: '{"fact":"Name is Luke"}'}); fire('tool_done', {id: 'm1', result: 'Remembered.'});

@@ -1,4 +1,4 @@
-// v0.4.2 polish: AI chat titles (animated, rename on double-click) and mini particle-orb marks.
+// v0.4.2 polish: AI chat titles (animated, rename on double-click) and the emblem marks (v0.18.1 ThinkingOrb).
 // Loaded after app.js; it only uses app.js globals (API, on, $, $$, h, esc, current) and small hooks.
 (() => {
   // ---------------- chat titles ----------------
@@ -79,91 +79,37 @@
     if (b) { typeTitle($(".t", b), d.title); b.dataset.src = d.source || "auto"; }
   });
 
-  // ---------------- mini particle orbs ----------------
-  // One sprite sheet of a turning dot sphere per (size, dpr, theme); every mark blits its
-  // frame. Only marks on screen that belong to live work animate (≈15 fps); the rest keep a
-  // frozen frame. prefers-reduced-motion: always frozen.
-  const SEL = ".msg.blaze .who .mk, .msg.blaze .work .sq, .step .st, .thinking .sq, .acard .amk, .sprow .sp-mk";
-  const FRAMES = 48, FPS = 15;
-  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-  const sheets = {};
+  // ---------------- ThinkingOrb marks (v0.18.1) ----------------
+  // Every work mark (the Blaze label, the "Working / Worked" card, each step, answer cards, specialist rows) is a
+  // small emblem: the glass drop in its gold halo (duo.js). It moves only while that work is live and the emblem is
+  // on screen; when the work ends, or under reduced motion, it keeps one still frame.
+  const SEL = ".msg.blaze .who .mk, .msg.blaze .work .sq, .step .st, .acard .amk, .sprow .sp-mk";
+  const SIZE = host => host.matches(".acard .amk") ? 16 : host.matches(".who .mk") ? 20 : 18;
   const marks = new Set();
-  const visible = new Set();
-  let frame = 7, raf = 0, last = 0;
-
-  function sheet(css) {
-    const dpr = Math.max(1, Math.round((window.devicePixelRatio || 1) * 4) / 4);
-    const theme = document.documentElement.dataset.theme || "light";
-    const key = css + "|" + dpr + "|" + theme;
-    if (sheets[key]) return sheets[key];
-    const px = Math.round(css * dpr);
-    const cv = document.createElement("canvas");
-    cv.width = px * FRAMES; cv.height = px;
-    const ctx = cv.getContext("2d");
-    const st = getComputedStyle(document.documentElement);
-    const acc = st.getPropertyValue("--accent").trim() || "#E6E6EA", ink = st.getPropertyValue("--ink").trim() || "#111110";
-    const N = css >= 10 ? 34 : 24;
-    const pts = Array.from({ length: N }, (_, i) => { const y = 1 - (i + .5) * 2 / N, r = Math.sqrt(1 - y * y), t = i * 2.39996; return [Math.cos(t) * r, y, Math.sin(t) * r]; });
-    const R = px * .42, c = px / 2;
-    for (let f = 0; f < FRAMES; f++) {
-      const a = f / FRAMES * Math.PI * 2, ox = f * px;
-      pts.forEach(([x, y, z], i) => {
-        const xr = x * Math.cos(a) - z * Math.sin(a), zr = x * Math.sin(a) + z * Math.cos(a);
-        const yr = y * Math.cos(.4) - zr * Math.sin(.4), zz = y * Math.sin(.4) + zr * Math.cos(.4);
-        const d = (zz + 1) / 2, s = Math.max(1, Math.round(dpr * (css >= 10 ? 1.5 : 1.2) * (.5 + d * .7)));
-        ctx.globalAlpha = .4 + d * .6;
-        ctx.fillStyle = i % 7 === 0 ? ink : acc;
-        ctx.fillRect(Math.round(ox + c + xr * R - s / 2), Math.round(c + yr * R - s / 2), s, s);
-      });
-    }
-    return (sheets[key] = { cv, px });
-  }
-
-  function draw(m) {
-    const css = m._css, sh = sheet(css);
-    if (m.width !== sh.px) { m.width = sh.px; m.height = sh.px; }
-    const ctx = m.getContext("2d");
-    ctx.clearRect(0, 0, sh.px, sh.px);
-    ctx.drawImage(sh.cv, (m._f ?? frame) * sh.px, 0, sh.px, sh.px, 0, 0, sh.px, sh.px);
-  }
 
   const isLive = m => !!(m.closest(".work.live, .step.run, .thinking, .acard.live, .sprow.live") ||
     (typeof current !== "undefined" && current && current.el && m.closest(".who") && m.closest(".msg.blaze") === current.el));
 
-  const io = typeof IntersectionObserver === "function" ? new IntersectionObserver(es => {
-    es.forEach(e => e.isIntersecting ? visible.add(e.target) : visible.delete(e.target));
-    kick();
-  }) : null;
-
   function attach(host) {
     if (host._orb) return;
-    const css = host.matches(".acard .amk") ? 8 : 10;
-    const m = document.createElement("canvas");
-    m.className = "morb"; m._css = css; m._f = frame;
-    m.style.width = m.style.height = css + "px";
+    const m = document.createElement("blaze-emblem");
+    m.className = "morb";
+    m.setAttribute("size", SIZE(host));
     m.setAttribute("aria-hidden", "true");
     host._orb = m; host.classList.add("has-orb");
     host.append(m);
     marks.add(m);
-    draw(m);
-    if (io) io.observe(m); else visible.add(m);
+    m.live = isLive(m);
   }
 
-  function tick(now) {
-    raf = 0;
-    if (reduced.matches || document.hidden) return;
-    let any = false;
-    const step = now - last >= 1000 / FPS;
-    if (step) { last = now; frame = (frame + 1) % FRAMES; }
-    visible.forEach(m => {
-      if (!m.isConnected) { visible.delete(m); marks.delete(m); return; }
-      if (!isLive(m)) { if (m._f == null) m._f = frame; return; } // freeze where it stopped
-      any = true; m._f = null;
-      if (step) draw(m);
+  // Start or stop each mark's clock to match its work.
+  function kick() {
+    marks.forEach(m => {
+      if (!m.isConnected) { marks.delete(m); return; }
+      const l = isLive(m);
+      if (l !== m.live) m.live = l;
     });
-    if (any) raf = requestAnimationFrame(tick);
   }
-  function kick() { if (!raf && !reduced.matches) raf = requestAnimationFrame(tick); }
 
   function scan(root) {
     if (root.nodeType !== 1) return;
@@ -171,21 +117,11 @@
     root.querySelectorAll(SEL).forEach(attach);
   }
   new MutationObserver(ms => {
-    let added = false;
-    ms.forEach(r => r.addedNodes.forEach(n => { if (n.nodeType === 1) { scan(n); added = true; } }));
-    // Class changes (work.live → done, step.run → ok) start or stop the loop.
-    if (added || ms.some(r => r.type === "attributes")) kick();
-    marks.forEach(m => { if (!m.isConnected) { marks.delete(m); visible.delete(m); if (io) io.unobserve(m); } });
+    ms.forEach(r => r.addedNodes.forEach(n => { if (n.nodeType === 1) scan(n); }));
+    kick();   // class changes (work.live → done, step.run → ok) start or stop the clocks
   }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
   scan(document.body);
-
-  // Theme or display changes: rebuild the sheets and redraw every mark's frozen frame.
-  const redrawAll = () => { for (const k in sheets) delete sheets[k]; marks.forEach(draw); };
-  new MutationObserver(redrawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`).addEventListener?.("change", redrawAll);
-  reduced.addEventListener?.("change", kick);
-  document.addEventListener("visibilitychange", kick);
-  ["delta", "tool", "tool_done", "status", "thinking", "done", "error", "stopped"].forEach(ev => on(ev, kick));
+  ["delta", "tool", "tool_done", "status", "thinking", "done", "error", "stopped"].forEach(ev => on(ev, () => setTimeout(kick, 0)));
 
   // ---------------- personality (Settings › Behaviour) ----------------
   function personalityGroup(redraw) {

@@ -10,19 +10,26 @@
 .chat.editing .when, .chat.editing .x { display: none !important; }
 
 /* ---- mini orbs replace the small square marks ---- */
-.morb { display: block; flex: none; image-rendering: pixelated; }
-.msg.blaze .who .mk.has-orb { width: 10px; height: 10px; background: none; }
-.msg.blaze .work .sq.has-orb, .msg.blaze .work.done .sq.has-orb { width: 10px; height: 10px; background: none; animation: none; }
-.msg.blaze .work.done .sq.has-orb .morb { opacity: .7; transition: opacity .15s; }
-.msg.blaze .work.done:hover .sq.has-orb .morb { opacity: 1; }
-.thinking .sq.has-orb { width: 10px; height: 10px; background: none; animation: none; }
-.acard .amk.has-orb { width: 8px; height: 8px; background: none; animation: none; }
-.step:not(.bad) .st.has-orb::before { display: none; }
-.step.bad .st .morb { display: none; }
-.step.ok .st .morb { opacity: .9; }
 @media (prefers-reduced-motion: reduce) { .chat .t.typing::after { animation: none; } }
 
 /* ---- personality (Settings › Behaviour) ---- */
 .pbox { margin-top: 10px; }
 .pbox .pnote { color: var(--sub); font-size: 12.5px; }
 .pcustom { min-height: 180px; font: 12.5px/1.55 var(--mono); }
+
+/* v0.18.1 ThinkingOrb marks: a small emblem (duo.js) replaces each square mark. The emblem is a little larger than
+   its slot (the halo's glow) and overflows it without moving the layout. */
+blaze-emblem.morb { display: block; flex: none; pointer-events: none; }
+.has-orb { position: relative; display: inline-grid !important; place-items: center; background: none !important; border: 0 !important; animation: none !important; overflow: visible; }
+.has-orb > blaze-emblem.morb { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.msg.blaze .who .mk.has-orb { width: 14px; height: 14px; }
+.msg.blaze .work .sq.has-orb { width: 12px; height: 12px; }
+.msg.blaze .work.done .sq.has-orb .morb { opacity: .75; transition: opacity .15s; }
+.msg.blaze .work.done:hover .sq.has-orb .morb { opacity: 1; }
+.thinking .sq.has-orb { width: 16px; height: 16px; }
+.acard .amk.has-orb { width: 10px; height: 10px; }
+.step .st.has-orb::before { display: none; }
+.step.bad .st.has-orb::before { display: block; }
+.step.bad .st .morb { display: none; }
+.step:not(.run):not(.bad) .st .morb { opacity: .8; }
+.sprow .sp-mk.has-orb { width: 12px; height: 12px; }

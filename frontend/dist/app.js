@@ -700,7 +700,7 @@ function thinking(onOff, text) {
   }
   if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
   if (onOff && current) {
-    thinkingEl = h("div", "thinking", `<span class="sq"></span><span>${esc(text || "Thinking")}</span>`);
+    thinkingEl = h("div", "thinking", `<span class="sq has-orb"><blaze-emblem class="morb" size="22" live aria-hidden="true"></blaze-emblem></span><span>${esc(text || "Thinking")}</span>`);
     current.el.append(thinkingEl); scrollDown();
   }
 }
