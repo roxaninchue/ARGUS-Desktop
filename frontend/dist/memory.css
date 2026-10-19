@@ -73,7 +73,7 @@
 .mscrub input::-moz-range-track { height: 2px; background: var(--hair2); }
 .mscrub input::-moz-range-progress { height: 2px; background: var(--accent); }
 .mscrub input::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; margin-top: -4px; background: var(--ink); border: 0; }
-.mscrub input::-moz-range-thumb { width: 10px; height: 10px; background: var(--ink); border: 0; border-radius: 50%; }
+.mscrub input::-moz-range-thumb { width: 10px; height: 10px; background: var(--ink); border: 0; border-radius: 0; }
 .mem.replaying .mscrub input::-webkit-slider-thumb { background: var(--accent); }
 .mwhen { display: flex; flex-direction: column; gap: 3px; min-width: 112px; }
 .mwhen .label { line-height: 1; white-space: nowrap; }
