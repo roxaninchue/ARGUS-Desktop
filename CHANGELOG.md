@@ -2,6 +2,16 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## v0.19.0 (one chat, Home, Blaze Cloud, Music and Video)
+- **One endless chat**: the chats sidebar is gone. Chat is one conversation that loads older messages as you scroll up; your earlier chats sit further back under "Earlier chat" dividers, and Ctrl K searches all of it. Nothing in `~/.blaze` was moved or deleted.
+- **Topic-aware memory**: Blaze follows which topic you're on. Going back to an earlier topic brings back that topic's notes and messages and leaves unrelated ones out, while deadlines, decisions, preferences and anything you call important carry across. A quiet topic chip above the composer shows where you are. Every message stays searchable.
+- **Home tab**: Home | Chat | Projects tabs. Home has a greeting, a quick ask box and cards for weather, news, prices, sports, GitHub activity, your schedule, deadlines and "pick up where you left off". Add cards in plain words.
+- **Blaze Cloud**: every model call goes through Blaze Cloud with your Blaze account by default, picking the model per task like Blaze Mobile, with clear messages for signed out, waiting list or busy.
+- **Custom models**: Settings > Models lets you use your own providers and keys instead, optionally pin a model for chat, code or vision, and choose whether Blaze Cloud is a backup.
+- **Music**: your music folders as a library with covers, a player with queue, shuffle, repeat, EQ, sleep timer and lyrics, a mini player on every tab, playlists, mixes, Wrapped and the Store (YouTube, Jamendo, Internet Archive). Ask Blaze to "play something chill".
+- **Video**: library, Continue watching, series, subtitles, resume, speed, skip intro, up next, recap and translate.
+- Design notes: `docs/plans/plan-v0.19.md`.
+
 ## v0.18.2 (the mobile design on the glass look)
 The v0.17.1 mobile design (PR #54), merged onto the glass look (v0.18.0 + v0.18.1). Glass keeps the palette, the frosted surfaces and the orb + halo mark; the mobile design brings its chat, composer, rich replies and the no-square guard. `round.css` keeps v0.17.1's rules first and v0.18.1's radii last, so v0.18.1 wins where both set a radius.
 - **Kept from v0.18.0**: the dark-first monochrome glass tokens, the ground gradient, `glass.css` / `motion.css`, and the orb + halo `logo.svg` (it replaces v0.17.1's flame mascot, which is the older mark).
