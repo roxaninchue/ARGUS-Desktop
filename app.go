@@ -495,6 +495,7 @@ func (a *App) DeleteConversation(id string) {
 	_ = os.Remove(filepath.Join(convDir(), id+".json"))
 	if d, err := longchat.Default(); err == nil {
 		d.Forget(id)
+		d.ForgetTopics(id) // v0.19 topic state (topics_app.go)
 	}
 	a.mu.Lock()
 	if s := a.live[id]; s != nil && s.cancel != nil {

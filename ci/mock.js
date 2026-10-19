@@ -188,6 +188,9 @@ if (/\/internal\/router\/web\//.test(location.href)) {
     ArchivedConversations: async () => [{ id: "c1", title: "Float Rounding In Price Tests", updated: "Oct 9" }, { id: "c2", title: "Set up a Postgres container", updated: "Oct 8" }, { id: "c3", title: "Why is my fan so loud?", updated: "Oct 7" }, { id: "c6", title: "HomeGlow launch checklist", updated: "Oct 6" }],
     ReadArchived: async id => ({ id, title: "Set up a Postgres container", messages: [{ role: "user", content: "Set up a Postgres 16 container for HomeGlow, data in ~/pg" }, { role: "assistant", content: "Done. **postgres:16** runs as `homeglow-db` on port 5432 with its data in `~/pg`. The password is in your keyring under *homeglow-db*." }, { role: "user", content: "Make it start with the PC" }, { role: "assistant", content: "Set `--restart unless-stopped`, so Docker brings it back after a reboot." }] }),
     SetMindReview: async () => "",
+    // v0.19 topic-aware chat: the chip above the composer.
+    ChatTopics: async () => ({ current: "Pizza", id: 1, topics: [{ id: 1, title: "Pizza", turns: 4, active: true }, { id: 2, title: "Model rocket", turns: 3, active: false }, { id: 3, title: "Tax return", turns: 6, active: false }] }),
+    TopicMemoryOn: async () => true, SetTopicMemory: async () => {},
     FlashDecks: async () => [{ name: "NET103", cards: 24, due: 7, new: 4 }, { name: "CIT102", cards: 18, due: 3, new: 0 }, { name: "COM102", cards: 9, due: 0, new: 0 }],
     FlashDue: async d => [{ id: "f1", deck: d, front: "Which subnet mask gives 30 usable hosts?", back: "255.255.255.224 (/27): 32 addresses minus network and broadcast." }, { id: "f2", deck: d, front: "Default port for HTTPS?", back: "443" }],
     FlashReview: async () => "",

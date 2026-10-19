@@ -238,6 +238,19 @@ with sync_playwright() as p:
         if "Review past conversations when idle" not in pg.evaluate("document.querySelector('#view').innerText"):
             errs.append("idle-review toggle missing")
         pg.evaluate("window.__enterProject()"); pg.wait_for_timeout(400)
+        # v0.19 topic-aware chat: the "Topic · Pizza" chip above the composer and its topic list.
+        pg.evaluate("loadConv(window.__conv); show('work'); BlazeTopics.refresh()"); pg.wait_for_timeout(300)
+        if pg.evaluate("(document.querySelector('#composer .topicrow.show .tt') || {}).textContent") != "Pizza":
+            errs.append("topics: the chip above the composer should show the current topic")
+        pg.screenshot(path=str(out / f"topic-chip-{theme}.png"))
+        pg.evaluate("document.querySelector('#composer .topicchip').click()"); pg.wait_for_timeout(200)
+        if pg.evaluate("document.querySelectorAll('#composer .topicpop:not([hidden]) .topt').length") != 3:
+            errs.append("topics: the chip should list the chat's topics")
+        pg.screenshot(path=str(out / f"topic-list-{theme}.png"))
+        pg.evaluate("document.querySelector('#composer .topt:not(.cur)').click()"); pg.wait_for_timeout(100)
+        if not pg.evaluate("document.querySelector('#input').value").startswith("Back to the Model rocket: "):
+            errs.append("topics: picking a topic should start the message with 'Back to the …'")
+        pg.evaluate("document.querySelector('#input').value=''; onType()")
         # v0.17.0 marketer pack: the seller skills in Settings › Skills, and the approval a WhatsApp send needs.
         mk = [x for x in __import__("json").loads((root / "skills" / "index.json").read_text())["skills"] if x["name"] in ("content-calendar", "product-listing", "ad-lab", "research-brief", "whatsapp-replies", "weekly-digest")]
         pg.evaluate("mk => { for (const x of mk) if (!window.__skills.some(s => s.name === x.name)) window.__skills.push({ ...x, state: 'bundled', enabled: true, update: false }); }", mk)
