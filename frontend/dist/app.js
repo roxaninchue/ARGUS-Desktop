@@ -61,8 +61,8 @@ async function boot() {
   setModel(S.model, S.selection);
   await refreshSide();
   hero();
-  show("work");
-  if (oneMind() && API().OpenMain) { const c = await API().OpenMain(); convId = "main"; if (c && c.messages && c.messages.length) loadConv(c); }
+  if (window.OneChat) await OneChat.boot(); // v0.19: one infinite chat + Home tab (onechat.js)
+  else { show("work"); if (oneMind() && API().OpenMain) { const c = await API().OpenMain(); convId = "main"; if (c && c.messages && c.messages.length) loadConv(c); } }
   if (window.Onboard && Onboard.shouldOpen(S)) show("setup"); // first run, or still no model
   setInterval(refreshJobCount, 4000);
   if (window.refreshConnCount) refreshConnCount(S.connected);
@@ -131,8 +131,7 @@ function setModel(label, sel) {
 
 $("#folder").onclick = async () => { const d = await API().PickFolder(); S.prefs.folder = d; setFolder(d); };
 $("#route").onclick = e => { e.stopPropagation(); modelPopover($("#route")); };
-$("#newChat").onclick = () => newChat();
-$("#newProject").onclick = () => newProject();
+[["#newChat", () => newChat()], ["#newProject", () => newProject()]].forEach(([s, f]) => { const b = $(s); if (b) b.onclick = f; }); // v0.19: no sidebar
 $$(".nav").forEach(b => b.onclick = () => show(b.dataset.view));
 $$("#tabs button").forEach(b => b.onclick = () => show(b.dataset.tab));
 addEventListener("keydown", e => {
@@ -278,6 +277,7 @@ function drawModelRows(list, pv, ml, current, pick) {
 // ---------- sidebar ----------
 async function refreshSide() {
   S.project = (await API().State()).project;
+  if (!$("#chats")) { if (window.OneChat) OneChat.sync(); return; } // v0.19: no sidebar to draw
   const pid = S.project ? S.project.id : "";
   const projects = await API().Projects() || [];
   const pn = $("#projects"); pn.innerHTML = "";
