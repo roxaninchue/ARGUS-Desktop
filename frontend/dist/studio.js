@@ -67,7 +67,8 @@
     if (live) return drawDirections();
     if (S2.mode === "states" && D && D.target && D.target.kind) return drawStates();
     _drawStage();
-    if (compare.length === 2 && D && D.target && D.target.kind === "file") drawSlider();
+    // The studio (dstudio.js) compares side by side at one zoom unless the slider is chosen.
+    if (compare.length === 2 && D && D.target && D.target.kind === "file" && (!window.DSTUDIO || DSTUDIO.cmpView === "slider")) drawSlider();
     drawScore();
   };
 
@@ -319,18 +320,21 @@
   }
   function criticPop(anchor) {
     const c = headCard(); if (!c) return;
-    openPop(anchor, p => {
-      p.innerHTML = `<div class="phd"><span class="label">Critic · version ${pad(c.version)}</span><span class="grow"></span><span class="cs big ${grade(c.score)}">${c.score}</span></div>
-        <div class="pbody"><div class="cbars">${[["Accessibility", c.a11y], ["Layout", c.layout], ["Speed", c.speed]].map(([l, v]) => `<div class="cbar"><span class="label">${l}</span><span class="track"><span style="width:${v}%"></span></span><span class="mono">${v}</span></div>`).join("")}</div>
-        ${c.issues && c.issues.length ? `<ul class="clist">${c.issues.map(i => `<li>${esc(i)}</li>`).join("")}</ul>` : `<div class="pnote">Checked at phone, tablet and desktop widths. Nothing to fix.</div>`}
-        ${c.fix_of ? `<div class="pnote">This version is the critic's fix of v${pad(c.fix_of)}.</div>` : ""}</div>
-        <div class="pft" style="display:flex;gap:8px;align-items:center"><label class="toggle"><input type="checkbox" class="af"><span class="label">Fix automatically</span></label><span class="grow"></span><button class="btn accent sm fx">Fix now</button></div>`;
-      call("StudioPrefs").then(pr => { $(".af", p).checked = !pr || pr.auto_fix !== false; });
-      $(".af", p).onchange = async e => { const pr = (await call("StudioPrefs")) || {}; pr.auto_fix = e.target.checked; call("SetStudioPrefs", pr); };
-      const fx = $(".fx", p);
-      if (!c.issues || !c.issues.length) fx.style.display = "none";
-      fx.onclick = () => { closePop(); call("MarkFixRequested", c.version); sendText(`[Critic fix] Version ${c.version} of ${D.target.path || D.target.url} scored ${c.score}/100. Fix these in the source, keep the design otherwise identical, then say in one line what you fixed:\n` + c.issues.map(i => "- " + i).join("\n"), []); };
-    }, { width: 360 });
+    openPop(anchor, p => criticBody(p, c), { width: 360 });
+  }
+  // The critic's card, in a popover or the studio's Critic tab.
+  S2.criticInto = el => { const c = headCard(); if (!c) return false; el.classList.add("critpane"); criticBody(el, c); return true; };
+  function criticBody(p, c) {
+    p.innerHTML = `<div class="phd"><span class="label">Critic · version ${pad(c.version)}</span><span class="grow"></span><span class="cs big ${grade(c.score)}">${c.score}</span></div>
+      <div class="pbody"><div class="cbars">${[["Accessibility", c.a11y], ["Layout", c.layout], ["Speed", c.speed]].map(([l, v]) => `<div class="cbar"><span class="label">${l}</span><span class="track"><span style="width:${v}%"></span></span><span class="mono">${v}</span></div>`).join("")}</div>
+      ${c.issues && c.issues.length ? `<ul class="clist">${c.issues.map(i => `<li>${esc(i)}</li>`).join("")}</ul>` : `<div class="pnote">Checked at phone, tablet and desktop widths. Nothing to fix.</div>`}
+      ${c.fix_of ? `<div class="pnote">This version is the critic's fix of v${pad(c.fix_of)}.</div>` : ""}</div>
+      <div class="pft" style="display:flex;gap:8px;align-items:center"><label class="toggle"><input type="checkbox" class="af"><span class="label">Fix automatically</span></label><span class="grow"></span><button class="btn accent sm fx">Fix now</button></div>`;
+    call("StudioPrefs").then(pr => { $(".af", p).checked = !pr || pr.auto_fix !== false; });
+    $(".af", p).onchange = async e => { const pr = (await call("StudioPrefs")) || {}; pr.auto_fix = e.target.checked; call("SetStudioPrefs", pr); };
+    const fx = $(".fx", p);
+    if (!c.issues || !c.issues.length) fx.style.display = "none";
+    fx.onclick = () => { closePop(); call("MarkFixRequested", c.version); sendText(`[Critic fix] Version ${c.version} of ${D.target.path || D.target.url} scored ${c.score}/100. Fix these in the source, keep the design otherwise identical, then say in one line what you fixed:\n` + c.issues.map(i => "- " + i).join("\n"), []); };
   }
 
   // ---------- design events ----------
@@ -435,26 +439,29 @@
     return cs.map(c => `<span class="sw" style="background:${esc(c)}" title="${esc(c)}"></span>`).join("");
   }
   async function brandPop(anchor) {
-    const [b, tv, pr] = await Promise.all([call("BrandKit"), call("Taste"), call("StudioPrefs")]);
-    openPop(anchor, p => {
-      const draw = (b) => {
-        p.innerHTML = `<div class="phd"><span class="label">Brand kit</span><span class="grow"></span>${b && (b.accents || []).length ? `<button class="btn ghost xs clr">Clear</button>` : ""}</div>
-          <div class="pbody">${b && (b.paper || (b.accents || []).length || (b.fonts || []).length) ? `<div class="bk"><div class="sws">${swatches(b)}</div><div class="bkline"><span class="label">Fonts</span>${esc((b.fonts || []).join(", ") || "—")}</div><div class="bkline"><span class="label">Radius</span>${esc(b.radius || "—")}</div>${b.source ? `<div class="bkline"><span class="label">From</span><span class="mono">${esc(b.source)}</span></div>` : ""}<textarea class="field notes" rows="2" placeholder="Notes Blaze should always follow (voice, dos and don'ts)">${esc(b.notes || "")}</textarea></div>` : `<div class="pnote" style="padding:0 0 8px">Pull a brand from a site or a logo. Every design then follows it without being told.</div>`}
-          <div class="urlform"><input class="field mono" placeholder="yourbrand.com"><button class="btn accent sm u">Pull</button></div>
-          <label class="btn line sm logo" style="margin-top:8px;display:inline-flex">${icon("drop", "i sm")}From a logo image…<input type="file" accept="image/png,image/jpeg,image/gif" hidden></label></div>
-          <div class="pft" style="display:block"><div class="label">Taste</div><div class="pnote" style="padding:4px 0">${tv && tv.prompt ? esc(tv.prompt.split("\n").slice(1).join(" ")) : "Blaze learns your fonts, colours and spacing from what you keep and undo."}</div>
-          <div style="display:flex;gap:8px;align-items:center"><label class="toggle"><input type="checkbox" class="tl"${pr && pr.no_taste ? "" : " checked"}><span class="label">Learn my taste</span></label><span class="grow"></span><button class="btn ghost xs fg">Forget</button></div></div>`;
-        const u = $(".u", p), inp = $(".urlform input", p);
-        const pull = async () => { if (!inp.value.trim()) return; u.textContent = "Reading…"; u.disabled = true; const r = await call("BrandFromURL", inp.value.trim()); if (r.error) { note(r.error, "error"); u.textContent = "Pull"; u.disabled = false; return; } draw(r.brand); };
-        u.onclick = pull; inp.onkeydown = e => { if (e.key === "Enter") pull(); };
-        $(".logo input", p).onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = async () => { const r = await call("BrandFromImageData", rd.result, f.name); if (r.error) note(r.error, "error"); else draw(r.brand); }; rd.readAsDataURL(f); };
-        const clr = $(".clr", p); if (clr) clr.onclick = async () => draw(await call("ClearBrand"));
-        const nt = $(".notes", p); if (nt) nt.onchange = async () => { const cur = await call("BrandKit"); cur.notes = nt.value; call("SetBrand", cur); };
-        $(".tl", p).onchange = async e => { const cur = (await call("StudioPrefs")) || {}; cur.no_taste = !e.target.checked; call("SetStudioPrefs", cur); };
-        $(".fg", p).onclick = async () => { await call("ForgetTaste"); note("Taste forgotten"); closePop(); };
-      };
-      draw(b);
-    }, { width: 360 });
+    const data = await Promise.all([call("BrandKit"), call("Taste"), call("StudioPrefs")]);
+    openPop(anchor, p => brandBody(p, data), { width: 360 });
+  }
+  // The brand kit and taste, in a popover or the studio's Brand tab.
+  S2.brandInto = async el => { el.classList.add("brandpane"); brandBody(el, await Promise.all([call("BrandKit"), call("Taste"), call("StudioPrefs")])); };
+  function brandBody(p, [b, tv, pr]) {
+    const draw = (b) => {
+      p.innerHTML = `<div class="phd"><span class="label">Brand kit</span><span class="grow"></span>${b && (b.accents || []).length ? `<button class="btn ghost xs clr">Clear</button>` : ""}</div>
+        <div class="pbody">${b && (b.paper || (b.accents || []).length || (b.fonts || []).length) ? `<div class="bk"><div class="sws">${swatches(b)}</div><div class="bkline"><span class="label">Fonts</span>${esc((b.fonts || []).join(", ") || "—")}</div><div class="bkline"><span class="label">Radius</span>${esc(b.radius || "—")}</div>${b.source ? `<div class="bkline"><span class="label">From</span><span class="mono">${esc(b.source)}</span></div>` : ""}<textarea class="field notes" rows="2" placeholder="Notes Blaze should always follow (voice, dos and don'ts)">${esc(b.notes || "")}</textarea></div>` : `<div class="pnote" style="padding:0 0 8px">Pull a brand from a site or a logo. Every design then follows it without being told.</div>`}
+        <div class="urlform"><input class="field mono" placeholder="yourbrand.com"><button class="btn accent sm u">Pull</button></div>
+        <label class="btn line sm logo" style="margin-top:8px;display:inline-flex">${icon("drop", "i sm")}From a logo image…<input type="file" accept="image/png,image/jpeg,image/gif" hidden></label></div>
+        <div class="pft" style="display:block"><div class="label">Taste</div><div class="pnote" style="padding:4px 0">${tv && tv.prompt ? esc(tv.prompt.split("\n").slice(1).join(" ")) : "Blaze learns your fonts, colours and spacing from what you keep and undo."}</div>
+        <div style="display:flex;gap:8px;align-items:center"><label class="toggle"><input type="checkbox" class="tl"${pr && pr.no_taste ? "" : " checked"}><span class="label">Learn my taste</span></label><span class="grow"></span><button class="btn ghost xs fg">Forget</button></div></div>`;
+      const u = $(".u", p), inp = $(".urlform input", p);
+      const pull = async () => { if (!inp.value.trim()) return; u.textContent = "Reading…"; u.disabled = true; const r = await call("BrandFromURL", inp.value.trim()); if (r.error) { note(r.error, "error"); u.textContent = "Pull"; u.disabled = false; return; } draw(r.brand); };
+      u.onclick = pull; inp.onkeydown = e => { if (e.key === "Enter") pull(); };
+      $(".logo input", p).onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = async () => { const r = await call("BrandFromImageData", rd.result, f.name); if (r.error) note(r.error, "error"); else draw(r.brand); }; rd.readAsDataURL(f); };
+      const clr = $(".clr", p); if (clr) clr.onclick = async () => draw(await call("ClearBrand"));
+      const nt = $(".notes", p); if (nt) nt.onchange = async () => { const cur = await call("BrandKit"); cur.notes = nt.value; call("SetBrand", cur); };
+      $(".tl", p).onchange = async e => { const cur = (await call("StudioPrefs")) || {}; cur.no_taste = !e.target.checked; call("SetStudioPrefs", cur); };
+      $(".fg", p).onclick = async () => { await call("ForgetTaste"); note("Taste forgotten"); closePop(); };
+    };
+    draw(b);
   }
 
   // ---------- 4. copy any window ----------
