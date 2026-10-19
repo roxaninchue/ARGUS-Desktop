@@ -6,7 +6,7 @@
 .mseg button { height: 26px; padding: 0 9px; font: 500 10px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--weak); transition: color .12s, background .12s; }
 .mseg button + button { border-left: 1px solid var(--hair); }
 .mseg button:hover { color: var(--ink); }
-.mseg button.on { background: var(--ink); color: var(--paper); }
+.mseg button.on { background: var(--ink); color: var(--on-ink); }
 .mseg.pilot button.on { background: var(--accent); color: var(--on-accent); }
 .mseg button.flash { animation: mflash .5s ease-out 1; }
 @keyframes mflash { from { box-shadow: inset 0 0 0 2px var(--accent); } to { box-shadow: inset 0 0 0 2px transparent; } }
