@@ -70,6 +70,14 @@ with sync_playwright() as p:
         pg.evaluate("window.postMessage({blaze:'edit', edit:{kind:'text', target:{tag:'h1'}, old_text:'Warm light', new_text:'Warm light for every corner'}}, '*')"); pg.wait_for_timeout(500)
         pg.screenshot(path=str(out / f"design-writeback-{theme}.png"))
         pg.evaluate("document.querySelector('#dtl').click(); document.querySelectorAll('#toasts .toast').forEach(t => t.remove())")
+        # v0.20 Design studio: Inspect with exact box + colour fields, the colour wheel, equal-zoom compare.
+        pg.evaluate("""selectOn=true; drawStage(); window.postMessage({blaze:'selected', items:[{selector:'section.hero > h1', tag:'h1', text:'Warm light for every corner of home.', html:'<h1>Warm light</h1>', leaf:true, target:{tag:'h1',classes:[],text:'Warm light',index:0}, box:{x:0,y:0,w:560,h:132}, styles:{color:'rgb(27,27,27)', background:'rgba(0,0,0,0)', fontSize:'54px', padding:'0px', borderRadius:'0px'}}]}, '*')"""); pg.wait_for_timeout(600)
+        pg.screenshot(path=str(out / f"design-studio-inspect-{theme}.png"))
+        pg.evaluate("document.querySelector('.p-inspect .cwf-sw').click()"); pg.wait_for_timeout(400)
+        pg.screenshot(path=str(out / f"design-studio-wheel-{theme}.png"))
+        pg.evaluate("BlazeColor.close(); selection=null; selectOn=false; document.querySelector('#dcmpbtn').click(); compare=[2,3]; drawStage()"); pg.wait_for_timeout(900)
+        pg.screenshot(path=str(out / f"design-studio-compare-{theme}.png"))
+        pg.evaluate("document.querySelector('#dcmpbtn').click(); compare=[]; drawStage(); DSTUDIO.setTab('chat')")
         pg.evaluate("show('work'); document.querySelector('#route').click()"); pg.wait_for_timeout(400)
         pg.screenshot(path=str(out / f"router-picker-{theme}.png"))
         if pg.evaluate("document.querySelectorAll('.pop .brpick').length") < 7:
