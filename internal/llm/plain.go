@@ -55,6 +55,10 @@ func Plain(err error) string {
 	if err == nil {
 		return ""
 	}
+	var pl Plainer // v0.19: Blaze Cloud / Custom errors already carry their line (backend.go)
+	if errors.As(err, &pl) {
+		return pl.PlainLine()
+	}
 	var re *RouteError
 	if errors.As(err, &re) {
 		if re.NoModels || re.NoTools {

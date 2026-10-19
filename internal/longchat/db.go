@@ -75,7 +75,7 @@ func Open(path string) (*DB, error) {
 		return nil, err
 	}
 	s.SetMaxOpenConns(1)
-	if _, err := s.Exec(schema); err != nil {
+	if _, err := s.Exec(schema + topicSchema); err != nil { // topicSchema: additive v0.19 tables (topics.go)
 		s.Close()
 		return nil, fmt.Errorf("longchat.db: %w", err)
 	}

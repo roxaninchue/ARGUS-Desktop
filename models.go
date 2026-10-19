@@ -19,6 +19,7 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
+	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
 	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
 	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
 )
@@ -96,6 +97,9 @@ func (a *App) routing() RoutingView {
 
 // modelName is what the model chip shows before a turn has answered.
 func (a *App) modelName() string {
+	if cloudModelsOn() {
+		return cloudai.Name // v0.19 (cloudmodels_app.go)
+	}
 	if !a.cfg.IsAuto() {
 		return a.selection().Label
 	}
@@ -155,6 +159,7 @@ func (a *App) DetectModels(provider string) llm.ModelList {
 // An empty model uses the provider's current model. Returns the chip label.
 func (a *App) SelectModel(provider, model string) string {
 	a.waitReady()
+	useCustomModels() // picking a model of your own means Custom (cloudmodels_app.go)
 	if provider == "" || provider == config.Auto {
 		a.cfg.Default = nil
 		_ = a.cfg.Save()

@@ -61,8 +61,8 @@ async function boot() {
   setModel(S.model, S.selection);
   await refreshSide();
   hero();
-  show("work");
-  if (oneMind() && API().OpenMain) { const c = await API().OpenMain(); convId = "main"; if (c && c.messages && c.messages.length) loadConv(c); }
+  if (window.OneChat) await OneChat.boot(); // v0.19: one infinite chat + Home tab (onechat.js)
+  else { show("work"); if (oneMind() && API().OpenMain) { const c = await API().OpenMain(); convId = "main"; if (c && c.messages && c.messages.length) loadConv(c); } }
   if (window.Onboard && Onboard.shouldOpen(S)) show("setup"); // first run, or still no model
   setInterval(refreshJobCount, 4000);
   if (window.refreshConnCount) refreshConnCount(S.connected);
@@ -131,8 +131,7 @@ function setModel(label, sel) {
 
 $("#folder").onclick = async () => { const d = await API().PickFolder(); S.prefs.folder = d; setFolder(d); };
 $("#route").onclick = e => { e.stopPropagation(); modelPopover($("#route")); };
-$("#newChat").onclick = () => newChat();
-$("#newProject").onclick = () => newProject();
+[["#newChat", () => newChat()], ["#newProject", () => newProject()]].forEach(([s, f]) => { const b = $(s); if (b) b.onclick = f; }); // v0.19: no sidebar
 $$(".nav").forEach(b => b.onclick = () => show(b.dataset.view));
 $$("#tabs button").forEach(b => b.onclick = () => show(b.dataset.tab));
 addEventListener("keydown", e => {
@@ -278,6 +277,7 @@ function drawModelRows(list, pv, ml, current, pick) {
 // ---------- sidebar ----------
 async function refreshSide() {
   S.project = (await API().State()).project;
+  if (!$("#chats")) { if (window.OneChat) OneChat.sync(); return; } // v0.19: no sidebar to draw
   const pid = S.project ? S.project.id : "";
   const projects = await API().Projects() || [];
   const pn = $("#projects"); pn.innerHTML = "";
@@ -458,11 +458,12 @@ function hero() {
     sug.append(b);
   });
   box.append(sug); col.append(box);
-  if (S.setup_done && !(S.providers || []).some(p => p.ready && p.id !== "pollinations")) {
+  const noModel = () => { if (S.setup_done && !(S.providers || []).some(p => p.ready && p.id !== "pollinations")) {
     const c = h("div", "callout acc", `${icon("key")}<div><b>No model yet.</b> Blaze needs one AI model that can use tools. A free Gemini or Groq key takes a minute. <a data-go="providers" style="color:var(--accent);cursor:pointer">Add one</a></div>`);
     c.style.marginTop = "18px"; $("a", c).onclick = () => show("router", "providers");
     box.append(c);
-  }
+  } };
+  if (window.CloudModels) CloudModels.heroCallout(box, noModel); else noModel(); // v0.19: Blaze Cloud needs only a sign-in
 }
 
 // Messages loaded from a saved chat have no time; live ones are stamped (bubbles.js groups by it).
@@ -1770,7 +1771,7 @@ async function buildProviderPanel(x, p, redraw) {
 
 // ---------- settings ----------
 const SECTIONS = [
-  ["models", "BlazeRouter", "layers"], ["usage", "Usage", "chart"],
+  ["models", "Models", "layers"], ["usage", "Usage", "chart"],
   ["behaviour", "Behaviour", "sliders"], ["appearance", "Appearance", "palette"], ["memory", "Memory", "brain"],
   ["skills", "Skills", "book"], ["computer", "This computer", "cpu"], ["updates", "Updates", "dl"],
 ];

@@ -1,25 +1,26 @@
-// The calm shell (v0.11.0, plan part A): a top bar with Chat | Projects, Search (Ctrl+K),
-// the BlazeRouter dot and an avatar menu; a rail that is the recent chats (Chat) or the
-// projects (Projects); an Exit chip whenever a view is open. Nothing is deleted: the old
-// sidebar buttons, Work/Design tabs, theme button and model chip stay in the DOM with
-// their handlers; they just move into /views, the avatar menu and the + menu.
+// The calm shell (v0.11.0, plan part A), v0.19: no sidebar. The top bar has the B logo, the tabs
+// Home | Chat | Projects (Blaze Mobile's order), Search (Ctrl+K), the BlazeRouter dot and an avatar
+// menu; an Exit chip whenever another view is open. Chat is one continuous conversation (onechat.js),
+// Home is the board (home.js), Projects keep their own chats. The old Work/Design tabs, theme button and
+// model chip stay in the DOM with their handlers; they live in /views, the avatar menu and the + menu.
 const Shell = (() => {
-  let mode = localStorage.getItem("blaze-shell-mode") === "projects" ? "projects" : "chat";
+  const TABS = ["home", "chat", "projects"];
+  let mode = TABS.includes(localStorage.getItem("blaze-shell-mode")) ? localStorage.getItem("blaze-shell-mode") : "home";
   const AV = '<svg class="i" viewBox="0 0 16 16"><circle cx="8" cy="6" r="2.75"/><path d="M2.75 14c.6-2.6 2.7-4 5.25-4s4.65 1.4 5.25 4"/></svg>';
   const SEARCH = '<svg class="i sm" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3.5 3.5"/></svg>';
 
   function build() {
     document.body.classList.add("shell");
     const top = $("#top");
-    // Chat | Projects (square segmented control, like the old tabs).
-    const pill = h("div", "tabs shpill"); pill.id = "pill";
-    pill.innerHTML = `<button data-mode="chat">Chat</button><button data-mode="projects">Projects</button>`;
-    $$("button", pill).forEach(b => b.onclick = () => setMode(b.dataset.mode));
+    // Home | Chat | Projects, centred in the bar.
+    const pill = h("div", "tabs shpill"); pill.id = "pill"; pill.setAttribute("role", "tablist");
+    pill.innerHTML = `<button data-mode="home" role="tab">Home</button><button data-mode="chat" role="tab">Chat</button><button data-mode="projects" role="tab">Projects</button>`;
+    $$("button", pill).forEach(b => b.onclick = () => go(b.dataset.mode));
     $("#tabs").after(pill);
     // DESIGN · Exit, shown while a view is open.
     const exit = h("div", "shexit"); exit.id = "exitChip";
     exit.innerHTML = `<span class="label ink" id="exitName"></span><button class="btn ghost xs" title="Back to the chat (Esc)">${icon("x", "i sm")}Exit</button>`;
-    $("button", exit).onclick = () => show("work");
+    $("button", exit).onclick = () => view === "design" ? show("work") : go(mode);
     pill.after(exit);
     // Search, then the router button (already there), then the avatar.
     const sb = h("button", "chip shsearch", `${SEARCH}<span>Search</span><span class="kbd">Ctrl K</span>`); sb.id = "searchBtn";
@@ -30,35 +31,53 @@ const Shell = (() => {
     const av = h("button", "shavatar", AV); av.id = "avatar"; av.title = "Account and settings"; av.dataset.pop = "1";
     av.onclick = e => { e.stopPropagation(); avatarMenu(av); };
     top.append(av);
-    // The B logo returns to the plain chat.
-    const brand = $("#side .brand");
-    if (brand) { brand.style.cursor = "pointer"; brand.title = "Back to the chat"; brand.addEventListener("click", () => show("work")); }
+    // The B logo goes Home.
+    const brand = $("#top .brand");
+    if (brand) { brand.style.cursor = "pointer"; brand.addEventListener("click", () => go("home")); }
     addEventListener("keydown", e => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); search(); }
-      if (e.key === "Escape" && view !== "work" && view !== "design" && !popEl && !menuOpen() && !document.body.classList.contains("orb")) show("work");
+      if (e.key === "Escape" && !tabOf(view) && view !== "design" && !popEl && !menuOpen() && !document.body.classList.contains("orb")) go(mode);
     });
-    setMode(mode, true);
-    sync();
+    paint();
   }
 
-  function setMode(m, quiet) {
-    mode = m; localStorage.setItem("blaze-shell-mode", m);
-    document.body.classList.toggle("mode-chat", m === "chat");
-    document.body.classList.toggle("mode-projects", m === "projects");
-    $$("#pill button").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
-    if (!quiet && m === "projects" && S && S.project) show("project", S.project.id);
-    else if (!quiet && m === "chat" && view !== "work") show("work");
-    chips();
+  // Which tab a view belongs to ("" = a page from /views, shown with the Exit chip).
+  function tabOf(v) {
+    if (v === "home") return "home";
+    if (v === "projects" || v === "project" || v === "newproject") return "projects";
+    if (v === "work" || v === "design") return S && S.project ? "projects" : "chat";
+    return "";
   }
 
-  // After every show(): the Exit chip and the pill's state.
+  // A tab was clicked (or the Exit chip, Esc, the logo).
+  async function go(m) {
+    if (m === "home") return show("home");
+    if (m === "projects") return S && S.project ? show("project", S.project.id) : show("projects");
+    // Chat is always the one main conversation: leave the open project first.
+    if (S && S.project && window.OneChat) return OneChat.toMain();
+    if (window.OneChat && convId !== "main") return OneChat.openMain();
+    show("work");
+  }
+
+  function setMode(m) { return go(TABS.includes(m) ? m : "chat"); }
+
+  function paint() {
+    $$("#pill button").forEach(b => b.classList.toggle("on", b.dataset.mode === mode));
+    TABS.forEach(t => document.body.classList.toggle("mode-" + t, t === mode));
+  }
+
+  // After every show(): the tab, the Exit chip and the pill's state.
   function sync() {
-    const inView = typeof view !== "undefined" && view !== "work" && view !== "project";
+    const t = typeof view !== "undefined" ? tabOf(view) : "";
+    if (t) { mode = t; if (t !== "projects") localStorage.setItem("blaze-shell-mode", t); }
+    paint();
+    const inView = !t || view === "design";
     const chip = $("#exitChip"); if (!chip) return;
     chip.style.display = inView ? "" : "none";
-    $("#exitName").textContent = (window.BlazeViews ? BlazeViews.label(view === "project" ? "projects" : view) : view).toUpperCase();
-    $("#pill").classList.toggle("dim", inView);
+    $("#exitName").textContent = (view === "history" ? "Search" : window.BlazeViews ? BlazeViews.label(view) : view).toUpperCase();
+    $("#pill").classList.toggle("dim", !t);
     chips();
+    if (window.OneChat) OneChat.decorate();
   }
 
   // Projects rail: a status chip on the project that is working right now.
@@ -75,8 +94,11 @@ const Shell = (() => {
   async function search() {
     const list = await API().Conversations(S && S.project ? S.project.id : "") || [];
     const projects = await API().Projects() || [];
+    const arch = API().ArchivedConversations ? await API().ArchivedConversations() || [] : [];
     const items = [
-      ...list.map(c => ({ name: c.title, desc: "Chat · " + (c.updated || ""), run: () => openChat(c.id) })),
+      { name: "Search the conversation", desc: "Every message in Chat and your earlier chats", run: () => show("history") },
+      ...list.map(c => ({ name: c.id === "main" ? "Chat" : c.title, desc: (c.id === "main" ? "Your one conversation" : "Chat") + " · " + (c.updated || ""), run: () => c.id === "main" ? go("chat") : openChat(c.id) })),
+      ...arch.map(c => ({ name: c.title || "Untitled", desc: "Earlier chat · " + (c.updated || ""), run: () => show("archive", c.id) })),
       ...[{ id: "", name: "General" }, ...projects].map(p => ({ name: p.name, desc: "Project" + (p.folder ? " · " + p.folder : ""), run: () => switchProject(p.id) })),
       ...(window.BlazeViews ? BlazeViews.items().map(v => ({ ...v, desc: "View · " + v.desc })) : []),
       ...COMMANDS.filter(c => c.run).map(c => ({ name: "/" + c.name, desc: c.desc, run: c.run })),
@@ -89,7 +111,7 @@ const Shell = (() => {
     leaveTurn(); const p = await API().OpenProject(id); convId = "";
     if (p && p.folder) { S.prefs.folder = p.folder; setFolder(p.folder); }
     hero(); await refreshSide();
-    if (id) show("project", id); else { show("work"); if (typeof openChat === "function") openChat("main"); }
+    if (id) show("project", id); else go("chat");
   }
 
   // Account, Settings, BlazeRouter, Theme, Model, Updates, Sign out.
@@ -119,7 +141,7 @@ const Shell = (() => {
     }, { width: 300 });
   }
 
-  return { build, sync, setMode, search, get mode() { return mode; } };
+  return { build, sync, setMode, go, search, tabOf, get mode() { return mode; } };
 })();
 window.Shell = Shell;
 // Two icons the shell needs that app.js didn't have.

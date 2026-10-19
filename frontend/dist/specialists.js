@@ -32,9 +32,9 @@ const Specs = (() => {
   }
 
   function ensureStrip() {
-    if (strip && strip.isConnected) return strip;
     const wrap = typeof pane !== "undefined" && pane ? $(".cwrap", pane) : null;
     if (!wrap) return null;
+    if (strip && wrap.contains(strip)) return strip; // v0.19: the pane is often off-page (Home), so not isConnected
     strip = h("div", "specs");
     strip.id = "specs";
     strip.innerHTML = `<button class="sp-hd" title="Show or hide the specialists"><span class="label ink">Specialists</span><span class="label sp-sum"></span><span class="grow"></span><span class="label sp-clear" role="button" tabindex="0" title="Hide the finished specialists">Clear</span><svg class="i sm chev" viewBox="0 0 16 16">${IC.down}</svg></button><div class="sp-list"></div>`;

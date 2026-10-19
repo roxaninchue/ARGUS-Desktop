@@ -144,6 +144,7 @@ func (a *App) startup(ctx context.Context) {
 	a.newEnv()
 	a.startConnectors()
 	a.startCloud()
+	a.startCloudModels() // v0.19: Blaze Cloud by default, or Custom (cloudmodels_app.go)
 	a.startComposer()
 	a.startAgents()
 	a.startShell()
@@ -495,6 +496,7 @@ func (a *App) DeleteConversation(id string) {
 	_ = os.Remove(filepath.Join(convDir(), id+".json"))
 	if d, err := longchat.Default(); err == nil {
 		d.Forget(id)
+		d.ForgetTopics(id) // v0.19 topic state (topics_app.go)
 	}
 	a.mu.Lock()
 	if s := a.live[id]; s != nil && s.cancel != nil {

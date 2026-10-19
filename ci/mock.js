@@ -188,6 +188,9 @@ if (/\/internal\/router\/web\//.test(location.href)) {
     ArchivedConversations: async () => [{ id: "c1", title: "Float Rounding In Price Tests", updated: "Oct 9" }, { id: "c2", title: "Set up a Postgres container", updated: "Oct 8" }, { id: "c3", title: "Why is my fan so loud?", updated: "Oct 7" }, { id: "c6", title: "HomeGlow launch checklist", updated: "Oct 6" }],
     ReadArchived: async id => ({ id, title: "Set up a Postgres container", messages: [{ role: "user", content: "Set up a Postgres 16 container for HomeGlow, data in ~/pg" }, { role: "assistant", content: "Done. **postgres:16** runs as `homeglow-db` on port 5432 with its data in `~/pg`. The password is in your keyring under *homeglow-db*." }, { role: "user", content: "Make it start with the PC" }, { role: "assistant", content: "Set `--restart unless-stopped`, so Docker brings it back after a reboot." }] }),
     SetMindReview: async () => "",
+    // v0.19 topic-aware chat: the chip above the composer.
+    ChatTopics: async () => ({ current: "Pizza", id: 1, topics: [{ id: 1, title: "Pizza", turns: 4, active: true }, { id: 2, title: "Model rocket", turns: 3, active: false }, { id: 3, title: "Tax return", turns: 6, active: false }] }),
+    TopicMemoryOn: async () => true, SetTopicMemory: async () => {},
     FlashDecks: async () => [{ name: "NET103", cards: 24, due: 7, new: 4 }, { name: "CIT102", cards: 18, due: 3, new: 0 }, { name: "COM102", cards: 9, due: 0, new: 0 }],
     FlashDue: async d => [{ id: "f1", deck: d, front: "Which subnet mask gives 30 usable hosts?", back: "255.255.255.224 (/27): 32 addresses minus network and broadcast." }, { id: "f2", deck: d, front: "Default port for HTTPS?", back: "443" }],
     FlashReview: async () => "",
@@ -336,6 +339,76 @@ if (/\/internal\/router\/web\//.test(location.href)) {
     Comments: async () => [{ id: "c1", sel: "section.hero > a.btn", text: "Button feels small on my phone", when: "21:14", from: "phone" }],
     ShipInfo: async () => ({ github: true, repo: "luke/homeglow", node: true, stack: "plain HTML/CSS", comments: true, shipped: [{ provider: "cloudflare", url: "https://homeglow.pages.dev", when: "10 Oct 18:02", version: 2 }] }),
     Ship: async () => "ok",
+  });
+  // v0.19 one infinite chat: the main conversation (30 turns) pages in from the end; the last turn is the
+  // price-test fix. Pages start at a user message, like internal/chatpage.Window.
+  const proj1 = state.project;
+  const topics = [["What's taking space in ~/Downloads?", "**18.4 GB** in `~/Downloads`: three Ubuntu ISOs (11 GB) and old Zoom recordings (5 GB). Want me to move the ISOs to the external drive?"],
+    ["Summarise the HomeGlow launch checklist", "Five things left: product photos, the returns page, the **pnpm build** on CI, DNS for homeglow.store and a test order."],
+    ["Remind me to call the printer tomorrow at 10", "Done: a reminder **tomorrow at 10:00**, “Call the printer about the flyers”."],
+    ["How do I undo the last git commit but keep the changes?", "`git reset --soft HEAD~1` keeps your changes staged. Nothing is lost."],
+    ["Is my Postgres container still running?", "Yes, `homeglow-db` (postgres:16) is up 3 days on port 5432."],
+    ["Draft a short reply to Ada about Friday", "Here's a draft:\n\n> Hi Ada, Friday at 2 works. I'll bring the mock-ups. Luke"]];
+  const mainMsgs = [];
+  for (let i = 0; i < 29; i++) { const t = topics[i % topics.length]; mainMsgs.push({ role: "user", content: t[0] }, { role: "assistant", content: t[1] }); }
+  mainMsgs.push(...conv.messages);
+  const win = (msgs, before, turns) => { let n = 0; for (let i = before - 1; i >= 0; i--) if (msgs[i].role === "user" && ++n === (turns || 12)) return i; return 0; };
+  // v0.19 Home board.
+  const svg = (a, b, w = 320, hh = 180) => "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${hh}"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs><rect width="${w}" height="${hh}" fill="url(#g)"/><circle cx="${w * .72}" cy="${hh * .38}" r="${hh * .22}" fill="rgba(255,255,255,.35)"/><rect x="${w * .1}" y="${hh * .62}" width="${w * .5}" height="${hh * .08}" rx="4" fill="rgba(255,255,255,.5)"/></svg>`);
+  const hnow = Date.now(), hm = 60000;
+  const W = (id, type, title, category, size, config) => ({ id, type, title, category, size: size || "M", config: config || {}, order: 0 });
+  const hw = [W("w1", "weather", "Weather", "Weather", "M", { use_location: "true" }), W("w2", "news", "Top stories", "News", "L", { query: "" }),
+    W("w3", "prices", "Bitcoin", "Finance", "M", { kind: "crypto", ids: "bitcoin" }), W("w4", "prices", "USD to ZMW", "Finance", "M", { kind: "fx" }),
+    W("w5", "schedule", "Schedule", "Today"), W("w6", "deadlines", "Deadlines", "Today"), W("w7", "sports", "Arsenal", "Sports"),
+    W("w8", "recents", "Pick up where you left off", "Pick up"), W("w9", "github", "golang/go", "Tech", "M", { repo: "golang/go" })];
+  hw.forEach((w, i) => w.order = i);
+  const hd = {
+    w1: { headline: "Lusaka", value: "28°C", change: "Partly cloudy · feels 28° · wind 11 km/h", lines: [{ t: "Today", s: "Partly cloudy", n: "31° / 17°" }, { t: "Tue", s: "Rain · rain 40%", n: "29° / 18°" }, { t: "Wed", s: "Mostly clear", n: "30° / 17°" }], link: "https://open-meteo.com/" },
+    w2: { headline: "Top stories", lines: [{ t: "Zambia's solar push adds 100 MW to the grid ahead of the rainy season", s: "Lusaka Times · 42 min ago", u: "https://example.com/1", i: svg("#F2A541", "#8C3B1F") },
+      { t: "Copper prices hit a three-month high as demand from EV makers grows", s: "Reuters · 1 h ago", u: "https://example.com/2", i: svg("#5A7D9A", "#1E2B3A", 136, 96) },
+      { t: "Chipolopolo name squad for the AFCON qualifiers", s: "ZNBC · 2 h ago", u: "https://example.com/3", i: svg("#3E8E5E", "#123524", 136, 96) },
+      { t: "Open-source AI models close the gap on coding benchmarks", s: "The Verge · 3 h ago", u: "https://example.com/4" },
+      { t: "Kafue Gorge upgrade finishes two weeks early", s: "Lusaka Times · 4 h ago", u: "https://example.com/5" }] },
+    w3: { headline: "Bitcoin", value: "64,210 USD", change: "▲ 2.1% today", link: "https://www.coingecko.com/en/coins/bitcoin" },
+    w4: { headline: "USD → ZMW", value: "26.48 ZMW", change: "1 USD" },
+    w5: { headline: "Next up", value: "Call the printer", change: "Tue 20 Oct · 10:00", lines: [{ t: "backup-notes", s: "daily 07:00 · rsync -a ~/notes /mnt/backup/" }, { t: "weekly-digest", s: "every monday at 8:00 · Brief me on the week" }] },
+    w6: { headline: "Deadlines", value: "Call the printer", change: "Tue 20 Oct · 10:00", lines: [{ t: "HomeGlow launch is due 31 October", n: "From memory" }] },
+    w7: { headline: "Arsenal", value: "2–1", change: "Arsenal vs Chelsea", lines: [{ t: "Spurs vs Arsenal", s: "Sun 25 Oct · 16:30 · English Premier League", n: "Next" }, { t: "Arsenal 2–1 Chelsea", s: "FT · English Premier League" }] },
+    w8: { headline: "Pick up where you left off", lines: [{ t: "Run the tests and fix whatever fails.", s: "Your last message", u: "blaze:chat:main", n: "Chat" }, { t: "HomeGlow", s: "homeglow", u: "blaze:project:p1", n: "Project" }, { t: "blaze-ai", s: "/home/luke/code/blaze-ai", u: "blaze:folder:/home/luke/code/blaze-ai", n: "Folder" }] },
+    w9: { headline: "golang/go", lines: [{ t: "cmd/go: cache test results across modules", s: "rsc · 25 min ago", u: "https://github.com/golang/go/commits" }, { t: "Opened PR #75310: runtime: faster maps on arm64", s: "aclements · 1 h ago", u: "https://github.com/golang/go/pull/75310" }, { t: "Released go1.26.3", s: "gopherbot · 6 h ago" }] } };
+  Object.keys(hd).forEach((k, i) => hd[k].fetched = hnow - (6 + i * 3) * hm);
+  const hstacks = () => { const out = []; hw.slice().sort((a, b) => a.order - b.order).forEach(w => { const k = "s:" + w.category.toLowerCase(); const s = out.find(x => x.key === k); if (s) s.widgets.push(w); else out.push({ key: k, category: w.category, widgets: [w] }); }); return out; };
+  Object.assign(A, {
+    OpenMainPage: async turns => { state.project = null; state.prefs.project = ""; const start = win(mainMsgs, mainMsgs.length, turns); return { id: "main", title: "Blaze", messages: mainMsgs.slice(start), start, total: mainMsgs.length, agents: [] }; },
+    MainHistory: async (before, turns) => { const start = win(mainMsgs, before, turns); return { id: "main", messages: mainMsgs.slice(start, before), start, total: mainMsgs.length }; },
+    SearchHistory: async q => { const ws = q.toLowerCase().split(/\s+/).filter(Boolean); const out = [];
+      for (let i = mainMsgs.length - 1; i >= 0; i--) { const x = mainMsgs[i]; if ((x.role === "user" || x.role === "assistant") && x.content && ws.every(w => x.content.toLowerCase().includes(w))) out.push({ conv: "main", title: "Chat", index: i, role: x.role, snippet: x.content.slice(0, 140) }); }
+      if (ws.some(w => "postgres".includes(w))) out.push({ conv: "c2", title: "Set up a Postgres container", when: "8 Oct 2026", index: 0, role: "user", snippet: "Set up a Postgres 16 container for HomeGlow, data in ~/pg" });
+      return out.slice(0, 12); },
+    OpenProject: async id => { state.project = id === "p1" ? proj1 : id === "p2" ? { id: "p2", name: "Blaze.ai", folder: "/home/luke/code/blaze-ai", instructions: "" } : null; state.prefs.project = id || ""; return state.project || {}; },
+    HomeBoard: async () => ({ widgets: hw, data: Object.fromEntries(Object.entries(hd).map(([k, v]) => [k, { ...v }])), stacks: hstacks(), seeded: true, last_refresh: hnow - 6 * hm, greeting: window.__greeting || "Good afternoon", name: "Luke", date: "Monday 19 October" }),
+    HomeRefresh: async id => { hd[id] = { ...(hd[id] || {}), fetched: Date.now() }; return { ...hd[id] }; },
+    HomeAdd: async text => { const w = W("w" + (hw.length + 1), "news", text.replace(/^./, c => c.toUpperCase()) + (/news$/i.test(text) ? "" : " news"), "News"); w.order = hw.length; hw.push(w); hd[w.id] = { headline: w.title, lines: [{ t: "A first story about " + text, s: "Example · 5 min ago" }] }; return w; },
+    HomeRemove: async id => { const i = hw.findIndex(w => w.id === id); if (i >= 0) hw.splice(i, 1); delete hd[id]; },
+    HomeMove: async (id, d) => { const l = hw.slice().sort((a, b) => a.order - b.order); const i = l.findIndex(w => w.id === id), j = i + d; if (i < 0 || j < 0 || j >= l.length) return false; [l[i], l[j]] = [l[j], l[i]]; l.forEach((w, k) => w.order = k); return true; },
+    HomeResize: async (id, sz) => { const w = hw.find(x => x.id === id); if (w) w.size = sz; },
+    HomeSetCity: async (id, c) => { const w = hw.find(x => x.id === id); if (w) { w.title = "Weather in " + c; hd[id] = { ...hd.w1, headline: c }; } },
+    HomeInto: async t => t.split(",").filter(x => x.trim()).length,
+  });
+  window.__enterProject = async () => { await A.OpenProject("p1"); await refreshState(); convId = ""; hero(); show("work"); };
+  // v0.19 Blaze Cloud + Custom models (cloudmodels.js). "custom" here keeps the older BlazeRouter shots as they were;
+  // the models-* shots switch with SetModelsMode("cloud").
+  window.__cm = { mode: "custom", fallback: false, gateway: "https://ai.blaze-app.workers.dev/v1", custom: "Auto (free routing)",
+    overrides: [{ task: "chat" }, { task: "code", provider: "groq", model: "llama-3.3-70b-versatile", label: "Groq · llama-3.3-70b-versatile" }, { task: "vision" }] };
+  window.__cmStatus = { ready: true };
+  window.__cmModel = state.model;
+  const cmView = () => ({ ...window.__cm, overrides: window.__cm.overrides.map(o => ({ ...o })), signed_in: !!window.__acct.signed_in, email: window.__acct.user ? window.__acct.user.email : "", label: state.model });
+  Object.assign(A, {
+    ModelsChoice: async () => cmView(),
+    SetModelsMode: async m => { window.__cm.mode = m; state.model = m === "cloud" ? "Blaze Cloud" : window.__cmModel; return cmView(); },
+    SetCloudFallback: async v => { window.__cm.fallback = !!v; return cmView(); },
+    SetTaskModel: async (task, p, m) => { const o = window.__cm.overrides.find(x => x.task === task); if (!o) return "Blaze can pin chat, code or vision."; Object.assign(o, p ? { provider: p, model: m, label: p + " · " + m } : { provider: "", model: "", label: "" }); return ""; },
+    CloudStatus: async () => window.__acct.signed_in ? { ...window.__cmStatus } : { ready: false, line: "Sign in to your Blaze account and I'm ready to go.", code: 401 },
   });
   window.go = { main: { App: new Proxy(A, { get: (t, k) => t[k] || (async () => "") }) } };
   // Events are captured so the screenshot script can play a turn: fire("tool", {...}).

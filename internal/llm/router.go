@@ -310,6 +310,11 @@ func fmtWait(d time.Duration) string {
 
 // CompleteWith routes one turn across the user's models.
 func CompleteWith(ctx context.Context, cfg *config.Config, msgs []Message, tools []Tool, o Opts) (*Result, error) {
+	if b := currentBackend(); b != nil { // v0.19 desktop: Blaze Cloud / Custom (backend.go)
+		if r, err, ok := b.Complete(ctx, cfg, msgs, tools, o); ok {
+			return r, err
+		}
+	}
 	return complete(ctx, cfg, Sanitize(msgs), tools, o, false, false)
 }
 

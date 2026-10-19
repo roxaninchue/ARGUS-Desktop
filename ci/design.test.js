@@ -64,7 +64,8 @@ const ok = (cond, msg) => { n++; if (!cond) { fails++; console.log("FAIL " + msg
 
   // ---- the thread ----
   w.show("work"); await tick(60);
-  w.eval("newChat()"); await tick(80);
+  // v0.19: one chat, so "new chat" only marks fresh context; the empty state is what an empty chat shows.
+  w.eval("newChat()"); await tick(80); w.eval("hero()"); await tick(40);
   const hero = d.querySelector(".hero");
   ok(hero && /Good (morning|afternoon|evening)/.test(hero.querySelector(".big").textContent) && hero.querySelector("img.hmark") && hero.querySelectorAll(".suggest button").length === 4, "empty state: mobile's greeting, the mascot and four rounded tries");
   const A = w.go.main.App, sw = A.SendWith; A.SendWith = async () => "ok";

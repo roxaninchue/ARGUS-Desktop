@@ -77,8 +77,10 @@ const Hints = (() => {
     return src;
   }
 
+  // v0.19: the chat pane can be off-page (the app opens on Home), so look inside the pane, not the document.
+  const root = () => (typeof pane !== "undefined" && pane) || document;
   function show(text, animate) {
-    const i = $("#input"), ph = $(".phint"), ib = i && i.closest(".inbox"); if (!i || !ph || !ib) return;
+    const i = $("#input", root()), ph = $(".phint", root()), ib = i && i.closest(".inbox"); if (!i || !ph || !ib) return;
     const on = defaultMode();
     ib.classList.toggle("hinting", on);
     if (!on) return;
@@ -89,7 +91,7 @@ const Hints = (() => {
   }
 
   function tick() {
-    const i = $("#input");
+    const i = $("#input", root());
     if (!i || list.length < 2 || reduced() || !defaultMode() || document.activeElement === i || i.value || (typeof rec !== "undefined" && rec)) return;
     idx = (idx + 1) % list.length; show(list[idx], true);
   }

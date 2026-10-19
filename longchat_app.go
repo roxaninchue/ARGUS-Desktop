@@ -65,6 +65,7 @@ func (a *App) longContext(ctx context.Context, s *session, hist []llm.Message) (
 	if b := d.Brief(s.project); b != "" && s.project != "" {
 		extra = "\nPROJECT BRIEF (pinned; update_brief edits it)\n" + b + "\n"
 	}
+	all := hist // the topic view works on absolute turn ids
 	// /clear: a fresh context window in the same conversation (the transcript keeps everything).
 	a.mu.Lock()
 	from := s.ctxFrom
@@ -72,6 +73,10 @@ func (a *App) longContext(ctx context.Context, s *session, hist []llm.Message) (
 	if from > 0 && from <= len(hist) {
 		hist = hist[from:]
 		extra += "\nFRESH CONTEXT: the user cleared the context. Earlier turns of this conversation aren't in this prompt; if something from before matters, look it up (memory_search, search_chat) instead of guessing.\n"
+	}
+	// v0.19: only the active topic goes to the model (topics_app.go); else the v0.18 path.
+	if out, tx, ok := a.topicContext(ctx, s, all, from); ok {
+		return out, extra + tx
 	}
 	st := d.State(s.id)
 	if from > 0 && st.Upto < from { // a summary from before /clear doesn't belong to this window
