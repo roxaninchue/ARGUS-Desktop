@@ -296,7 +296,7 @@ function voiceCard(st) {
     box.innerHTML = `<div class="vh"><span class="label acc">Set up voice input</span><span class="label weak">Free · runs on this PC</span></div>
       <div class="vt">Blaze turns speech into text with Whisper, on your own computer. Nothing you say leaves it. It needs a one-time download of ${parts.join(" and ")}.</div>
       <div class="vmodels seg">${(st.models || []).map(x => `<button data-m="${x.name}" class="${x.name === st.model ? "on" : ""}" title="${esc(x.note)}">${esc(x.name)} · ${x.mb} MB</button>`).join("")}</div>
-      <div class="vprog" style="display:none"><div class="bar"><i></i></div><div class="label weak vpt"></div></div>
+      <div class="vprog" style="display:none"><div class="bar bprog ind"><i></i></div><div class="label weak vpt"></div></div>
       <div class="actions"><button class="btn accent sm yes">Download and set up</button><button class="btn line sm no">Not now</button></div>`;
     $$(".vmodels button", box).forEach(b => b.onclick = async () => { const n = await API().SetSTT(b.dataset.m, ""); STT = n; voiceCard(n); });
     $(".yes", box).onclick = async () => {
@@ -314,7 +314,7 @@ function closeVoice() { const v = $("#vcard"); if (v) v.remove(); }
 on("stt_progress", p => {
   const box = $("#vcard"); if (!box) return;
   const pr = $(".vprog", box); if (pr) pr.style.display = "";
-  const bar = $(".bar i", box); if (bar) { bar.style.width = (p.pct >= 0 ? p.pct : 100) + "%"; bar.parentElement.classList.toggle("ind", p.pct < 0); }
+  BrandProgress.set($(".bar", box), p.pct);
   const t = $(".vpt", box); if (t) t.textContent = p.text || "";
 });
 on("stt_ready", st => { STT = st; closeVoice(); toastLine("Voice input is ready. Click the mic and speak."); startRec(); });

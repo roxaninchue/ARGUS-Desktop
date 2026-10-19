@@ -7,7 +7,7 @@ const Onboard = (() => {
   IC.bell = IC.bell || '<path d="M4 11.5V7a4 4 0 0 1 8 0v4.5l1 1H3zM6.5 14h3"/>';
   const STEPS = [["welcome", "Welcome"], ["model", "Model"], ["apps", "Apps"], ["perms", "Permissions"], ["tour", "Quick tour"], ["done", "Done"]];
   const FREE = ["gemini", "groq", "cerebras", "openrouter", "mistral", "nvidia"];
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  const reduce = window.BlazeMotion.query;
   let step = 0, root = null, pick = "", more = false;
 
   const hasModel = st => (st.providers || []).some(p => p.ready && p.id !== "pollinations");
@@ -135,7 +135,7 @@ const Onboard = (() => {
     body.append(h("h1", "", "Connect your apps"), h("p", "lead", "Blaze can read your mail, calendar, repos and pages, and asks before it sends or changes anything. Sign-ins happen in your browser and stay in your system keychain. Optional; add more any time in Accounts."));
     const box = h("div", "abox obapps"); body.append(box);
     navBtns(nav, "Continue");
-    box.append(h("div", "aempty", "Loading…"));
+    box.append(h("div", "aempty", BrandProgress.skeleton(4)));
     await loadConnectors();
     if (!root || STEPS[step][0] !== "apps") return;
     box.innerHTML = "";

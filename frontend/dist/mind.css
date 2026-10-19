@@ -8,5 +8,5 @@
 .arch-row:hover { background: var(--faint2); }
 .arch-row .s { color: var(--sub); font: 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
 .arch-log { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; }
-.arch-u { align-self: flex-end; max-width: 80%; background: var(--ink); color: var(--paper); padding: 10px 14px; white-space: pre-wrap; }
+.arch-u { align-self: flex-end; max-width: 80%; background: var(--ink); color: var(--on-ink); padding: 10px 14px; white-space: pre-wrap; }
 .arch-b { max-width: 100%; color: var(--body); }

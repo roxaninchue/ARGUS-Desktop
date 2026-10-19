@@ -728,7 +728,7 @@ function thinking(onOff, text) {
   }
   if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
   if (onOff && current) {
-    thinkingEl = h("div", "thinking", `<span class="sq"></span><span>${esc(text || "Thinking")}</span>`);
+    thinkingEl = h("div", "thinking", `<span class="sq has-orb"><blaze-emblem class="morb" size="22" live aria-hidden="true"></blaze-emblem></span><span>${esc(text || "Thinking")}</span>`);
     current.el.append(thinkingEl); scrollDown();
   }
 }
@@ -1045,8 +1045,9 @@ function particleOrb(cv, size) {
   const frame = now => {
     if (!cv.isConnected && now - t0 > 1000) return;
     const css = getComputedStyle(document.documentElement);
-    const acc = css.getPropertyValue("--accent").trim() || "#1F4BD8", ink = css.getPropertyValue("--ink").trim() || "#111110";
-    const a = (now - t0) / 4000, R = size * .38 * dpr, c = size / 2 * dpr, breathe = 1 + Math.sin((now - t0) / 900) * .03;
+    const acc = css.getPropertyValue("--accent").trim() || "#E6E6EA", ink = css.getPropertyValue("--ink").trim() || "#111110";
+    const still = window.BlazeMotion && !window.BlazeMotion.enabled, el = still ? 0 : now - t0;   // reduced motion: one still frame
+    const a = el / 4000, R = size * .38 * dpr, c = size / 2 * dpr, breathe = 1 + Math.sin(el / 900) * .03;
     ctx.clearRect(0, 0, cv.width, cv.height);
     pts.forEach(([x, y, z], i) => {
       const xr = x * Math.cos(a) - z * Math.sin(a), zr = x * Math.sin(a) + z * Math.cos(a);
@@ -1057,7 +1058,7 @@ function particleOrb(cv, size) {
       ctx.fillRect(c + xr * R * breathe - s / 2, c + yr * R * breathe - s / 2, s, s);
     });
     ctx.globalAlpha = 1;
-    requestAnimationFrame(frame);
+    if (still) setTimeout(() => requestAnimationFrame(frame), 500); else requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
 }
@@ -1822,7 +1823,7 @@ async function setModels(col, redraw) {
     const pv = ready.find(p => p.id === pid);
     const curModel = !sel.auto && sel.provider === pid ? sel.model : pv.model;
     msel.textContent = curModel || "Choose a model";
-    box.innerHTML = `<div class="mlist"><div class="pnote">Loading…</div></div>`;
+    box.innerHTML = `<div class="mlist"><div class="pnote">${BrandProgress.skeleton(3)}</div></div>`;
     const l = await API().ModelOptions(pid, false);
     drawModelRows($(".mlist", box), pv, l, curModel, async m => {
       if (m.tools === "no") { msel.textContent = `${m.id} can't call tools; pick one marked Tools`; return; }

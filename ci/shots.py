@@ -10,6 +10,34 @@ rdash = (root / "internal" / "router" / "web" / "index.html").as_uri()
 rstate = (root / "ci" / "router-state.json").read_text()
 mock = f"window.__routerDash='{rdash}';window.__routerState={rstate};" + mock
 allerrs = []
+# v0.18.1: nothing square. Before every screenshot, every visible button, input, textarea, chip, pill,
+# card, work card, step list, code block, composer, menu and popover must have a border radius.
+# The allow-list is only parts drawn inside a rounded parent (rows of the step list, segmented buttons,
+# code inside a code block) and the design stage's own content.
+RADIUS_JS = r"""() => {
+  const SEL = 'button, input:not([type=hidden]):not([type=range]):not([type=file]):not([type=color]), textarea, select, .chip, .pill, .tag, .fchip, .card, .acard, .work.live, .work.done, .steps, .step, pre, .code, .inbox, .pop, .menu, code, kbd, .kbd, .seg, .toggle input, .shavatar, #avatar';
+  const ALLOW = '.steps .step, .seg button, .mseg button, pre code, .code code, .dstage *, .artboard *, iframe, .brframe, .tl *, .winctl button';
+  const bad = [];
+  document.querySelectorAll(SEL).forEach(e => {
+    if (e.matches(ALLOW)) return;
+    const r = e.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4 || r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) return;
+    const cs = getComputedStyle(e);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity === 0) return;
+    if (e.closest('[style*="display: none"]')) return;
+    const z = ['borderTopLeftRadius','borderTopRightRadius','borderBottomLeftRadius','borderBottomRightRadius'].every(k => cs[k] === '0px');
+    if (z) bad.push(e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).join('.') : '') + ' < ' + (e.parentElement ? (e.parentElement.className || e.parentElement.tagName) : ''));
+  });
+  return [...new Set(bad)];
+}"""
+def guard(pg, errs):
+    orig = pg.screenshot
+    def shot(*a, **kw):
+        bad = pg.evaluate(RADIUS_JS)
+        if bad:
+            errs.append("square corners before " + pathlib.Path(str(kw.get("path", ""))).name + ": " + ", ".join(bad[:8]))
+        return orig(*a, **kw)
+    pg.screenshot = shot
 with sync_playwright() as p:
     b = p.chromium.launch(**({"executable_path": __import__("os").environ["CHROME"]} if __import__("os").environ.get("CHROME") else {}))
     # SHOTS_THEMES=light runs one theme (a quicker local run); CI takes both.
@@ -18,6 +46,7 @@ with sync_playwright() as p:
         pg.add_init_script(f"window.__theme='{theme}';window.__sample='{sample}';" + mock)
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
+        guard(pg, errs)
         pg.goto(url); pg.wait_for_timeout(600)
         pg.screenshot(path=str(out / f"home-{theme}.png"))
         pg.evaluate("loadConv(window.__conv); show('work')"); pg.wait_for_timeout(300)
@@ -385,7 +414,7 @@ with sync_playwright() as p:
         zp.evaluate("loadConv(window.__conv); show('work')"); zp.wait_for_timeout(300)
         zp.evaluate("document.querySelector('.work.done').click(); document.querySelector('#log').scrollTop = 0"); zp.wait_for_timeout(300)
         zp.locator(".msg.blaze").first.screenshot(path=str(out / f"marks-{theme}.png"))
-        if zp.evaluate("document.querySelectorAll('.msg.blaze canvas.morb').length") < 3:
+        if zp.evaluate("document.querySelectorAll('.msg.blaze blaze-emblem.morb').length") < 3:
             errs.append("mini orb marks missing")
         zp.evaluate("""newChat().then(() => { sendText('Remember that my name is Luke', []);
           fire('tool', {id: 'm1', name: 'remember', args: '{"fact":"Name is Luke"}'}); fire('tool_done', {id: 'm1', result: 'Remembered.'});
@@ -690,6 +719,22 @@ with sync_playwright() as p:
         pg.screenshot(path=str(out / f"skills-learned-chat-{theme}.png"))
         if pg.evaluate("document.querySelectorAll('.learnmark').length") != 3:
             errs.append("learned marks missing in the chat")
+        # v0.18.1 StreamOrb + shimmer mid-stream, and an agent run with the edge particles.
+        st = pg.evaluate("window.__streamDemo()")
+        pg.screenshot(path=str(out / f"chat-midstream-{theme}.png"))
+        if not st or not st.get("pos") or st.get("glow", 0) < .5:
+            errs.append("stream drop or shimmer missing mid-stream: " + str(st))
+        if pg.evaluate("!!document.querySelector('.chat .t.typing') && getComputedStyle(document.querySelector('.chat .t.typing'), '::after').content !== 'none'"):
+            errs.append("blinking caret still drawn")
+        pg.evaluate("StreamOrb.thaw(); fire('done', {seconds: 2})"); pg.wait_for_timeout(1700)
+        if pg.evaluate("!!document.querySelector('.sdrop, .sshim')") or not pg.evaluate("(([...document.querySelectorAll('#log .msg.blaze')].pop() || document).querySelector('.who blaze-emblem') || {hasAttribute: () => false}).hasAttribute('dim')"):
+            errs.append("the drop should glide home and the pair rest dimmed beside the newest reply")
+        if not pg.evaluate("window.__runDemo()"):
+            errs.append("edge particles should be on while a run is active")
+        pg.screenshot(path=str(out / f"agent-running-{theme}.png"))
+        pg.evaluate("EdgeParticles.thaw(); fire('done', {seconds: 4})"); pg.wait_for_timeout(600)
+        if pg.evaluate("getComputedStyle(document.querySelector('#edge-particles')).display") != "none":
+            errs.append("edge particles should be gone when the run ends")
         # The indicator in the orb.
         pg.set_viewport_size({"width": 400, "height": 560})
         pg.evaluate("newChat().then(() => { fire('orb', true); fire('screen', {on: true, how: 'pixels'}); })"); pg.wait_for_timeout(700)
@@ -697,11 +742,29 @@ with sync_playwright() as p:
         pg.evaluate("fire('screen', {on: false}); fire('orb', false)"); pg.set_viewport_size({"width": 1280, "height": 820}); pg.wait_for_timeout(1700)
         if errs:
             print("JS errors:", errs); allerrs.extend(f"{theme}: {e}" for e in errs)
+    # v0.18.1 Reduce motion (the Settings toggle): the drop just sits at the end, no shimmer, no particles,
+    # no live emblems.
+    pg = b.new_page(viewport={"width": 1280, "height": 820}, device_scale_factor=1)
+    pg.add_init_script("localStorage.setItem('blaze.reduceMotion', '1');" + f"window.__theme='dark';window.__sample='{sample}';" + mock)
+    errs = []
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    guard(pg, errs)
+    pg.goto(url); pg.wait_for_timeout(600)
+    pg.evaluate("window.__streamDemo(300)")
+    pg.screenshot(path=str(out / "chat-reduced-motion-dark.png"))
+    still = pg.evaluate("""() => { const s = document.querySelector('.sshim'); const e = document.querySelector('#edge-particles');
+      return { motion: BlazeMotion.enabled, shimmer: !!s && getComputedStyle(s).display !== 'none', edge: !!e && getComputedStyle(e).display !== 'none',
+        drop: !!document.querySelector('.sdrop') }; }""")
+    if still["motion"] or still["shimmer"] or still["edge"] or not still["drop"]:
+        errs.append("reduced motion should leave only a still drop: " + str(still))
+    if errs:
+        print("JS errors:", errs); allerrs.extend("reduced-motion: " + e for e in errs)
     # Windows runs frameless with its own title-bar buttons.
     pg = b.new_page(viewport={"width": 1280, "height": 820}, device_scale_factor=1)
     pg.add_init_script(f"window.__theme='light';window.__os='windows';window.__sample='{sample}';" + mock)
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
+    guard(pg, errs)
     pg.goto(url); pg.wait_for_timeout(600)
     pg.screenshot(path=str(out / "home-windows-light.png"))
     if errs:
@@ -711,6 +774,7 @@ with sync_playwright() as p:
     pg.add_init_script(f"window.__theme='light';window.__os='darwin';window.__sample='{sample}';" + mock)
     errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
+    guard(pg, errs)
     pg.goto(url); pg.wait_for_timeout(600)
     pg.evaluate("show('settings','notifications')"); pg.wait_for_timeout(600)
     pg.evaluate("[...document.querySelectorAll('.group')].find(g => /Screen vision/.test(g.textContent)).scrollIntoView({block: 'start'})"); pg.wait_for_timeout(200)

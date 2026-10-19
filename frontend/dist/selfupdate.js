@@ -23,6 +23,7 @@ const SelfUpdate = (() => {
   // The finished message: the answer, optional buttons, and no live line.
   function end(t, text, buttons) {
     t.finished = true; if (live === t) live = null;
+    if (t.bar) { t.bar.remove(); t.bar = null; }
     t.workEl.style.display = "none"; t.workEl.classList.remove("live");
     say(t, text);
     if (buttons && buttons.length) {
@@ -72,6 +73,11 @@ const SelfUpdate = (() => {
   on("update", p => {
     const t = live; if (!t || t.finished || !p) return;
     const v = t.latest || "";
+    // v0.18.1: a BrandProgress bar under the live line while the download runs
+    if (p.stage === "download") {
+      if (!t.bar) { t.bar = BrandProgress.create(-1); t.workEl.after(t.bar); }
+      BrandProgress.set(t.bar, p.pct > 0 ? p.pct : -1);
+    } else if (t.bar) { t.bar.remove(); t.bar = null; }
     if (p.stage === "download") setStatus(t, p.pct > 0 ? `Downloading Blaze ${v} · ${p.pct}%` : `Downloading Blaze ${v}`);
     else if (p.stage === "verify") setStatus(t, `Checking the signature on ${v}`);
     else if (p.stage === "install") setStatus(t, `Installing ${v}`);

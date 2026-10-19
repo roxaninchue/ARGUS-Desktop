@@ -15,7 +15,7 @@
 .atabs button { height: 36px; font-weight: 500; font-size: 13px; color: var(--sub); transition: background .12s, color .12s; }
 .atabs button + button { border-left: 1px solid var(--hair); }
 .atabs button:hover { color: var(--ink); background: var(--faint); }
-.atabs button.on { background: var(--ink); color: var(--paper); }
+.atabs button.on { background: var(--ink); color: var(--on-ink); }
 .alist { display: grid; }
 .asec { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; min-height: 24px; }
 .alist > .asec:first-child { margin-top: 0; }
@@ -64,7 +64,7 @@
 .group > .sub2:first-of-type { margin-top: 2px; }
 .pend .devcode { font-size: 30px; letter-spacing: .18em; color: var(--ink); font-weight: 600; margin-bottom: 8px; }
 .waitline { display: flex; align-items: center; gap: 10px; color: var(--ink); }
-.waitline .sq, .toast .sq { width: 8px; height: 8px; background: var(--accent); animation: pulse .9s infinite; flex: none; }
+.waitline .sq, .toast .sq { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse .9s infinite; flex: none; }
 .paste { margin-top: 14px; } .paste summary { cursor: pointer; } .paste summary:hover { color: var(--ink); }
 .mcpform .note { letter-spacing: .04em; text-transform: none; font-size: 11px; }
 .card.conn .title { display: flex; align-items: center; gap: 8px; }
@@ -82,9 +82,9 @@
 
 /* ---------------- toasts ---------------- */
 #toasts { position: fixed; right: 16px; top: 58px; z-index: 120; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none; }
-.toast { display: flex; align-items: center; gap: 9px; max-width: 420px; padding: 9px 13px; background: var(--ink); color: var(--paper); box-shadow: var(--shadow-lg); font-size: 13px; pointer-events: auto; animation: tin .18s ease-out; transition: opacity .25s, transform .25s; border-radius: var(--r-md); }
-.toast.ok svg { color: var(--accent); }
-:root[data-theme=dark] .toast.ok svg { color: var(--accent); }
+.toast { display: flex; align-items: center; gap: 9px; max-width: 420px; padding: 9px 13px; background: var(--ink); color: var(--on-ink); box-shadow: var(--shadow-lg); font-size: 13px; pointer-events: auto; animation: tin .18s ease-out; transition: opacity .25s, transform .25s; border-radius: var(--r-md); }
+.toast.ok svg { color: var(--on-ink); }
+:root[data-theme=dark] .toast.ok svg { color: var(--on-ink); }
 .toast.error { background: var(--raised); color: var(--ink); border: 1px solid var(--ink); }
 .toast.out { opacity: 0; transform: translateY(-6px); }
 @keyframes tin { from { opacity: 0; transform: translateY(-6px); } }
@@ -220,3 +220,4 @@ body.onboarding #app { visibility: hidden; }
 .signform .fg[hidden] { display: none; }
 .spage .ucard:not(.compact), .ucard:not(.compact) { margin-bottom: 24px; }
 .callout.soonnote { margin-bottom: 22px; }
+.toast .sq { background: var(--on-ink); }
