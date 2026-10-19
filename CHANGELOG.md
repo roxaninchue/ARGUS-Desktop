@@ -2,75 +2,11 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
-## v0.17.0 (marketer pack)
-- **Six skills for running an online store** (40 bundled): **content-calendar** (a week of posts with visuals from the Design studio in your brand kit, each saved as a Schedule reminder), **product-listing** (supplier URL from AliExpress, Zendrop and others → title, description, tags, SEO, price and image prompts, plus a Shopify import CSV), **ad-lab** (5 ad variants scored on hook, clarity and CTA, best first), **research-brief** (a one-page competitor and pricing brief, sourced with deep-research), **whatsapp-replies** (drafted here, sent through your paired phone), **weekly-digest** (a weekly job with orders, best sellers, top posts and what to post next).
-- **Sending through your phone always asks you first**: any `phone_ask` that sends a message in your name shows "Send through your phone?" with the exact text, even in Autopilot. Your phone asks again.
-- Design notes: `docs/plans/plan-marketer-pack.md`.
-
-## v0.16.0 (one mind)
-- **One continuous conversation**: Chat mode is one thread with Blaze; `/clear` opens a fresh context window instead of a new chat. Projects keep their own threads.
-- **Nothing lost**: every old chat is imported into a searchable journal on first launch and stays readable, read-only, in the new **Archive** view (`/views › Archive`). `search_chat` and `read_turn` reach all of it.
-- **Memory is the source of truth**: a new memories table (newest wins, no duplicates, inferences marked "(inferred)"), shown in the Memory graph and kept in step with Blaze CLI. The prompt carries only a pinned core and an index of subjects; Blaze looks the rest up with `memory_search`, `memory_save`, `memory_update`.
-- **Save as you go** after each turn, plus an **idle review** of older conversation on BlazeRouter's free `auto/best-free` (throttled: idle 10 min, on mains, CPU quiet). Toggle in Settings › Behaviour › Learning.
-- **Context ladder**: recent turns → rolling summary at 60% → when even the summary won't fit, core + index + the last turns, and Blaze looks things up instead of guessing.
-- Design notes (schema and shared prompt text for Android): `docs/plans/plan-one-mind.md`.
-
-## v0.15.1 (signed updates)
-- **Releases are signed**: every release now carries `SHA256SUMS` (sha256 of every asset) and `SHA256SUMS.sig`, an ed25519 signature made in CI by `ci/sign` from the `BLAZE_UPDATE_SIGNING_KEY` Actions secret. `ci/verify` checks a release folder by hand.
-- **The updater refuses unsigned updates**: before installing, Blaze downloads both files, checks the signature against the public key built into the app (`internal/updsig`, `A/yWqdv1xeM1tQhvGj/2uzF2bFpp6OTBrONLxkkctUA=`) and the file's SHA-256. A missing or bad signature or a hash mismatch deletes the download and installs nothing. No grace period; `BLAZE_ALLOW_UNSIGNED_UPDATE=1` is for local testing only.
-- `ci/sign` refuses a key whose public half isn't trusted, so a wrong secret fails the release instead of shipping files no app accepts. Key rotation steps are in the README.
-- Tests: `internal/updsig`, `update_verify_test.go`.
-
-## v0.15.0 (student pack)
-- **Google Classroom**: `classroom_courses` and `classroom_coursework` read your classes and what's due (local time, points, turned in or not) through the Google connector. Classroom permission is asked only the first time you use it.
-- **Six new skills** (34 bundled): **study-planner** (exam date + topics → day-by-day plan in Schedule, re-plans a missed day), **tutor** (explain, quiz, flashcards from PDFs or slides), **lecture-notes** (local Whisper → notes, summary, key terms, likely exam questions), **essay-coach** (outline, feedback, APA 7 / Harvard; won't write graded essays), **group-project** (tasks list + a WhatsApp summary), **classroom-sync** (each assignment → a reminder 24 h before).
-- **Learn view** (`/learn`): flashcard decks with spaced repetition (Again / Hard / Good / Easy).
-- **Low-data mode** (Settings › Behaviour › Data): text first, no screenshots, images or big downloads unless asked, short answers, and the MB each task used in its work card.
-- **One-time schedules**: `once 2026-11-16 08:00` for reminders; they remove themselves after running.
-- Design notes: `docs/plans/plan-student-pack.md`.
-
-## v0.14.0 (Blaze Link: pair your phone)
-- **Phone view** (`/views › Phone`, `/phone`): show a QR code, scan it in Blaze for Android › Settings › Blaze Desktop, and the phone is paired. See paired phones, which one is online, and unpair.
-- **Phone → PC**: ask Blaze on the phone to do something on this PC (files, code, installs). It runs here with its own conversation per phone, and approvals pop up on the phone.
-- **PC → phone**: new `phone_ask` tool for texts, WhatsApp, calls, contacts and alarms. Every send needs your yes on the phone.
-- Direct HTTPS on port 7377 with a pinned certificate and a one-time code (5 minutes, single use). Same Wi-Fi or Tailscale; no server in the middle. Same protocol as Blaze Android's DesktopLink.
-- **Blaze knows**: `about_blaze` and ABOUT YOU now give the real pairing steps and the live paired-phone status.
-- Fix: QR codes (pairing and the Design phone preview) are drawn full size instead of tiny in a corner.
-- Tests: the whole handshake, approvals on the phone, about_blaze status, QR scale. Design notes: `docs/plans/plan-blaze-link.md`.
-
-## v0.13.0 (long chats stay fast)
-- **Rolling summary**: once a chat passes 12k prompt tokens (or 60% of the model's context, if smaller), everything before the last ~12 messages folds into a state note (Goal, Decisions, Facts, Open threads, Files touched; at most ~800 tokens). The note is updated as the chat grows, never redone from scratch. A 300-turn test chat stays under ~5k input tokens a turn.
-- **search_chat and read_turn**: every message is indexed (SQLite FTS5), so Blaze finds exact earlier words, even ones folded into the summary, instead of asking you to repeat.
-- **Project brief**: a pinned brief per project (purpose, rules, key files, in progress; up to 2,400 characters) goes with every turn. Blaze keeps it current with `update_brief`, and you can edit it on the project page.
-- **Big outputs aside**: a tool result over 4,000 characters is saved to `~/.blaze/artifacts/`. Blaze sees the first 40 and last 20 lines and reads the rest on demand with `read_artifact`.
-- **Token meter**: the live card shows `in 4.2k · out 0.6k`. Near 80% of the model's context, Blaze offers **Start a fresh chat with a summary**.
-- The index, summaries and briefs live in `~/.blaze/desktop/longchat.db`, separate from `blaze.db`, so Blaze CLI keeps reading your memory.
-- Each chat's tools now use that chat's own id (find_tools, search, brief), even when it runs in the background.
-- Tests: `internal/longchat` (300-turn budget, summary keeps a seeded fact, search finds turn 5, artifact truncation and read-back, brief cap), app tests for the brief, indexing and set-aside rules. Design notes: `docs/plans/plan-longchat.md`.
-
-## v0.12.0 (Blaze knows itself)
-- **ABOUT YOU**: every chat now starts with a short, live block telling Blaze what it is: Blaze Desktop and its version, made by Luke (Lackson Kapapa, Blazeinchue), the three apps (Desktop, CLI, Android) and how they connect, BlazeRouter on/off, Blaze Link status, the Blaze account and this PC (OS, desktop/Wayland, CPU, RAM). About 300 tokens.
-- **A new rule**: questions about Blaze itself, its apps or connecting them ("how do I connect my phone?") are answered from ABOUT YOU and `about_blaze`, never by asking which apps you are building.
-- **`about_blaze` tool** (always on, optional `section`): the full report, read live: identity, apps, version and build, Blaze account (blaze-auth, signed in or not, last key sync), Blaze Link (how it works, pairing steps, paired phones from `~/.blaze/pair`), BlazeRouter (address, status, all `auto/*` presets), views and slash commands read from this build's own frontend registries, the real `~/.blaze` layout, connected accounts, MCP servers, skills, memory count and database, and the PC. Same name as Blaze Android's `SelfKnowledge.kt`; Blaze CLI gets the same.
-- Honest about gaps: Blaze Link's PC side is not in this build yet, so Blaze says so and points to what works today (the Blaze account and Design › Phone) instead of inventing steps.
-- Tests: `internal/selfknow` (brief size, sections, link status, devices, layout, desktop env, registries from the real frontend), the system prompt carries ABOUT YOU and the rule, the tool output; a mock shot of "how do I connect my phone?". Design notes: `docs/plans/plan-self-knowledge.md`.
-
-## v0.11.0 (a calmer shell)
-- **Top bar**: the B logo goes back to the chat; **Chat | Projects** in the middle; **Search** (Ctrl+K) finds chats, projects, views and commands; the BlazeRouter dot; and an **avatar menu** with Account, Settings, BlazeRouter dashboard, Model, Theme, All views, Check for updates and Sign out.
-- **Rail**: in Chat it is just your recent chats (it folds away below 1100px); in Projects it lists projects with a *Working* chip on the busy one.
-- **Nothing deleted, everything in `/views`**: Memory, Jobs, Schedule, Accounts, Doctor, Settings, Design, BlazeRouter, Skills and Usage left the sidebar for one picker (filter, arrow keys, Enter, badges). `/memory`, `/jobs`, `/design`, `/router` and the rest still work, and Ctrl+K lists them too.
-- **Blaze switches views itself**: the new `open_view` tool opens Design without asking for visual work, and asks first for other views. While a view is open the top bar shows `DESIGN · Exit` (Esc works too).
-- **Chat**: your messages sit on an ink bubble; Blaze answers as plain text in a 760px column. Each turn has one live card, `Working · 4 steps · 1m 12s`, that you can open while it runs and that collapses to `Worked · 13 steps · 3m 11s`.
-- **Composer**: `+` on the left (Image, File, Folder, Voice, @ File, Plan mode, Autopilot, Model, Views, Commands), Send on the right. A small chip shows the mode only when it isn't Build · Auto, and the shortcuts moved into a `?` tooltip.
-- Tests: Go test for `open_view` (asks, refusals, unknown views); shots for the shell, avatar menu, /views, + menu, mode chip, Search, Design with Exit, Projects and the live card. Design notes: `docs/plans/plan-redesign-a.md`.
-
-## v0.10.0 (BlazeRouter)
-- **BlazeRouter**: a local OpenAI-compatible gateway (`127.0.0.1:20128/v1`, next free port if taken) starts with Blaze and routes each request across your free providers, falling back on rate limits, outages and empty quota. It is a native Go port of OmniRoute (MIT): every `auto/*` preset (auto/best-free, auto/best-coding, auto/best-fast, auto/best-reasoning, auto/best-vision, auto/chaos, auto/lkgp and any `auto/<category>:<tier>`), combos with priority, round-robin, quota-aware and cheapest strategies, last-known-good preference and chaos fan-out to five providers. Anthropic and Gemini request formats are translated, so Claude Code and Gemini clients work too.
-- **Router button** in the top bar (icon + green/amber/red status dot) and in the tray. It opens the BlazeRouter dashboard inside Blaze (Home, Providers, Combos, Usage & logs, Quota, Settings), with an on/off switch and **Open in browser**. `/router` opens it too.
-- **Model picker**: BlazeRouter presets and your combos come first, then **All BlazeRouter presets**, then each provider directly. `/model` has a BlazeRouter submenu.
-- **Settings › BlazeRouter** replaces Models; *Providers & keys* moved into the dashboard. The old editors are still there behind **Classic editor**, and every old "add a key" link opens BlazeRouter › Providers.
-- **Nothing to re-enter**: keys stay in Blaze's shared store (`~/.blaze`, system keychain), so Blaze CLI keeps working; your old Auto chain becomes a "My chain" combo, and custom providers and extra keys carry over (tested).
-- Credits: `THIRD_PARTY_NOTICES.md`. Design notes: `docs/plans/plan-blazerouter.md`.
+## v0.18.0 (glass)
+- **Dark frosted glass shell**: the desktop app now uses the same glass language as Blaze Mobile, with rounded cards, softer edges, and a translucent layer over the main surfaces.
+- **Monochrome surfaces and gold halo emblem**: the app keeps a neutral grey palette, leaving semantic colours for warnings and errors while the brand orb keeps its gold halo accent.
+- **Streamed reply motion**: new messages and the live drop effect use the same timing and reduced-motion rules as the mobile design.
+- **System-aware light/dark theme**: the theme still follows the OS by default, while the appearance settings let you force light or dark and switch off motion.
 
 ## v0.9.5 (parallel tools, eight new skills, skills that combine)
 - **Tools run in parallel**: when the model asks for several reads in one reply (file reads, listings and searches, web searches, page fetches, recall, skills, job logs), Blaze runs them at the same time, up to 6 at once, in the main chat and in background agents and specialists. Anything that changes things still runs one by one, in the model's order, and results go back in the order they were asked, so history and the steps list read the same. The prompt now tells the model to batch independent calls. Code: `internal/llm/batch.go`, `internal/tools/parallel.go`.

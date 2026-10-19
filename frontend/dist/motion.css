@@ -1,0 +1,58 @@
+:root {
+  --t-short: 150ms;
+  --t-med: 220ms;
+  --t-long: 320ms;
+  --ease-std: cubic-bezier(.4, 0, .2, 1);
+  --ease-dec: cubic-bezier(0, 0, .2, 1);
+  --ease-acc: cubic-bezier(.4, 0, 1, 1);
+}
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+.enter-up {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: enterUp var(--t-med) var(--ease-dec) forwards;
+}
+.exit-down {
+  animation: exitDown var(--t-short) var(--ease-acc) forwards;
+}
+.expand { animation: expand var(--t-med) var(--ease-std) both; }
+.collapse { animation: collapse var(--t-med) var(--ease-std) both; }
+.press { transform: scale(.96); transition: transform var(--t-short) var(--ease-std); }
+
+@keyframes enterUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes exitDown {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(8px); }
+}
+@keyframes expand {
+  from { opacity: 0; transform: scaleY(.96); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+@keyframes collapse {
+  from { opacity: 1; transform: scaleY(1); }
+  to { opacity: 0; transform: scaleY(.96); }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255,255,255,.06);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.36), transparent);
+  animation: skeletonSweep 1280ms ease-in-out infinite;
+}
+@keyframes skeletonSweep {
+  100% { transform: translateX(100%); }
+}
