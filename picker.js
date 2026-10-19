@@ -1,5 +1,6 @@
 // Injected into design previews by Blaze: hover outlines, click to select, live style tweaks,
-// and (v0.8.0) direct edits that write back to the source (retype, drag, resize), the
+// and (v0.8.0) direct edits that write back to the source (retype, drag, resize; v0.20: eight
+// handles, Shift for proportions, arrow-key nudges, exact values from the inspector), the
 // critic's in-page audit, the states board (?__state=…), hot reload and phone comments.
 // 3D mockups (three-d-design skill) can also pick, tweak and nudge their parts.
 (function () {
@@ -53,6 +54,7 @@
     let html = el.outerHTML; if (html.length > 3000) html = html.slice(0, 3000) + "…";
     return { selector: selector(el), tag: el.tagName.toLowerCase(), text: (el.innerText || el.textContent || "").trim().slice(0, 200), html, target: target(el),
       leaf: !el.querySelector("*") || [...el.childNodes].every(n => n.nodeType === 3 || /^(B|I|EM|STRONG|SPAN|BR|SMALL|A)$/.test(n.nodeName)),
+      box: (() => { const b = boxOf(el); return { x: b.x, y: b.y, w: b.w, h: b.h }; })(),
       styles: { color: cs.color, background: cs.backgroundColor, fontSize: cs.fontSize, padding: cs.padding, borderRadius: cs.borderRadius, gap: cs.gap, fontFamily: cs.fontFamily, width: cs.width, height: cs.height } };
   }
   function send() {
@@ -68,43 +70,133 @@
     post({ blaze: "selected", items: picked.map(info), rect: r && { left: r.left, top: r.top, bottom: r.bottom, width: r.width } });
   }
 
-  // ---- direct manipulation: drag to move, corner to resize, double-click to retype ----
+  // ---- direct manipulation (v0.20 studio): a selection frame with eight handles. Drag the
+  // element (or its tag) to move it, a side to resize one way, a corner to resize both (Shift
+  // keeps the proportions). Arrow keys nudge it 1px (Shift: 10px). Every finished move or
+  // resize is written back to the element's source (studio_app.go ApplyEdit). ----
+  const ACC = "#4DA8FF";
+  const KNOBS = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+  const CURSOR = { nw: "nwse-resize", se: "nwse-resize", ne: "nesw-resize", sw: "nesw-resize", n: "ns-resize", s: "ns-resize", e: "ew-resize", w: "ew-resize" };
+  let dragging = null, suppressClick = false, nudge = null;
+  function ui(tag) { const d = document.createElement(tag || "div"); d.setAttribute("data-blaze-ui", ""); document.documentElement.appendChild(d); return d; }
+  function px(v) { return Math.round(v) + "px"; }
+  function boxOf(el) {
+    const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+    const t = (cs.translate && cs.translate !== "none" ? cs.translate : "0px 0px").split(" ").map(parseFloat);
+    return { x: Math.round(t[0] || 0), y: Math.round(t[1] || 0), w: Math.round(r.width), h: Math.round(r.height), left: r.left, top: r.top };
+  }
   function drawHandles() {
     if (handles) { handles.forEach(h => h.remove()); handles = null; }
-    if (!on || picked.length !== 1 || editing) return;
+    if (!on || picked.length !== 1 || editing || parts.length) return;
     const el = picked[0], r = el.getBoundingClientRect();
-    const grip = document.createElement("div"), size = document.createElement("div");
-    [grip, size].forEach(h => { h.setAttribute("data-blaze-ui", ""); document.documentElement.appendChild(h); });
-    grip.title = "Drag to move"; size.title = "Drag to resize";
-    grip.style.cssText = `position:fixed;z-index:2147483647;left:${r.left - 1}px;top:${r.top - 18}px;height:16px;padding:0 6px;font:600 10px/16px system-ui;color:#fff;background:#1F4BD8;cursor:move;user-select:none;letter-spacing:.04em`;
-    grip.textContent = "MOVE · " + el.tagName.toLowerCase();
-    size.style.cssText = `position:fixed;z-index:2147483647;left:${r.right - 6}px;top:${r.bottom - 6}px;width:11px;height:11px;background:#fff;border:2px solid #1F4BD8;cursor:nwse-resize`;
-    handles = [grip, size];
+    const frame = ui(), grip = ui(), size = ui();
+    frame.style.cssText = `${css}left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;outline:1.5px solid ${ACC};outline-offset:0`;
+    grip.title = "Drag to move";
+    grip.textContent = el.tagName.toLowerCase() + ([...el.classList].filter(goodClass)[0] ? "." + [...el.classList].filter(goodClass)[0] : "");
+    grip.style.cssText = `position:fixed;z-index:2147483647;left:${r.left - 1}px;top:${Math.max(0, r.top - 20)}px;height:18px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 7px;border-radius:5px 5px 0 0;font:600 10.5px/18px system-ui;color:#03101f;background:${ACC};cursor:move;user-select:none`;
+    size.style.cssText = `${css}left:${r.left + r.width / 2}px;top:${r.bottom + 7}px;transform:translateX(-50%);padding:2px 6px;border-radius:5px;font:600 10px/1.3 ui-monospace,monospace;color:#03101f;background:${ACC};white-space:nowrap`;
+    size.textContent = Math.round(r.width) + " × " + Math.round(r.height);
+    handles = [frame, grip, size];
+    KNOBS.forEach(k => {
+      const kb = ui();
+      const x = k.includes("w") ? r.left : k.includes("e") ? r.right : r.left + r.width / 2;
+      const y = k.includes("n") ? r.top : k.includes("s") ? r.bottom : r.top + r.height / 2;
+      kb.dataset.h = k; kb.title = "Drag to resize";
+      kb.style.cssText = `position:fixed;z-index:2147483647;left:${x - 5}px;top:${y - 5}px;width:10px;height:10px;box-sizing:border-box;background:#fff;border:1.5px solid ${ACC};border-radius:3px;cursor:${CURSOR[k]};box-shadow:0 1px 3px rgba(0,0,0,.25)`;
+      kb.onpointerdown = e => drag(e, k);
+      handles.push(kb);
+    });
     grip.onpointerdown = e => drag(e, "move");
-    size.onpointerdown = e => drag(e, "size");
   }
-  function px(v) { return Math.round(v) + "px"; }
+  function report(el) { const b = boxOf(el); post({ blaze: "box", box: { x: b.x, y: b.y, w: b.w, h: b.h } }); }
+  function writeBox(el, props, html) {
+    post({ blaze: "edit", edit: { kind: "style", target: target(el), props }, html: html || el.outerHTML.slice(0, 3000), selector: selector(el) });
+  }
   function drag(e, mode) {
     e.preventDefault(); e.stopPropagation();
     const el = picked[0]; if (!el) return;
-    const cs = getComputedStyle(el);
-    const t0 = (cs.translate && cs.translate !== "none" ? cs.translate : "0px 0px").split(" ").map(parseFloat);
-    const tx0 = t0[0] || 0, ty0 = t0[1] || 0;
-    const r0 = el.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
+    const b0 = boxOf(el), x0 = e.clientX, y0 = e.clientY, ratio = b0.w / Math.max(1, b0.h);
+    const html0 = el.outerHTML.slice(0, 3000);
+    if (mode !== "move" && getComputedStyle(el).display === "inline") el.style.display = "inline-block";
+    let moved = false;
+    dragging = mode;
     const move = ev => {
       const dx = ev.clientX - x0, dy = ev.clientY - y0;
-      if (mode === "move") el.style.translate = px(tx0 + dx) + " " + px(ty0 + dy);
-      else { el.style.width = px(Math.max(8, r0.width + dx)); el.style.height = px(Math.max(8, r0.height + dy)); }
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+      moved = true;
+      let tx = b0.x, ty = b0.y, w = b0.w, h = b0.h;
+      if (mode === "move") { tx += dx; ty += dy; }
+      else {
+        if (mode.includes("e")) w = b0.w + dx;
+        if (mode.includes("w")) { w = b0.w - dx; tx = b0.x + dx; }
+        if (mode.includes("s")) h = b0.h + dy;
+        if (mode.includes("n")) { h = b0.h - dy; ty = b0.y + dy; }
+        if (ev.shiftKey && mode.length === 2) { // keep the proportions from a corner
+          if (Math.abs(w - b0.w) / ratio > Math.abs(h - b0.h)) { const nh = w / ratio; if (mode.includes("n")) ty = b0.y + (b0.h - nh); h = nh; }
+          else { const nw = h * ratio; if (mode.includes("w")) tx = b0.x + (b0.w - nw); w = nw; }
+        }
+        w = Math.max(8, w); h = Math.max(8, h);
+        if (mode !== "n" && mode !== "s") { el.style.width = px(w); el.style.maxWidth = "none"; }
+        if (mode !== "e" && mode !== "w") el.style.height = px(h);
+      }
+      el.style.translate = px(tx) + " " + px(ty);
+      boxes.forEach((b, i) => place(b, picked[i])); drawHandles(); report(el);
+    };
+    const up = () => {
+      removeEventListener("pointermove", move, true); removeEventListener("pointerup", up, true);
+      dragging = null;
+      if (!moved) return; // a plain click: the click handler selects what's under it
+      suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
+      const b = boxOf(el), props = {};
+      if (b.x !== b0.x || b.y !== b0.y) props.translate = b.x + "px " + b.y + "px";
+      if (mode !== "move") {
+        if (mode !== "n" && mode !== "s") props.width = b.w + "px";
+        if (mode !== "e" && mode !== "w") props.height = b.h + "px";
+      }
+      if (Object.keys(props).length) writeBox(el, props, html0);
       send();
     };
-    const up = ev => {
-      removeEventListener("pointermove", move, true); removeEventListener("pointerup", up, true);
-      const dx = ev.clientX - x0, dy = ev.clientY - y0;
-      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
-      const props = mode === "move" ? { translate: px(tx0 + dx) + " " + px(ty0 + dy) } : { width: px(Math.max(8, r0.width + dx)), height: px(Math.max(8, r0.height + dy)) };
-      post({ blaze: "edit", edit: { kind: "style", target: target(el), props }, html: el.outerHTML.slice(0, 3000), selector: selector(el) });
-    };
     addEventListener("pointermove", move, true); addEventListener("pointerup", up, true);
+  }
+  // Dragging the selected element itself moves it; a click without a drag still selects
+  // whatever is under the pointer (a child, a neighbour).
+  addEventListener("pointerdown", e => {
+    if (!on || editing || picked.length !== 1 || isUI(e.target) || e.button !== 0 || e.shiftKey) return;
+    if (!picked[0].contains(e.target) || onCanvas(e.target)) return;
+    drag(e, "move");
+  }, true);
+  // window capture runs before the selection click handler (document capture), so a drag's
+  // trailing click never re-selects.
+  addEventListener("click", e => { if (suppressClick) { e.preventDefault(); e.stopPropagation(); suppressClick = false; } }, true);
+  // Arrow keys nudge (in the preview, or forwarded from the studio); the write waits for a pause.
+  function nudgeBy(dx, dy) {
+    const el = picked[0]; if (!el || picked.length !== 1 || editing || parts.length) return;
+    const b = boxOf(el);
+    if (!nudge || nudge.el !== el) nudge = { el, html: el.outerHTML.slice(0, 3000) };
+    el.style.translate = px(b.x + dx) + " " + px(b.y + dy);
+    boxes.forEach((bx, i) => place(bx, picked[i])); drawHandles(); report(el);
+    clearTimeout(nudge.t);
+    nudge.t = setTimeout(() => { const n = nudge; nudge = null; const nb = boxOf(n.el); writeBox(n.el, { translate: nb.x + "px " + nb.y + "px" }, n.html); }, 600);
+  }
+  addEventListener("keydown", e => {
+    if (!on || editing || parts.length || picked.length !== 1) return;
+    const s = e.shiftKey ? 10 : 1;
+    const d = { ArrowLeft: [-s, 0], ArrowRight: [s, 0], ArrowUp: [0, -s], ArrowDown: [0, s] }[e.key];
+    if (!d) return;
+    e.preventDefault(); nudgeBy(d[0], d[1]);
+  }, true);
+  // Exact values from the studio's inspector: { x, y, w, h } (any of them).
+  function setBox(v) {
+    const el = picked[0]; if (!el || picked.length !== 1) return;
+    const b = boxOf(el), props = {};
+    if (v.x !== undefined || v.y !== undefined) {
+      const x = v.x !== undefined ? +v.x : b.x, y = v.y !== undefined ? +v.y : b.y;
+      el.style.translate = px(x) + " " + px(y); props.translate = Math.round(x) + "px " + Math.round(y) + "px";
+    }
+    if (v.w !== undefined) { if (getComputedStyle(el).display === "inline") el.style.display = "inline-block"; el.style.width = px(Math.max(8, +v.w)); el.style.maxWidth = "none"; props.width = Math.round(Math.max(8, +v.w)) + "px"; }
+    if (v.h !== undefined) { el.style.height = px(Math.max(8, +v.h)); props.height = Math.round(Math.max(8, +v.h)) + "px"; }
+    boxes.forEach((bx, i) => place(bx, picked[i])); drawHandles(); report(el);
+    if (Object.keys(props).length) writeBox(el, props);
   }
   function retype(el) {
     if (editing) return;
@@ -257,6 +349,8 @@
     if (m.blaze === "style3d") tweak3d(m.prop, m.value);
     if (m.blaze === "style") { picked.forEach(el => el.style.setProperty(m.prop, m.value)); boxes.forEach((b, i) => place(b, picked[i])); drawHandles(); }
     if (m.blaze === "retype") { if (picked[0]) retype(picked[0]); }
+    if (m.blaze === "nudge") nudgeBy(+m.dx || 0, +m.dy || 0);
+    if (m.blaze === "setbox" && m.box) setBox(m.box);
     if (m.blaze === "theme") { document.documentElement.style.colorScheme = m.value; }
     if (m.blaze === "audit") { audit().then(report => post({ blaze: "audit", id: m.id, report })); }
   });

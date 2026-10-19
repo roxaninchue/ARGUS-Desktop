@@ -112,6 +112,7 @@ jobs:
           exec > >(tee -a build.log) 2>&1
           W=$(jq -r .info.productVersion wails.json); V=$(cat VERSION)
           [ "$W" = "$V" ] || { echo "wails.json productVersion ($W) doesn't match VERSION ($V)"; exit 1; }
+          node ci/nosquare.test.js
           sudo apt-get update -q && sudo apt-get install -yq libgtk-3-dev libwebkit2gtk-4.1-dev libx11-dev tesseract-ocr
           go test -tags webkit2_41 ./...
           go install $WAILS
@@ -162,9 +163,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         with: { name: arch, path: dist/ }
 
+  # Publishes as soon as Windows, Linux and Arch are built. macOS runners can sit queued for a long
+  # time (GitHub capacity), so the .dmg is added afterwards by the mac-release job.
   release:
     if: github.event_name != 'pull_request'
-    needs: [windows, macos, linux, arch]
+    needs: [windows, linux, arch]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -179,7 +182,7 @@ jobs:
         env:
           BLAZE_UPDATE_SIGNING_KEY: ${{ secrets.BLAZE_UPDATE_SIGNING_KEY }}
         run: |
-          mkdir rel && find art -type f ! -name 'blaze-desktop-bin' -exec cp {} rel/ \;
+          mkdir rel && find art -type f ! -name 'blaze-desktop-bin' ! -name '*.dmg' -exec cp {} rel/ \;
           (cd rel && sha256sum -- * > ../SHA256SUMS) && mv SHA256SUMS rel/
           cat rel/SHA256SUMS
           if [ -n "$BLAZE_UPDATE_SIGNING_KEY" ]; then
@@ -198,9 +201,42 @@ jobs:
           ls -l rel
           gh release create "$V" rel/* --title "Blaze Desktop $V" --notes "Windows: setup.exe (or portable). macOS: .dmg (right-click > Open the first time). Linux: .deb, Arch .pkg.tar.zst, or tar.gz." --latest
 
+  # Adds the macOS .dmg to the release once the mac build finishes, then re-signs SHA256SUMS
+  # so it still covers every asset (updates verify it, update_verify.go).
+  mac-release:
+    if: github.event_name != 'pull_request'
+    needs: [macos, release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: macos, path: mac }
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.26.x' }
+      - name: Add the dmg and re-sign
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BLAZE_UPDATE_SIGNING_KEY: ${{ secrets.BLAZE_UPDATE_SIGNING_KEY }}
+        run: |
+          V=v$(cat VERSION)
+          mkdir rel
+          gh release download "$V" -R ${{ github.repository }} -D rel --pattern '*'
+          rm -f rel/SHA256SUMS rel/SHA256SUMS.sig
+          if ls rel/*.dmg >/dev/null 2>&1; then echo "$V already has a dmg"; exit 0; fi
+          cp mac/*.dmg rel/
+          (cd rel && sha256sum -- * > ../SHA256SUMS) && mv SHA256SUMS rel/
+          cat rel/SHA256SUMS
+          up="rel/SHA256SUMS"
+          if [ -n "$BLAZE_UPDATE_SIGNING_KEY" ]; then
+            go run ./ci/sign rel/SHA256SUMS
+            go run ./ci/verify rel
+            up="$up rel/SHA256SUMS.sig"
+          fi
+          gh release upload "$V" -R ${{ github.repository }} mac/*.dmg $up --clobber
+
   report:
     if: failure() && github.event_name != 'pull_request'
-    needs: [shots, windows, macos, linux, arch, release]
+    needs: [shots, windows, macos, linux, arch, release, mac-release]
     runs-on: ubuntu-latest
     steps:
       - name: Note the failure in issue 1
@@ -208,5 +244,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           body="CI failed on ${GITHUB_SHA::7}: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          shots=${{ needs.shots.result }} windows=${{ needs.windows.result }} macos=${{ needs.macos.result }} linux=${{ needs.linux.result }} arch=${{ needs.arch.result }} release=${{ needs.release.result }}"
+          shots=${{ needs.shots.result }} windows=${{ needs.windows.result }} macos=${{ needs.macos.result }} linux=${{ needs.linux.result }} arch=${{ needs.arch.result }} release=${{ needs.release.result }} mac-release=${{ needs.mac-release.result }}"
           gh issue edit 1 -R ${{ github.repository }} --body "$body" 2>/dev/null || gh issue create -R ${{ github.repository }} --title "CI status" --body "$body"

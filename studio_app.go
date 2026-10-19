@@ -259,6 +259,12 @@ func (a *App) editCandidates(file string) []string {
 
 // ApplyEdit writes a preview edit into the element's source file and saves a version.
 func (a *App) ApplyEdit(req EditReq) EditResult {
+	// Moves, resizes and colours from the studio land as whole pixels and plain hex.
+	if e, err := cleanEdit(req.Edit); err != nil {
+		return EditResult{Error: "Couldn't use that value: " + err.Error()}
+	} else {
+		req.Edit = e
+	}
 	folder := a.prefs.Folder
 	cands := a.editCandidates(req.File)
 	type hit struct {
@@ -333,6 +339,9 @@ func editSummary(e studio.Edit) string {
 		}
 		return "Edited text of " + what + ": " + strconv.Quote(t)
 	case "style":
+		if studio.IsTransform(e.Props) {
+			return transformSummary(what, e.Props)
+		}
 		var parts []string
 		for _, k := range sortedKeys(e.Props) {
 			parts = append(parts, k+" "+e.Props[k])

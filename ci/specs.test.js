@@ -108,6 +108,69 @@ const ok = (cond, msg) => { n++; if (!cond) { fails++; console.log("FAIL " + msg
 
   // v0.9 New design: a scratch artboard, drawn at its real size scaled to fit, with Export.
   if (typeof w.show === "function") { w.show("design"); await tick(150); }
+  // v0.20 Design studio, phase 1: rail, side tabs, real-width frames at one zoom, Inspect, colour wheel.
+  {
+    const rail = d.querySelector(".design.studio .drail");
+    const modes = rail ? [...rail.querySelectorAll("[data-m]")].map(b => b.dataset.m + (b.classList.contains("on") ? "*" : "") + (b.classList.contains("soon") ? "~" : "")) : [];
+    ok(modes.join(" ") === "page* 3d~ motion~ audio~", "studio: mode rail Page · 3D · Motion · Audio, Page on (" + modes.join(" ") + ")");
+    const tabs = [...d.querySelectorAll(".dtabs [data-p]")].map(b => b.dataset.p).join(",");
+    ok(tabs === "chat,inspect,critic,brand" && !!d.querySelector(".dpane.p-chat #input"), "studio: side panel Chat · Inspect · Critic · Brand, the chat lives in Chat");
+    ok(!!d.querySelector(".dcenter .dbar.ft-tl #dselect") && !!d.querySelector(".dcenter .ft-tr #dship") && !!d.querySelector("#dzoom"), "studio: floating toolbars and zoom over the canvas");
+    const box = () => [...d.querySelectorAll("#dstage .zinner .fbox")];
+    ok(box().length === 1 && box()[0].style.width === "1280px", "studio: the desktop frame is drawn at its real 1280px width");
+    // Compare side by side: both versions in one scaled layer, so the zoom is equal by construction.
+    d.querySelector("#dcmpbtn").click(); await tick(30);
+    w.eval("compare = [2, 3]; drawStage()"); await tick(60);
+    const inners = d.querySelectorAll("#dstage .zinner");
+    ok(inners.length === 1 && box().length === 2 && box().every(b => b.style.width === "1280px") && /scale\(/.test(inners[0].style.transform), "studio: compare puts both versions at 1280px under one shared scale");
+    const s0 = inners[0].style.transform;
+    d.querySelector("#dzoom .zi").click(); await tick(20);
+    const s1 = d.querySelector("#dstage .zinner").style.transform;
+    ok(s1 !== s0 && d.querySelectorAll("#dstage .zinner").length === 1, "studio: zooming scales both compared frames together (" + s0 + " → " + s1 + ")");
+    d.querySelector("#dzoom .zl").click();
+    d.querySelector("#dcmpbtn").click(); await tick(20);
+    w.eval("compare = []; drawStage()"); await tick(40);
+    // Select an element: Inspect opens with its box and colour fields.
+    w.eval("selectOn = true; drawStage()"); await tick(40);
+    const fr = d.querySelector("#dstage .pframe"), sent = [];
+    if (fr && fr.contentWindow) fr.contentWindow.postMessage = m => sent.push(m);
+    w.postMessage({ blaze: "selected", items: [{ selector: "section.hero > h1", tag: "h1", text: "Warm light", html: "<h1>Warm light</h1>", leaf: true, target: { tag: "h1", classes: [], text: "Warm light", index: 0 }, box: { x: 4, y: -2, w: 640, h: 72 }, styles: { color: "rgb(27, 27, 27)", background: "rgba(0, 0, 0, 0)", fontSize: "54px", padding: "0px", borderRadius: "0px" } }] }, "*");
+    await tick(60);
+    const insp = d.querySelector(".dpane.p-inspect");
+    ok(insp && insp.classList.contains("on"), "studio: picking an element opens Inspect");
+    const fx = insp && insp.querySelector("input[data-k=x]"), fw = insp && insp.querySelector("input[data-k=w]");
+    ok(fx && fx.value === "4" && fw && fw.value === "640", "studio: Inspect shows the element's position and size");
+    if (fw) { fw.value = "520"; fw.dispatchEvent(new w.Event("change")); }
+    ok(sent.some(m => m && m.blaze === "setbox" && m.box && m.box.w === 520), "studio: typing a width sends it to the preview to apply and write back");
+    w.postMessage({ blaze: "box", box: { x: 30, y: -2, w: 520, h: 72 } }, "*"); await tick(20);
+    ok(fx && fx.value === "30", "studio: dragging in the preview updates the fields live");
+    const fields = insp ? [...insp.querySelectorAll(".cwf")] : [];
+    ok(fields.length === 2 && fields[0].querySelector(".cwf-hex").value === "#1B1B1B", "studio: Text and Fill colour fields with hex (" + (fields[0] && fields[0].querySelector(".cwf-hex").value) + ")");
+    // Hex typed into the field writes the colour back to the source.
+    w.__edits = [];
+    const hx = fields[0] && fields[0].querySelector(".cwf-hex");
+    if (hx) { hx.value = "ffc94d"; hx.dispatchEvent(new w.Event("change")); }
+    await tick(40);
+    ok((w.__edits || []).some(r => r.edit && r.edit.kind === "style" && r.edit.props.color === "#ffc94d"), "studio: a hex colour commits as a style write-back");
+    // The wheel opens from the swatch, with hex, opacity, brand and page swatches.
+    fields[0] && fields[0].querySelector(".cwf-sw").click(); await tick(60);
+    const pop = d.querySelector(".cwpop");
+    ok(!!pop && !!pop.querySelector(".cw-wheel canvas") && pop.querySelector(".cw-hex").value === "#FFC94D" && !!pop.querySelector(".cw-a"), "colour wheel: opens on the current colour with hex and opacity");
+    ok(pop && pop.querySelectorAll(".cw-sw button").length === 7, "colour wheel: brand and page swatches");
+    if (pop) { const ph = pop.querySelector(".cw-hex"); ph.value = "#2F6F5E80"; ph.dispatchEvent(new w.Event("input")); ph.dispatchEvent(new w.Event("blur")); }
+    await tick(30);
+    ok(hx && hx.value === "#2F6F5E80", "colour wheel: 8-digit hex keeps its opacity");
+    w.BlazeColor.close();
+    // Native colour inputs elsewhere in Design get the wheel too.
+    const ci = d.createElement("input"); ci.type = "color"; ci.value = "#e8743b"; d.querySelector(".design").append(ci); await tick(80);
+    ok(ci.classList.contains("cw-native") && ci.nextElementSibling && ci.nextElementSibling.classList.contains("cwup"), "colour wheel: plain colour inputs in Design are upgraded");
+    ci.remove();
+    w.eval("selection = null; selectOn = false; drawStage()"); await tick(30);
+    d.querySelector(".dtabs [data-p=chat]").click();
+    const ver = (await w.go.main.App.SetStudioMode("3d"));
+    ok(ver === "3d", "studio: mode is remembered per project (mock)");
+  }
+
   const nb = d.querySelector("#dnew");
   ok(!!nb, "design: New button in the toolbar");
   if (nb) {

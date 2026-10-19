@@ -50,6 +50,7 @@ type DesignState struct {
 	Versions []Version    `json:"versions"`
 	Tracked  []string     `json:"tracked"`
 	Head     int          `json:"head,omitempty"` // the version the live files are (new versions branch from it)
+	Mode     string       `json:"mode,omitempty"` // the studio mode last used here: page | 3d | motion | audio (design_studio.go)
 
 	Brand    studio.Brand `json:"brand"`              // the project's brand kit (studio_app.go)
 	SiteID   string       `json:"site_id,omitempty"`  // shared-comments id for shipped pages
@@ -388,13 +389,14 @@ type DesignView struct {
 	Head     int            `json:"head"`               // the version the live files are
 	Artboard *studio.Format `json:"artboard,omitempty"` // the previewed file's fixed frame (v0.9)
 	Scratch  bool           `json:"scratch,omitempty"`  // the folder is a scratch design
+	Mode     string         `json:"mode"`               // the studio mode (design_studio.go)
 }
 
 func (a *App) Design() DesignView {
 	a.pv.mu.Lock()
 	st := a.pv.state
 	a.pv.mu.Unlock()
-	v := DesignView{Base: a.pv.base(), Target: st.Target, Tracked: st.Tracked, Head: st.Head}
+	v := DesignView{Base: a.pv.base(), Target: st.Target, Tracked: st.Tracked, Head: st.Head, Mode: normStudioMode(st.Mode)}
 	for _, x := range st.Versions {
 		x.Files = nil
 		v.Versions = append(v.Versions, x)
