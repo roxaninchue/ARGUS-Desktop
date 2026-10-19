@@ -867,6 +867,20 @@ ANSWER SHAPE
 `
 }
 
+// replyExtras is the static RICH REPLIES and FOLLOW-UPS block (v0.17.1, the same rules as
+// Blaze Android v0.24.0 / v0.24.9): the app draws these as step-flow cards, pictures and diagrams,
+// and the follow-up line as pills under the answer (frontend/dist/md.js, bubbles.js).
+func replyExtras() string {
+	return `
+RICH REPLIES (only when they help)
+- Steps: a numbered list whose items start with a **bold title** shows as a step-flow card.
+- Pictures: ![alt](https://…) on its own line, only with real image URLs; one right before a paragraph sits beside it, 2-3 in a row sit side by side, 4+ become a swipeable deck.
+- Diagrams: a ` + "```mermaid" + ` block is drawn inline.
+FOLLOW-UPS
+- At the very end of a final answer (never when calling tools), add one line exactly like <<follow-ups: first | second | third>> with three short next requests (max 6 words each) written as the user would say them.
+`
+}
+
 // defaultPersonality is Blaze's voice in chat turns (Settings › Behaviour › Personality).
 const defaultPersonality = `PERSONALITY
 You are Blaze. Be warm, sharp, and one step ahead: an expert who happens to be easy to talk to.
@@ -960,6 +974,7 @@ RULES
 	}
 	b.WriteString(a.personality())
 	b.WriteString(answerShape(a.foldCards()))
+	b.WriteString(replyExtras())
 	b.WriteString(a.modeLine())
 	b.WriteString(a.lowDataLine())
 	if a.cfg.Persona != "" {

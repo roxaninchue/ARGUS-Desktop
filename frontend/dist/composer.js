@@ -23,18 +23,86 @@ const cmIcon = (n, cls = "i sm") => `<svg class="${cls}" viewBox="0 0 16 16">${C
 const fmtSize = n => !n ? "" : n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : n >= 1024 ? Math.round(n / 1024) + " KB" : n + " B";
 
 // ---------- markup ----------
-function composerBar() {
-  return `<button id="plus" class="plusbtn" title="Attach images, files or a folder · commands">${icon("plus", "i sm")}</button>
-    <button id="mic" class="plusbtn mic" title="Voice input · Ctrl+Shift+M (local Whisper)">${cmIcon("mic")}</button>
-    <span id="recline" class="recline" style="display:none"><span class="rdot"></span><span class="rtime label ink">0:00</span><button class="btn ghost xs rcancel" title="Discard">${icon("x", "i sm")}</button></span>
+// v0.17.1 pill composer (mobile v0.24.1): a thin + on the left, the field, then the quiet extras
+// (recording line, mode chip, the ? shortcuts) and the mic, with the round Send / Stop at the end.
+function composerLead() {
+  return `<button id="plus" class="plusbtn" title="Attach images, files or a folder · commands" aria-label="Attach and tools">${icon("plus", "i sm")}</button>`;
+}
+function composerTail() {
+  return `<span id="recline" class="recline" style="display:none"><span class="rdot"></span><span class="rtime label ink">0:00</span><button class="btn ghost xs rcancel" title="Discard">${icon("x", "i sm")}</button></span>
     <span id="modeChip" class="modechip label" title="Not the default mode · Ctrl+Tab / Shift+Tab" style="display:none"></span>
-    <span class="grow"></span>
     <button id="keysHelp" class="plusbtn keyshelp" title="">?</button>
     <div id="modes" class="modes">
       <div class="mseg" id="mWork" title="Work mode · Ctrl+Tab"><button data-m="plan">Plan</button><button data-m="build">Build</button></div>
       <div class="mseg" id="mAppr" title="Approval mode · Shift+Tab"><button data-a="auto">Auto</button><button data-a="autopilot">Autopilot</button></div>
-    </div>`;
+    </div>
+    <button id="mic" class="plusbtn mic" title="Voice input · Ctrl+Shift+M (local Whisper)" aria-label="Talk">${cmIcon("mic")}</button>`;
 }
+function composerBar() { return composerLead() + composerTail(); }
+
+// ---------- v0.17.1 rotating placeholder (mobile v0.24.1 ComposerHints) ----------
+// Every ~3 s the placeholder fades and slides to the next suggestion. Built only from what is on
+// this computer: connected accounts, recent projects and the open folder, plus generic fallbacks.
+// No network or model calls. It stops while the field is focused or has text, while recording,
+// in Plan / Autopilot (their own placeholder), and when the system asks for reduced motion.
+const Hints = (() => {
+  const MAX = 8, ROTATE_MS = 3000, DEFAULT = "Ask Blaze to do something…";
+  const CONN = { google: ["Check my Gmail…", "What's on my calendar today?"], github: ["Check my GitHub notifications…"],
+    spotify: ["Play something on Spotify…"], notion: ["Search my Notion…"], slack: ["Catch up on Slack…"] };
+  const FALLBACKS = ["Run the tests here and fix what fails", "How much disk space is left?", "Design a landing page for…",
+    "Make me flashcards on…", "Summarise a PDF for me…", "Draw a lion wearing sunglasses"];
+  const clean = (t, n = 48) => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1).trimEnd() + "…" : t; };
+  const base = p => String(p || "").replace(/[\\/]+$/, "").split(/[\\/]/).pop();
+
+  // sources: { connectors: ["google", …] (connected ids), projects: ["HomeGlow", …] (newest first), folder: "/path" }
+  function build(src = {}) {
+    const out = [];
+    const add = h => { const t = clean(h); if (t && !out.includes(t) && out.length < MAX) out.push(t); };
+    [...new Set((src.connectors || []).map(x => String(x).toLowerCase()))].flatMap(id => (CONN[id] || []).slice(0, 1)).slice(0, 3).forEach(add);
+    (src.projects || []).map(p => clean(p, 28)).filter(Boolean).slice(0, 2).forEach(p => add(`Pick up ${p}…`));
+    const f = base(src.folder);
+    if (f && f !== "~" && !/^[A-Za-z]:$/.test(f)) { add(`What's in ${clean(f, 24)}? Give me a tour`); add(`Run the tests in ${clean(f, 24)}…`); }
+    FALLBACKS.forEach(x => { if (out.length < 6) add(x); });
+    return out.slice(0, MAX);
+  }
+
+  let list = [], idx = 0, timer = 0;
+  const reduced = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
+  const defaultMode = () => MODES.work_mode !== "plan" && MODES.approval !== "autopilot";
+
+  async function gather() {
+    const src = { connectors: [], projects: [], folder: (typeof S !== "undefined" && S && S.prefs && S.prefs.folder) || "" };
+    try { const c = await API().Connectors(); src.connectors = ((c && c.connectors) || []).filter(x => x.status === "connected" && x.enabled !== false).map(x => x.id); } catch (e) {}
+    try { src.projects = ((await API().Projects()) || []).map(p => p.name); } catch (e) {}
+    return src;
+  }
+
+  function show(text, animate) {
+    const i = $("#input"), ph = $(".phint"), ib = i && i.closest(".inbox"); if (!i || !ph || !ib) return;
+    const on = defaultMode();
+    ib.classList.toggle("hinting", on);
+    if (!on) return;
+    i.placeholder = text;
+    if (!animate || ph.textContent === text) { ph.textContent = text; ph.className = "phint"; return; }
+    ph.className = "phint out";
+    setTimeout(() => { ph.textContent = text; ph.className = "phint in"; requestAnimationFrame(() => requestAnimationFrame(() => { ph.className = "phint"; })); }, 300);
+  }
+
+  function tick() {
+    const i = $("#input");
+    if (!i || list.length < 2 || reduced() || !defaultMode() || document.activeElement === i || i.value || (typeof rec !== "undefined" && rec)) return;
+    idx = (idx + 1) % list.length; show(list[idx], true);
+  }
+
+  async function start() {
+    list = build(await gather());
+    idx = 0; show(reduced() || !list.length ? DEFAULT : list[0], false);
+    if (!timer) timer = setInterval(tick, ROTATE_MS);
+  }
+
+  return { build, start, show, tick, get list() { return list; }, MAX, ROTATE_MS, DEFAULT };
+})();
+window.Hints = Hints;
 
 function initComposer(p) {
   MODES = (S && S.modes) || MODES;
@@ -55,6 +123,7 @@ function initComposer(p) {
   addEventListener("drop", () => { depth = 0; document.body.classList.remove("dropping"); });
   addEventListener("dragover", e => { if (isFiles(e)) e.preventDefault(); });
   drawModes(p);
+  setTimeout(() => Hints.start(), 0);
 }
 
 // ---------- modes ----------
@@ -66,7 +135,8 @@ function drawModes(p = pane) {
   const ib = $(".inbox", p);
   if (ib) { ib.classList.toggle("plan", MODES.work_mode === "plan"); ib.classList.toggle("pilot", MODES.approval === "autopilot"); }
   const i = $("#input", p);
-  if (i) i.placeholder = MODES.work_mode === "plan" ? "Plan mode: Blaze reads and scouts, then proposes a plan. It changes nothing." : (MODES.approval === "autopilot" ? "Autopilot: Blaze works until it's done and decides on its own." : "Ask Blaze to do something…");
+  if (i) i.placeholder = MODES.work_mode === "plan" ? "Plan mode: Blaze reads and scouts, then proposes a plan. It changes nothing." : (MODES.approval === "autopilot" ? "Autopilot: Blaze works until it's done and decides on its own." : (Hints.list[0] && $(".phint", p) && $(".phint", p).textContent) || "Ask Blaze to do something…");
+  if (typeof Hints !== "undefined") { const ib2 = $(".inbox", p); if (ib2) ib2.classList.toggle("hinting", MODES.work_mode !== "plan" && MODES.approval !== "autopilot" && !!($(".phint", p) || {}).textContent); }
   if (S) S.modes = MODES;
   const chip = $("#modeChip", p);
   if (chip) {

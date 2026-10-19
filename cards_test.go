@@ -28,3 +28,12 @@ func TestFoldCardsDefault(t *testing.T) {
 		t.Error("fold_cards=false should turn cards off")
 	}
 }
+
+func TestReplyExtras(t *testing.T) {
+	x := replyExtras()
+	for _, want := range []string{"RICH REPLIES", "**bold title**", "```mermaid", "<<follow-ups: first | second | third>>", "never when calling tools"} {
+		if !strings.Contains(x, want) {
+			t.Errorf("replyExtras() is missing %q", want)
+		}
+	}
+}

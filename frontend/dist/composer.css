@@ -86,6 +86,6 @@ body.dropping #composer .cwrap::after { content: "Drop to attach"; position: abs
 /* v0.7.4: pickers narrow as you type. Matched letters in the accent, underlined; square edges. */
 .menu .mhead { display: flex; align-items: baseline; gap: 8px; padding: 8px 12px 6px; }
 .menu .mhead .mcount { margin-left: auto; font: 10.5px var(--mono); letter-spacing: .06em; color: var(--weak); text-transform: uppercase; }
-.menu mark.hit { background: transparent; color: var(--accent); font-weight: 600; border-radius: 0; box-shadow: inset 0 -1.5px 0 var(--accent); padding: 0; }
+.menu mark.hit { background: transparent; color: var(--accent); font-weight: 600; border-radius: 3px; box-shadow: inset 0 -1.5px 0 var(--accent); padding: 0; }
 .menu .md2 mark.hit { font-weight: 500; }
 .menu .mempty { padding: 14px 12px 12px; font: 12.5px var(--mono); color: var(--sub); }

@@ -787,6 +787,10 @@ with sync_playwright() as p:
     if errs:
         print("JS errors:", errs); allerrs.extend("macos: " + e for e in errs)
     b.close()
+# v0.17.1 mobile design: home, messaging, composer states, rich replies, confirm card (ci/design_shots.py).
+sys.path.insert(0, str(root / "ci"))
+import design_shots
+allerrs.extend("design: " + e for e in design_shots.run(out, tuple((__import__("os").environ.get("SHOTS_THEMES") or "light,dark").split(","))))
 # Shots still get pushed when something broke; ERRORS.txt says what (the job then fails).
 if allerrs:
     (out / "ERRORS.txt").write_text("\n".join(allerrs) + "\n"); sys.exit(1)

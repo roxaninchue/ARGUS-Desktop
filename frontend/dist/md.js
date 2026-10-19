@@ -6,12 +6,38 @@
     s = esc(s);
     const codes = [];
     s = s.replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return "\u0000" + (codes.length - 1) + "\u0000"; });
+    s = s.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, (_, t, u) => `<a data-href="${u}">${t || "picture"}</a>`);
     s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, t, u) => `<a data-href="${u}">${t}</a>`);
     s = s.replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, (_, p, u) => `${p}<a data-href="${u}">${u}</a>`);
     s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
     s = s.replace(/(^|[^*\w])\*([^*\n]+)\*(?!\w)/g, "$1<em>$2</em>");
     s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[+i]}</code>`);
     return s;
+  }
+
+  // ---------- v0.17.1 rich replies ----------
+  const IMG = /!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)/g;
+  const IMGLINE = /^\s*(!\[[^\]]*\]\(https:\/\/[^\s)]+\)\s*)+$/;
+  const FLOW = /^\*\*([^*]+)\*\*\s*[:.\u2014\u2013-]?\s*(.*)$/;
+  // Low-data mode: no pictures or diagrams (they stay as text); MD.opts can switch parts off.
+  const opts = { images: true, diagrams: true, flow: true };
+  const lean = () => { try { return typeof S !== "undefined" && S && S.prefs && !!S.prefs.low_data; } catch (e) { return false; } };
+  const rich = k => opts[k] !== false && (k === "flow" || !lean());
+  const b64 = t => { try { return btoa(unescape(encodeURIComponent(t))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); } catch (e) { return ""; } };
+
+  // Follow-ups (mobile ReplyParts): "<<follow-ups: a | b | c>>" at the end of a reply becomes
+  // pills; a half-typed marker is hidden while it streams. Tolerant of one or two brackets.
+  const FU = /<{1,2}\s*\/?\s*follow[\s_-]?ups?\s*:([\s\S]*?)(>{1,2}|$)/i;
+  function splitFollowups(src, final) {
+    let text = String(src || ""), list = [];
+    const m = FU.exec(text);
+    if (m && (m[2] || (final && m[1].includes("|")))) {
+      list = m[1].split("|").map(x => x.trim().replace(/^["'\-•\s<>/]+|["'\-•\s<>/]+$/g, "")).filter(Boolean).slice(0, 3);
+      text = text.slice(0, m.index);
+    } else if (m) text = text.slice(0, m.index);
+    const tail = /<{1,2}\s*\/?\s*(f(o(l(l(o(w[\s_-]?(u(ps?)?)?)?)?)?)?)?)?\s*$/i.exec(text);
+    if (tail && tail[0].length < 20) text = text.slice(0, tail.index);
+    return { text: text.replace(/\s+$/, ""), followups: list };
   }
 
   function render(src) {
@@ -24,10 +50,31 @@
         const buf = []; i++;
         while (i < lines.length && !/^\s*```/.test(lines[i])) buf.push(lines[i++]);
         i++;
+        const lang = (fence[1] || "").toLowerCase();
+        if (lang === "mermaid" && rich("diagrams") && buf.join("").trim()) {
+          // v0.17.1 inline diagram (mobile v0.24.9): drawn by mermaid.ink, the source one click away.
+          out.push(`<div class="code diagram"><div class="bar"><span class="label">diagram</span><button class="copy">Copy</button><button class="dsrc">Source</button></div><div class="dimg"><img loading="lazy" referrerpolicy="no-referrer" alt="Diagram" src="https://mermaid.ink/svg/${b64(buf.join("\n"))}"></div><pre>${esc(buf.join("\n"))}</pre></div>`);
+          continue;
+        }
         out.push(`<div class="code"><div class="bar"><span class="label">${esc(fence[1] || "code")}</span><button class="copy">Copy</button></div><pre>${esc(buf.join("\n"))}</pre></div>`);
         continue;
       }
       if (/^\s*$/.test(l)) { i++; continue; }
+      if (IMGLINE.test(l) && rich("images")) {
+        // v0.17.1 pictures (mobile v0.24.9): one beside the paragraph after it, 2-3 side by side, 4+ as a deck.
+        const pics = [];
+        while (i < lines.length && IMGLINE.test(lines[i])) { for (const m of lines[i].matchAll(IMG)) pics.push({ alt: m[1], url: m[2] }); i++; }
+        const tag = p => `<img loading="lazy" referrerpolicy="no-referrer" alt="${esc(p.alt)}" src="${esc(p.url)}">`;
+        const next = lines[i];
+        if (pics.length === 1 && next && next.trim() && !/^\s*(```|#{1,6}\s|>|[-*•]\s|\d+[.)]\s|\||!\[)/.test(next)) {
+          const buf = [];
+          while (i < lines.length && lines[i].trim() && !/^\s*(```|#{1,6}\s|>|[-*•]\s|\d+[.)]\s|\||!\[)/.test(lines[i])) buf.push(lines[i++]);
+          out.push(`<div class="rside">${tag(pics[0])}<p>${buf.map(inline).join("<br>")}</p></div>`);
+        } else if (pics.length === 1) out.push(`<figure class="rimg">${tag(pics[0])}</figure>`);
+        else if (pics.length <= 3) out.push(`<div class="rgroup" style="--n:${pics.length}">${pics.map(tag).join("")}</div>`);
+        else out.push(`<div class="deck" data-i="0">${pics.map((p, k) => `<div class="dcard" data-o="${Math.min(k, 3)}">${tag(p)}</div>`).join("")}<button class="dnav prev" aria-label="Previous picture">‹</button><button class="dnav next" aria-label="Next picture">›</button><span class="dcount">1 / ${pics.length}</span></div>`);
+        continue;
+      }
       let h = l.match(/^(#{1,6})\s+(.*)/);
       if (h) { const n = Math.min(h[1].length, 3); out.push(`<h${n}>${inline(h[2])}</h${n}>`); i++; continue; }
       if (/^\s*(---|\*\*\*)\s*$/.test(l)) { out.push("<hr>"); i++; continue; }
@@ -48,6 +95,11 @@
         while (i < lines.length && (ordered ? /^\s*\d+[.)]\s+/ : /^\s*([-*•])\s+/).test(lines[i])) {
           items.push(lines[i].replace(/^\s*([-*•]|\d+[.)])\s+/, "")); i++;
           while (i < lines.length && /^\s{2,}\S/.test(lines[i]) && !/^\s*([-*•]|\d+[.)])\s+/.test(lines[i])) items[items.length - 1] += " " + lines[i++].trim();
+        }
+        // v0.17.1 step-flow (mobile v0.24.9): a numbered list whose items all start with a **bold title**.
+        if (ordered && items.length >= 2 && rich("flow") && items.every(x => FLOW.test(x))) {
+          out.push(`<ol class="flow">${items.map((x, k) => { const m = x.match(FLOW); return `<li><span class="fdot">${k + 1}</span><span class="ftitle">${inline(m[1])}</span>${m[2].trim() ? `<span class="fdesc">${inline(m[2].trim())}</span>` : ""}</li>`; }).join("")}</ol>`);
+          continue;
         }
         out.push(`<${tag}>${items.map(x => `<li>${inline(x)}</li>`).join("")}</${tag}>`); continue;
       }
@@ -171,5 +223,5 @@
     return p;
   }
 
-  window.MD = { render, esc, answer, blocks };
+  window.MD = { render, esc, answer, blocks, splitFollowups, opts };
 })();

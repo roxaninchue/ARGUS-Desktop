@@ -22,6 +22,10 @@ jobs:
           NODE_PATH=/tmp/jd/node_modules node ci/picker.test.js
       - name: Test the Specialists strip in jsdom (a finished round tucks away)
         run: NODE_PATH=/tmp/jd/node_modules node ci/specs.test.js
+      - name: No square UI (every stylesheet rounded, like Android's NoSquareTest)
+        run: node ci/nosquare.test.js
+      - name: Test the mobile design in jsdom (bubbles, composer, rich replies)
+        run: NODE_PATH=/tmp/jd/node_modules node ci/design.test.js
       - name: Screenshot the UI
         run: |
           pip install -q playwright && python -m playwright install --with-deps chromium

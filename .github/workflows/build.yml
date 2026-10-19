@@ -112,6 +112,7 @@ jobs:
           exec > >(tee -a build.log) 2>&1
           W=$(jq -r .info.productVersion wails.json); V=$(cat VERSION)
           [ "$W" = "$V" ] || { echo "wails.json productVersion ($W) doesn't match VERSION ($V)"; exit 1; }
+          node ci/nosquare.test.js
           sudo apt-get update -q && sudo apt-get install -yq libgtk-3-dev libwebkit2gtk-4.1-dev libx11-dev tesseract-ocr
           go test -tags webkit2_41 ./...
           go install $WAILS

@@ -40,5 +40,8 @@ Checks: gofmt, vet ./internal/..., go test ./internal/..., go test -tags webkit2
 ## Step 5 — Marketer pack (PR #53, branch `marketer-pack`, v0.17.0) — MERGED (57eb888), released v0.17.0 (8 assets incl. SHA256SUMS + .sig)
 Done: skills content-calendar, product-listing, ad-lab, research-brief, whatsapp-replies, weekly-digest (40 total, index + README); phone_ask send approval via Env.Approve (never auto-approved) + test; shots marketer-*; CHANGELOG; plan-marketer-pack.md; VERSION/wails.json 0.17.0.
 
+## Mobile design (branch `feat/mobile-design`, v0.17.1) — PR pending
+Done: tokens from mobile Theme.kt + radius tokens, no `* {border-radius:0}` reset, round.css (every component rounded), chat.css + bubbles.js (messaging bubbles, grouping, meta line Copy · Quote · Retry, follow-up pills, work strip, inline confirm, jump button), pill composer + rotating hints (composer.js Hints), greeting empty state, md.js rich replies (step-flow, pictures, deck, mermaid), mascot logo.svg, replyExtras prompt + TestReplyExtras, ci/nosquare.test.js, ci/design.test.js, ci/design_shots.py (called by shots.py), CHANGELOG, plan-mobile-design.md, VERSION/wails.json 0.17.1.
+
 ## Next, in order
 - Plan 1.0 steps are all in. Ideas: Android mirrors one mind (plan-one-mind.md), Android-side shared skills sync check, Classroom scopes in Cloud project blaze-511220 (manual).

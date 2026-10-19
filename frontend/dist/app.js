@@ -19,7 +19,7 @@ const IC = {
   open: '<path d="M9 2.5h4.5V7M13.5 2.5 7.5 8.5M11.5 9.5v4h-9v-9h4"/>', file: '<path d="M3.5 1.5h6l3 3v10h-9z"/><path d="M9.5 1.5v3h3"/>',
   globe: '<circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c2 2 2 10 0 12M8 2c-2 2-2 10 0 12"/>', clock: '<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>',
   sparks: '<path d="M8 1.5v4M8 10.5v4M1.5 8h4M10.5 8h4"/>', retry: '<path d="M13 3.5v3h-3"/><path d="M12.6 6.5A5 5 0 1 0 13 9"/>',
-  copy: '<rect x="5" y="5" width="8.5" height="8.5"/><path d="M3 10.5H2.5v-8h8V3"/>', send: '<path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/>', stop: '<rect x="4" y="4" width="8" height="8"/>',
+  copy: '<rect x="5" y="5" width="8.5" height="8.5"/><path d="M3 10.5H2.5v-8h8V3"/>', send: '<path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/>', stop: '<rect x="4" y="4" width="8" height="8" rx="2"/>',
   layers: '<path d="m8 2 6 3.5-6 3.5-6-3.5z"/><path d="m2 9 6 3.5L14 9"/>', key: '<circle cx="5" cy="10.5" r="2.5"/><path d="m7 8.5 6-6M11 4.5l1.5 1.5"/>',
   chart: '<path d="M2.5 13.5h11M4.5 11V8M8 11V4.5M11.5 11V6.5"/>', sliders: '<path d="M2.5 4.5h6M11.5 4.5h2M2.5 11.5h2M7.5 11.5h6"/><rect x="8.5" y="3" width="3" height="3"/><rect x="4.5" y="10" width="3" height="3"/>',
   palette: '<rect x="2.5" y="2.5" width="11" height="11"/><path d="M2.5 8h11M8 2.5v11"/>', brain: '<path d="M4 3.5h8v9H4z"/><path d="M6.5 6h3M6.5 8.5h3M6.5 11h1.5"/>',
@@ -401,10 +401,11 @@ function buildPane() {
     <div id="menu" class="menu" style="display:none"></div>
     <div class="inbox">
       <div id="attach" class="attach"></div>
-      <textarea id="input" rows="1" placeholder="Ask Blaze to do something…"></textarea>
-      <div class="ibar">
-        ${composerBar()}
-        <button id="send" class="btn accent sm">${icon("send", "i sm")}<span>Send</span></button>
+      <div class="irow">
+        ${composerLead()}
+        <div class="ifield"><span class="phint" aria-hidden="true"></span><textarea id="input" rows="1" placeholder="Ask Blaze to do something…" aria-label="Message Blaze"></textarea></div>
+        ${composerTail()}
+        <button id="send" class="sendbtn" title="Send (Enter)" aria-label="Send">${icon("send", "i sm")}<span class="sr">Send</span></button>
       </div>
     </div>
     <div id="visionwarn" class="visionwarn" style="display:none"></div>
@@ -417,9 +418,14 @@ function buildPane() {
   $("#send", p).onclick = () => busy && !input.value.trim() && !ATT.length ? API().Stop() : submit();
   $("#plus", p).onclick = () => menuOpen() ? closeMenu() : openMenu("plus", plusItems(), "Attach");
   initComposer(p);
+  if (window.Bubbles) Bubbles.attach(p);
   return p;
 }
-function grow() { const i = $("#input"); if (!i) return; i.style.height = "auto"; i.style.height = Math.min(i.scrollHeight, 240) + "px"; }
+function grow() {
+  const i = $("#input"); if (!i) return; i.style.height = "auto"; i.style.height = Math.min(i.scrollHeight, 240) + "px";
+  // A long or multi-line message keeps the rounded ends (mobile v0.24.1): the pill becomes a large-radius box.
+  const ib = i.closest(".inbox"); if (ib) ib.classList.toggle("tall", i.value.includes("\n") || i.scrollHeight > 52);
+}
 
 function hero() {
   const col = $("#log .col", pane); col.innerHTML = "";
@@ -432,11 +438,16 @@ function hero() {
   }
   const os = S.info.os_name || "your computer";
   const where = S.project ? S.project.name : os;
+  // v0.17.1: mobile's greeting (time of day and your name), then the tries as rounded cards.
+  const hr = new Date().getHours();
+  const hello = hr >= 5 && hr < 12 ? "Good morning" : hr >= 12 && hr < 17 ? "Good afternoon" : "Good evening";
+  const who = (typeof ACCT !== "undefined" && ACCT && ACCT.signed_in && ACCT.user && (ACCT.user.name || "").trim().split(/\s+/)[0]) || "";
   const box = h("div", "hero");
-  box.innerHTML = `<div class="label acc">${esc(where)}</div><div class="big">What should we <em>get done</em>?</div>
-    <p class="lead">Blaze runs commands, edits files here, writes code, uses git and the web. Visual work opens live in Design. Type <span class="kbd">/</span> for commands or <span class="kbd">@</span> to attach a file.</p>`;
+  box.innerHTML = `<img class="hmark" src="logo.svg" alt=""><div class="label acc">${esc(where)}</div><div class="big">${esc(hello)}${who ? `, ${esc(who)}` : ""}.</div>
+    <p class="lead">What should we get done? Blaze runs commands, edits files here, writes code, uses git and the web. Visual work opens live in Design. Type <span class="kbd">/</span> for commands or <span class="kbd">@</span> to attach a file.</p>`;
   const dk = S.desktop || {};
   if (dk.hotkey_ok && dk.hotkey_label) box.append(h("div", "hkhint label weak", `Press <span class="kbd">${esc(dk.hotkey_label)}</span> anywhere for quick ask`));
+  box.append(h("div", "label trylabel", "Try"));
   const sug = h("div", "suggest");
   [["Explore", "What's in this folder? Give me a short tour."],
    ["Fix", "Run the tests here and fix whatever fails."],
@@ -454,7 +465,14 @@ function hero() {
   }
 }
 
+// Messages loaded from a saved chat have no time; live ones are stamped (bubbles.js groups by it).
+let LOADING = false;
+const stampNow = () => LOADING ? 0 : Date.now();
 function loadConv(conv) {
+  LOADING = true;
+  try { loadConvInner(conv); } finally { LOADING = false; }
+}
+function loadConvInner(conv) {
   const col = $("#log .col", pane); col.innerHTML = "";
   if (!conv || !conv.messages || !conv.messages.length) { hero(); return; }
   let turn = null;
@@ -503,7 +521,7 @@ function userMsg(content, att) {
   const files = [];
   let text = content.replace(/\n*<attached path="([^"]*)"([^>]*)>[\s\S]*?<\/attached>/g, (_, p, rest) => { if (!/kind=/.test(rest)) files.push(p); return ""; });
   if (text.startsWith("[Autopilot] ")) return apNote();
-  const m = h("div", "msg user");
+  const m = h("div", "msg user"); m.dataset.at = stampNow();
   if (text.startsWith(CONTINUE_TAG)) { m.classList.add("cont"); m.append(h("div", "bubble", `${icon("retry", "i sm")} Continue`)); return m; }
   if (text.startsWith("[Design edit]")) {
     const act = (text.match(/^\[Design edit\] (.*)/) || [])[1] || "Edit";
@@ -523,7 +541,7 @@ function blazeMsg() {
   // A new answer starts while the previous one is still live (autopilot's autoreply, retry):
   // close the previous one's working line so it never shimmers forever.
   if (current && current.workEl && !current.finished) finishWork(current);
-  const el = h("div", "msg blaze");
+  const el = h("div", "msg blaze"); el.dataset.at = stampNow();
   el.append(h("div", "who", `<span class="mk"></span><span class="label">Blaze</span>`));
   // One quiet status line per turn (Settings › Behaviour › Show every step turns the raw list back on).
   const workEl = h("button", "work", `<span class="sq"></span><span class="wt"></span><svg class="i sm chev" viewBox="0 0 16 16">${IC.down}</svg>`);
@@ -532,6 +550,7 @@ function blazeMsg() {
   const mdEl = h("div", "md");
   el.append(workEl, stepsEl, mdEl);
   const turn = { el, workEl, stepsEl, mdEl, text: "", steps: {}, order: [], started: Date.now(), open: false };
+  el.__turn = turn;
   workEl.onclick = () => {
     turn.open = !turn.open;
     workEl.classList.toggle("open", turn.open);
@@ -550,7 +569,10 @@ const CARD_MAX = () => document.body.classList.contains("orb") ? 220 : 260;
 const cardRO = typeof ResizeObserver === "function" ? new ResizeObserver(es => es.forEach(e => fitCard(e.target.closest(".acard")))) : null;
 
 function renderAnswer(turn, final) {
-  const a = MD.answer(turn.text, { fold: foldCards(), final });
+  // Follow-ups ("<<follow-ups: a | b | c>>") become pills under the newest answer (v0.17.1).
+  const fu = MD.splitFollowups(turn.text, final);
+  if (window.Bubbles) Bubbles.followups(turn, final ? fu.followups : []);
+  const a = MD.answer(fu.text, { fold: foldCards(), final });
   $$(".acard .abody", turn.mdEl).forEach(b => cardRO && cardRO.unobserve(b));
   turn.cards = a.cards;
   if (!a.cards.length) { turn.mdEl.classList.remove("hascards"); turn.mdEl.innerHTML = MD.render(a.rest); return; }
@@ -676,6 +698,7 @@ function scrollDown(force) {
 
 function setBusy(b) {
   busy = b;
+  document.body.classList.toggle("busy", !!b);
   if (window.Shell) Shell.sync();
   sendLabel();
   hintText();
@@ -683,9 +706,14 @@ function setBusy(b) {
 function sendLabel() {
   const send = $("#send", pane), i = $("#input", pane); if (!send) return;
   const stop = busy && !(i && i.value.trim()) && !ATT.length;
+  // The pill composer (v0.17.1): the mic shows while it's empty, a round send arrow once there's
+  // text, a stop square while Blaze works.
+  const ib = send.closest(".inbox");
+  if (ib) { ib.classList.toggle("has-text", !!(i && i.value.trim()) || ATT.length > 0 || attachments.length > 0); ib.classList.toggle("busy", !!busy); ib.classList.toggle("hasatt", ATT.length > 0 || attachments.length > 0); }
   if (send.dataset.stop === String(stop)) return;
   send.dataset.stop = String(stop);
-  send.innerHTML = stop ? `${icon("stop", "i sm")}<span>Stop</span>` : `${icon("send", "i sm")}<span>Send</span>`;
+  send.title = stop ? "Stop (Esc)" : "Send (Enter)"; send.setAttribute("aria-label", stop ? "Stop" : "Send");
+  send.innerHTML = stop ? `${icon("stop", "i sm")}<span class="sr">Stop</span>` : `${icon("send", "i sm")}<span class="sr">Send</span>`;
   send.classList.toggle("accent", !stop); send.classList.toggle("line", stop);
 }
 
@@ -1109,7 +1137,7 @@ let menu = { items: [], idx: 0, kind: "" };
 const menuOpen = () => $("#menu") && $("#menu").style.display !== "none";
 const matchCommands = q => PickFilter.rank(COMMANDS, q);
 const NOUN = { skills: "skill", model: "model", project: "project", theme: "theme", commands: "command", attach: "item" };
-function closeMenu() { const m = $("#menu"); if (m) m.style.display = "none"; menu.kind = ""; menu.all = null; menu.cmd = ""; }
+function closeMenu() { const m = $("#menu"); if (m) m.style.display = "none"; menu.kind = ""; menu.all = null; menu.cmd = ""; const pl = $("#plus"); if (pl) pl.classList.remove("open"); }
 
 async function openMenu(kind, items, title, opts = {}) {
   if (kind === "root") items = COMMANDS.map(c => ({ ...c, slash: true }));
@@ -1119,6 +1147,7 @@ async function openMenu(kind, items, title, opts = {}) {
   menu = { items: items || [], all: pickers ? (items || []) : null, idx: 0, kind, title, q: "",
     base: opts.base != null ? opts.base : (input ? input.value : ""), cmd: opts.cmd || "" };
   if (pickers && opts.q) filterMenu(opts.q); else drawMenu();
+  const pl = $("#plus"); if (pl) pl.classList.toggle("open", kind === "plus");
 }
 
 // Narrow an open picker to q; the first match is selected.
