@@ -76,8 +76,8 @@ const ok = (cond, msg) => { n++; if (!cond) { fails++; console.log("FAIL " + msg
     await w.eval('openChat("c2")'); await tick(40);
     ok(opened === "c2" && w.eval("busy") === false, "background chats: you can open another chat while one is answering");
     w.fire("live", ["c1"]); await tick(10);
-    w.eval('$("#chats").innerHTML = \'<button class="chat" data-id="c1"><span class="t">x</span></button>\'; markLive()');
-    ok(d.querySelector('#chats .chat[data-id="c1"]').classList.contains("live"), "background chats: the sidebar marks the working chat");
+    w.eval("markLive()"); // v0.19: no sidebar; the live set is still tracked for project chats
+    ok(!d.querySelector("#chats") && w.eval("LIVE.has('c1')"), "background chats: the working chat is tracked (no sidebar in v0.19)");
     A.OpenConversation = async id => ({ id, running: true, messages: [{ role: "user", content: "long task" }, { role: "assistant", content: "Half way" }] });
     await w.eval('openChat("c1")'); await tick(40);
     ok(w.eval("busy") === true && !!w.eval("current"), "background chats: going back picks the live answer up");
