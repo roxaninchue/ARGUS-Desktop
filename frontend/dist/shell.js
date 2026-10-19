@@ -20,7 +20,7 @@ const Shell = (() => {
     // DESIGN · Exit, shown while a view is open.
     const exit = h("div", "shexit"); exit.id = "exitChip";
     exit.innerHTML = `<span class="label ink" id="exitName"></span><button class="btn ghost xs" title="Back to the chat (Esc)">${icon("x", "i sm")}Exit</button>`;
-    $("button", exit).onclick = () => go(mode);
+    $("button", exit).onclick = () => view === "design" ? show("work") : go(mode);
     pill.after(exit);
     // Search, then the router button (already there), then the avatar.
     const sb = h("button", "chip shsearch", `${SEARCH}<span>Search</span><span class="kbd">Ctrl K</span>`); sb.id = "searchBtn";
@@ -71,11 +71,11 @@ const Shell = (() => {
     const t = typeof view !== "undefined" ? tabOf(view) : "";
     if (t) { mode = t; if (t !== "projects") localStorage.setItem("blaze-shell-mode", t); }
     paint();
-    const inView = !t && view !== "design";
+    const inView = !t || view === "design";
     const chip = $("#exitChip"); if (!chip) return;
     chip.style.display = inView ? "" : "none";
     $("#exitName").textContent = (window.BlazeViews ? BlazeViews.label(view) : view).toUpperCase();
-    $("#pill").classList.toggle("dim", inView);
+    $("#pill").classList.toggle("dim", !t);
     chips();
     if (window.OneChat) OneChat.decorate();
   }
