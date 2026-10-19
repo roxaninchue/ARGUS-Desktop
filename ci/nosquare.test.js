@@ -8,8 +8,8 @@ const dist = path.join(__dirname, "..", "frontend", "dist");
 let fails = 0, n = 0;
 const ok = (cond, msg) => { n++; if (!cond) { fails++; console.log("FAIL " + msg); } else console.log("ok   " + msg); };
 
-// Selectors allowed a zero radius (scrollbars, 1px hairlines). Keep it tiny; empty today.
-const ALLOW = [];
+// Selectors allowed a zero radius (scrollbars, 1px hairlines, a fullscreen player that fills the screen). Keep it tiny.
+const ALLOW = [".mzv-stage:fullscreen"];
 
 const strip = s => s.replace(/\/\*[\s\S]*?\*\//g, "");
 const rules = []; // {file, sel, body}
