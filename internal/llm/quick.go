@@ -39,6 +39,15 @@ func QuickTargets(cfg *config.Config) []Target {
 
 // Quick asks for a short plain-text answer. It gives up after timeout.
 func Quick(ctx context.Context, cfg *config.Config, msgs []Message, timeout time.Duration) (string, error) {
+	if b := currentBackend(); b != nil { // v0.19 desktop: Blaze Cloud / Custom (backend.go)
+		if t, err, ok := b.Quick(ctx, cfg, msgs, timeout); ok {
+			return t, err
+		}
+	}
+	return quick(ctx, cfg, msgs, timeout)
+}
+
+func quick(ctx context.Context, cfg *config.Config, msgs []Message, timeout time.Duration) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 	list := QuickTargets(cfg)

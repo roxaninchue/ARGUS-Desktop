@@ -447,11 +447,12 @@ function hero() {
     sug.append(b);
   });
   box.append(sug); col.append(box);
-  if (S.setup_done && !(S.providers || []).some(p => p.ready && p.id !== "pollinations")) {
+  const noModel = () => { if (S.setup_done && !(S.providers || []).some(p => p.ready && p.id !== "pollinations")) {
     const c = h("div", "callout acc", `${icon("key")}<div><b>No model yet.</b> Blaze needs one AI model that can use tools. A free Gemini or Groq key takes a minute. <a data-go="providers" style="color:var(--accent);cursor:pointer">Add one</a></div>`);
     c.style.marginTop = "18px"; $("a", c).onclick = () => show("router", "providers");
     box.append(c);
-  }
+  } };
+  if (window.CloudModels) CloudModels.heroCallout(box, noModel); else noModel(); // v0.19: Blaze Cloud needs only a sign-in
 }
 
 function loadConv(conv) {
@@ -1741,7 +1742,7 @@ async function buildProviderPanel(x, p, redraw) {
 
 // ---------- settings ----------
 const SECTIONS = [
-  ["models", "BlazeRouter", "layers"], ["usage", "Usage", "chart"],
+  ["models", "Models", "layers"], ["usage", "Usage", "chart"],
   ["behaviour", "Behaviour", "sliders"], ["appearance", "Appearance", "palette"], ["memory", "Memory", "brain"],
   ["skills", "Skills", "book"], ["computer", "This computer", "cpu"], ["updates", "Updates", "dl"],
 ];

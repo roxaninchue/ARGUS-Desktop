@@ -833,6 +833,45 @@ with sync_playwright() as p:
         errs.append("Doctor has no Fix buttons for the macOS permissions")
     if errs:
         print("JS errors:", errs); allerrs.extend("macos: " + e for e in errs)
+    # v0.19 Blaze Cloud + Custom models: Settings › Models and the model menu, both themes (cloudmodels.js).
+    # The menu opens from the avatar: #route is hidden in the shell.
+    for theme in (__import__("os").environ.get("SHOTS_THEMES") or "light,dark").split(","):
+        pg = b.new_page(viewport={"width": 1280, "height": 820}, device_scale_factor=1)
+        pg.add_init_script(f"window.__theme='{theme}';window.__sample='{sample}';" + mock)
+        errs = []
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        guard(pg, errs)
+        pg.goto(url); pg.wait_for_timeout(700)
+        go_models = "CloudModels.load().then(() => refreshState()).then(() => show('settings', 'models'))"
+        menu = "show('work'); modelPopover(document.querySelector('#avatar') || document.querySelector('#route'))"
+        pg.evaluate("window.__signIn(); window.go.main.App.SetModelsMode('cloud').then(() => " + go_models + ")"); pg.wait_for_timeout(900)
+        pg.screenshot(path=str(out / f"models-cloud-{theme}.png"))
+        if not pg.evaluate("!!document.querySelector('.cmchoice button.on[data-mode=cloud]') && !!document.querySelector('.cmstatus.ok')"):
+            errs.append("Settings › Models: Blaze Cloud should be chosen and ready")
+        pg.evaluate(menu); pg.wait_for_timeout(500)
+        pg.screenshot(path=str(out / f"models-picker-cloud-{theme}.png"))
+        if not pg.evaluate("!!document.querySelector('.pop .cmopt.sel') && document.querySelector('#routeText').textContent === 'Blaze Cloud' && !document.querySelector('.pop .opt.sel:not(.cmopt)')"):
+            errs.append("model menu: Blaze Cloud should be first and the only one ticked")
+        pg.evaluate("closePop(); window.__cmStatus = {ready: false, code: 403, line: \"You're on the Blaze waiting list. You'll get access as soon as you're approved.\"}; " + go_models); pg.wait_for_timeout(900)
+        pg.screenshot(path=str(out / f"models-waitlisted-{theme}.png"))
+        if "waiting list" not in pg.evaluate("(document.querySelector('.cmstatus') || {}).textContent || ''"):
+            errs.append("Settings › Models: the waiting-list line is missing")
+        pg.evaluate("window.__cmStatus = {ready: true}; window.go.main.App.SetModelsMode('custom').then(() => " + go_models + ")"); pg.wait_for_timeout(1200)
+        pg.screenshot(path=str(out / f"models-custom-{theme}.png"))
+        pg.evaluate("document.querySelector('.cmtask').closest('.group').scrollIntoView({block: 'start'})"); pg.wait_for_timeout(200)
+        pg.screenshot(path=str(out / f"models-custom-tasks-{theme}.png"))
+        if pg.evaluate("document.querySelectorAll('.cmtask').length") != 3 or not pg.evaluate("!!document.querySelector('.cmfallback input:not(:checked)')"):
+            errs.append("Custom: three per-task rows and the backup switch (off) expected")
+        pg.evaluate(menu); pg.wait_for_timeout(500)
+        pg.screenshot(path=str(out / f"models-picker-custom-{theme}.png"))
+        if pg.evaluate("!!document.querySelector('.pop .cmopt.sel')"):
+            errs.append("model menu: Blaze Cloud must not be ticked in Custom")
+        pg.evaluate("closePop(); window.go.main.App.AccountSignOut().then(() => window.go.main.App.SetModelsMode('cloud')).then(() => " + go_models + ")"); pg.wait_for_timeout(900)
+        pg.screenshot(path=str(out / f"models-signedout-{theme}.png"))
+        if not pg.evaluate("!!document.querySelector('.cmstatus .btn.accent')"):
+            errs.append("Settings › Models: signed out should offer Sign in")
+        if errs:
+            print("JS errors:", errs); allerrs.extend(f"models-{theme}: {e}" for e in errs)
     b.close()
 # Shots still get pushed when something broke; ERRORS.txt says what (the job then fails).
 if allerrs:

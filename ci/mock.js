@@ -393,6 +393,20 @@ if (/\/internal\/router\/web\//.test(location.href)) {
     HomeInto: async t => t.split(",").filter(x => x.trim()).length,
   });
   window.__enterProject = async () => { await A.OpenProject("p1"); await refreshState(); convId = ""; hero(); show("work"); };
+  // v0.19 Blaze Cloud + Custom models (cloudmodels.js). "custom" here keeps the older BlazeRouter shots as they were;
+  // the models-* shots switch with SetModelsMode("cloud").
+  window.__cm = { mode: "custom", fallback: false, gateway: "https://ai.blaze-app.workers.dev/v1", custom: "Auto (free routing)",
+    overrides: [{ task: "chat" }, { task: "code", provider: "groq", model: "llama-3.3-70b-versatile", label: "Groq · llama-3.3-70b-versatile" }, { task: "vision" }] };
+  window.__cmStatus = { ready: true };
+  window.__cmModel = state.model;
+  const cmView = () => ({ ...window.__cm, overrides: window.__cm.overrides.map(o => ({ ...o })), signed_in: !!window.__acct.signed_in, email: window.__acct.user ? window.__acct.user.email : "", label: state.model });
+  Object.assign(A, {
+    ModelsChoice: async () => cmView(),
+    SetModelsMode: async m => { window.__cm.mode = m; state.model = m === "cloud" ? "Blaze Cloud" : window.__cmModel; return cmView(); },
+    SetCloudFallback: async v => { window.__cm.fallback = !!v; return cmView(); },
+    SetTaskModel: async (task, p, m) => { const o = window.__cm.overrides.find(x => x.task === task); if (!o) return "Blaze can pin chat, code or vision."; Object.assign(o, p ? { provider: p, model: m, label: p + " · " + m } : { provider: "", model: "", label: "" }); return ""; },
+    CloudStatus: async () => window.__acct.signed_in ? { ...window.__cmStatus } : { ready: false, line: "Sign in to your Blaze account and I'm ready to go.", code: 401 },
+  });
   window.go = { main: { App: new Proxy(A, { get: (t, k) => t[k] || (async () => "") }) } };
   // Events are captured so the screenshot script can play a turn: fire("tool", {...}).
   window.__ev = {};

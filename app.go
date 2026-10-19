@@ -144,6 +144,7 @@ func (a *App) startup(ctx context.Context) {
 	a.newEnv()
 	a.startConnectors()
 	a.startCloud()
+	a.startCloudModels() // v0.19: Blaze Cloud by default, or Custom (cloudmodels_app.go)
 	a.startComposer()
 	a.startAgents()
 	a.startShell()
