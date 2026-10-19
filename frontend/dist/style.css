@@ -4,18 +4,14 @@
 @font-face { font-family: InterTight; src: url(fonts/inter_tight_500.ttf); font-weight: 500; }
 @font-face { font-family: InterTight; src: url(fonts/inter_tight_600.ttf); font-weight: 600; }
 
-/* Blaze v0.18.2: the v0.18.0 glass look (dark-first monochrome frosted glass from Blaze Mobile)
-   with the mobile design's chat on top (v0.17.1): messaging bubbles, the pill composer, rich replies,
-   and nothing square: every edge uses the radius tokens below (ci/nosquare.test.js guards it).
-   Surfaces: ground (window), chrome (sidebar, bars), paper (content), raised (cards, popovers),
-   bubble (Blaze's messages), inset (blocks inside a bubble), field (the composer pill).
-   Primary buttons use the monochrome ink fill (--primary), not the old classic blue. */
+/* Blaze v0.3 — paper and ink, hairline borders, square edges, one blue accent.
+   Three surface levels: chrome (sidebar, bars), paper (content), raised (cards, popovers). */
 :root {
   --ground: #F4F4F5; --ground-top: #F8F8F9; --ink: #111112;
   --body: rgba(17,17,18,.84); --sub: rgba(17,17,18,.62); --weak: rgba(17,17,18,.36);
   --hair: rgba(17,17,18,.15); --hair2: rgba(17,17,18,.18); --faint: rgba(17,17,18,.04); --faint2: rgba(17,17,18,.07);
   --chrome: rgba(255,255,255,.38); --paper: rgba(255,255,255,.20); --raised: rgba(255,255,255,.50); --sunk: rgba(17,17,18,.04);
-  --accent: #18181B; --accent-ink: #000000; --accent-soft: rgba(17,17,18,.08); --on-accent: #FFFFFF; --on-ink: #FFFFFF;
+  --accent: #E6E6EA; --accent-ink: #111112; --accent-soft: rgba(17,17,18,.08); --on-accent: #0E0E10;
   --error: #D9918A; --warning: #D6C08E; --success: #A6C9A8;
   --shadow: 0 8px 22px rgba(8,8,10,.12);
   --shadow-lg: 0 18px 55px rgba(8,8,10,.18);
@@ -24,8 +20,6 @@
   --display: InterTight, Inter, system-ui, sans-serif;
   --side: 236px;
   --r-xs: 8px; --r-sm: 12px; --r-md: 16px; --r-card: 22px; --r-lg: 24px; --r-sheet: 28px; --r-pill: 999px;
-  --primary: #18181B; --primary-hover: #2A2A2E; --on-primary: #fff; --primary-soft: rgba(17,17,18,.10);
-  --bubble: rgba(255,255,255,.58); --inset: rgba(255,255,255,.34); --field: rgba(255,255,255,.62); --field-line: rgba(17,17,18,.12);
   color-scheme: light;
 }
 :root[data-theme=dark] {
@@ -33,12 +27,10 @@
   --body: rgba(242,242,243,.87); --sub: rgba(242,242,243,.62); --weak: rgba(242,242,243,.36);
   --hair: rgba(255,255,255,.14); --hair2: rgba(255,255,255,.18); --faint: rgba(255,255,255,.06); --faint2: rgba(255,255,255,.08);
   --chrome: rgba(17,17,19,.74); --paper: rgba(24,24,28,.72); --raised: rgba(255,255,255,.08); --sunk: rgba(0,0,0,.18);
-  --accent: #E6E6EA; --accent-ink: #FFFFFF; --accent-soft: rgba(255,255,255,.16); --on-accent: #0E0E10; --on-ink: #0E0E10;
+  --accent: #E6E6EA; --accent-ink: #0E0E10; --accent-soft: rgba(255,255,255,.16); --on-accent: #0E0E10;
   --error: #D9918A; --warning: #D6C08E; --success: #A6C9A8;
   --shadow: 0 8px 22px rgba(0,0,0,.26);
   --shadow-lg: 0 18px 44px rgba(0,0,0,.42);
-  --primary: #E6E6EA; --primary-hover: #F2F2F3; --on-primary: #0E0E10; --primary-soft: rgba(255,255,255,.14);
-  --bubble: rgba(255,255,255,.08); --inset: rgba(0,0,0,.16); --field: rgba(255,255,255,.07); --field-line: rgba(255,255,255,.15);
   color-scheme: dark;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -49,8 +41,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 ::selection { background: var(--accent); color: var(--on-accent); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--hair2); border: 3px solid transparent; background-clip: content-box; border-radius: var(--r-pill); }
-::-webkit-scrollbar-thumb:hover { background-color: var(--weak); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.22); border: 3px solid transparent; background-clip: content-box; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,.36); }
 svg.i { width: 15px; height: 15px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 svg.i.sm { width: 13px; height: 13px; }
 
@@ -67,8 +59,8 @@ svg.i.sm { width: 13px; height: 13px; }
 
 /* ---------------- buttons, inputs, pills ---------------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 32px; padding: 0 14px; font-weight: 500; font-size: 13px; white-space: nowrap; transition: background .12s, color .12s, border-color .12s, box-shadow .12s; border: 1px solid transparent; }
-.btn.accent { background: var(--primary); color: var(--on-primary); }
-.btn.accent:hover { background: var(--primary-hover); }
+.btn.accent { background: var(--accent); color: var(--on-accent); }
+.btn.accent:hover { background: var(--accent-ink); }
 .btn.line { border-color: var(--hair2); color: var(--ink); background: var(--raised); }
 .btn.line:hover { border-color: var(--ink); }
 .btn.ghost { color: var(--sub); } .btn.ghost:hover { color: var(--ink); background: var(--faint2); }
@@ -87,12 +79,12 @@ select.field { appearance: none; padding-right: 30px; background-image: linear-g
 .pill { display: inline-flex; align-items: center; gap: 4px; font: 500 10px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 3px 6px; border: 1px solid var(--hair2); color: var(--sub); white-space: nowrap; vertical-align: 1px; }
 .pill.acc { border-color: transparent; background: var(--accent-soft); color: var(--accent); }
 .pill.ink { border-color: var(--ink); color: var(--ink); }
-.pill.solid { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.pill.solid { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 .seg { display: inline-flex; border: 1px solid var(--hair2); background: var(--raised); }
 .seg button { height: 26px; padding: 0 11px; font-size: 12.5px; color: var(--sub); display: inline-flex; align-items: center; gap: 6px; }
 .seg button + button { border-left: 1px solid var(--hair); }
 .seg button:hover { color: var(--ink); }
-.seg button.on { background: var(--ink); color: var(--on-ink); }
+.seg button.on { background: var(--ink); color: var(--paper); }
 .seg.icons button { width: 30px; padding: 0; justify-content: center; }
 .toggle { display: inline-flex; align-items: center; gap: 9px; cursor: pointer; user-select: none; }
 .toggle input { appearance: none; width: 28px; height: 16px; border: 1px solid var(--hair2); background: var(--sunk); position: relative; cursor: pointer; flex: none; transition: background .12s, border-color .12s; }
@@ -220,8 +212,7 @@ select.field { appearance: none; padding-right: 30px; background-image: linear-g
 .col { max-width: 760px; margin: 0 auto; padding: 0 28px; }
 .msg { margin: 0 0 26px; }
 .msg.user { display: flex; flex-direction: column; align-items: flex-end; }
-.msg.user .bubble { max-width: 80%; background: linear-gradient(180deg, rgba(17,17,18,.09), rgba(17,17,18,.06)); border: 1px solid rgba(17,17,18,.10); border-radius: var(--r-card); color: var(--ink); padding: 11px 14px; white-space: pre-wrap; word-break: break-word; font-size: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,.55); }
-:root[data-theme=dark] .msg.user .bubble { background: linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.18)); border-color: rgba(255,255,255,.22); color: #FFFFFF; box-shadow: inset 0 1px 0 rgba(255,255,255,.28); }
+.msg.user .bubble { max-width: 80%; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.10)); border: 1px solid rgba(255,255,255,.12); border-radius: var(--r-card); color: var(--ink); padding: 11px 14px; white-space: pre-wrap; word-break: break-word; font-size: 14px; box-shadow: inset 0 1px 0 rgba(255,255,255,.12); }
 .msg.blaze .who { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .msg.blaze .who .mk { width: 8px; height: 8px; background: var(--accent); }
 .msg.blaze .bubble, .msg.blaze .md { background: rgba(255,255,255,.04); border-radius: var(--r-card); }
@@ -276,7 +267,7 @@ select.field { appearance: none; padding-right: 30px; background-image: linear-g
 .step .dur:empty { display: none; }
 .step .chev { flex: none; color: var(--weak); transform: rotate(-90deg); transition: transform .15s; }
 .step.open .chev { transform: none; color: var(--ink); }
-.step .rep { font: 500 10px var(--mono); color: var(--on-ink); background: var(--sub); padding: 1px 5px; flex: none; }
+.step .rep { font: 500 10px var(--mono); color: var(--paper); background: var(--sub); padding: 1px 5px; flex: none; }
 .step .body { display: none; padding: 8px 12px 10px 33px; background: var(--faint); border-top: 1px solid var(--hair); }
 .step.open .body { display: block; }
 .step.open .head { background: var(--faint); }
