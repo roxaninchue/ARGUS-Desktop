@@ -326,7 +326,10 @@ if (/\/internal\/router\/web\//.test(location.href)) {
     BrandFromURL: async () => ({ brand }), BrandFromImageData: async () => ({ brand }),
     Taste: async () => ({ prompt: "TASTE (learned)\n- Likes: fonts Fraunces, Inter; colours #e8743b; corner radius 10px\n- Avoid: colours #1f4bd8\n", prefs: [] }),
     SaveCritique: async n => ({ card: { version: n, score: 78, a11y: 70, layout: 75, speed: 100, issues: ["2 text elements with low contrast (worst 2.9:1 on p.muted, needs 4.5:1)", "Scrolls sideways on phone (36px too wide)", "1 image without alt text"] } }),
-    ApplyEdit: async req => ({ ok: true, file: "index.html", diff: "--- a/index.html\n+++ b/index.html\n@@ -12,3 +12,3 @@\n-<h1>Warm light</h1>\n+<h1>Warm light for every corner</h1>\n", add: 1, del: 1, version: 4 }),
+    // v0.20 studio (design_studio.go)
+    SetStudioMode: async m => (["page", "3d", "motion", "audio"].includes(m) ? m : "page"),
+    DesignPalette: async () => ({ brand: ["#1b1b1b", "#fbf7f1", "#e8743b", "#2f6f5e"], page: ["#ffffff", "#f3eee6", "#c9b8a4"] }),
+    ApplyEdit: async req => ((window.__edits = window.__edits || []).push(req), { ok: true, file: "index.html", diff: "--- a/index.html\n+++ b/index.html\n@@ -12,3 +12,3 @@\n-<h1>Warm light</h1>\n+<h1>Warm light for every corner</h1>\n", add: 1, del: 1, version: 4 }),
     SwapColor: async () => ({ ok: true, file: "index.html, theme.css", diff: "", add: 6, del: 6, version: 4 }),
     Directions: async () => window.__dirs, StartDirections: async () => "ok", MixDirections: async () => "ok", PickDirection: async () => "ok", DiscardDirections: async () => "ok",
     PhonePreview: async on => on ? { on: true, url: "http://192.168.1.24:51733/index.html?k=3f9a1c", qr: "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 21 21" shape-rendering="crispEdges"><rect width="21" height="21" fill="#fff"/><path d="M1 1h7v7H1zM13 1h7v7h-7zM1 13h7v7H1z" fill="#000"/><path d="M2 2h5v5H2zM14 2h5v5h-5zM2 14h5v5H2z" fill="#fff"/><path d="M3 3h3v3H3zM15 3h3v3h-3zM3 15h3v3H3zM10 2h1v3h-1zM9 9h3v3H9zM14 10h2v2h-2zM12 14h3v1h-3zM17 16h2v3h-2zM10 17h2v2h-2z" fill="#000"/></svg>') } : {},
