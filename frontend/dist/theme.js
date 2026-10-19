@@ -24,7 +24,13 @@ const Theme = (() => {
     try { await API().SetTheme(t); } catch (e) {}
     if (view === "settings" && typeof settingsSection !== "undefined" && settingsSection === "appearance") show("settings", "appearance");
   }
-
+  function setMotion(on) {
+    localStorage.setItem('blaze.reduceMotion', on ? '0' : '1');
+    if (window.BlazeMotion && typeof window.BlazeMotion.sync === 'function') window.BlazeMotion.sync();
+    else if (window.BlazeMotion) window.BlazeMotion.enabled = !on;
+    const onEl = document.querySelector('#reduceMotionToggle');
+    if (onEl) onEl.checked = !on;
+  }
   function wire(b) {
     b.onclick = e => { e.stopPropagation(); set(isDark() ? "light" : "dark"); };
     b.oncontextmenu = e => { e.preventDefault(); set("system"); };
@@ -40,5 +46,5 @@ const Theme = (() => {
   new MutationObserver(() => document.querySelectorAll(".themebtn:not([data-w])").forEach(b => { b.dataset.w = "1"; wire(b); paint(); }))
     .observe(document.body, { childList: true, subtree: true });
   paint();
-  return { set, paint };
+  return { set, paint, setMotion };
 })();

@@ -82,9 +82,9 @@
 
 /* ---------------- toasts ---------------- */
 #toasts { position: fixed; right: 16px; top: 58px; z-index: 120; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; pointer-events: none; }
-.toast { display: flex; align-items: center; gap: 9px; max-width: 420px; padding: 9px 13px; background: var(--ink); color: var(--paper); box-shadow: var(--shadow-lg); font-size: 13px; pointer-events: auto; animation: tin .18s ease-out; transition: opacity .25s, transform .25s; }
-.toast.ok svg { color: #7B98FF; }
-:root[data-theme=dark] .toast.ok svg { color: #1F4BD8; }
+.toast { display: flex; align-items: center; gap: 9px; max-width: 420px; padding: 9px 13px; background: var(--ink); color: var(--paper); box-shadow: var(--shadow-lg); font-size: 13px; pointer-events: auto; animation: tin .18s ease-out; transition: opacity .25s, transform .25s; border-radius: var(--r-md); }
+.toast.ok svg { color: var(--accent); }
+:root[data-theme=dark] .toast.ok svg { color: var(--accent); }
 .toast.error { background: var(--raised); color: var(--ink); border: 1px solid var(--ink); }
 .toast.out { opacity: 0; transform: translateY(-6px); }
 @keyframes tin { from { opacity: 0; transform: translateY(-6px); } }

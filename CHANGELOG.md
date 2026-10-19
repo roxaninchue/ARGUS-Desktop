@@ -2,6 +2,12 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## v0.18.0 (glass)
+- **Dark frosted glass shell**: the desktop app now uses the same glass language as Blaze Mobile, with rounded cards, softer edges, and a translucent layer over the main surfaces.
+- **Monochrome surfaces and gold halo emblem**: the app keeps a neutral grey palette, leaving semantic colours for warnings and errors while the brand orb keeps its gold halo accent.
+- **Streamed reply motion**: new messages and the live drop effect use the same timing and reduced-motion rules as the mobile design.
+- **System-aware light/dark theme**: the theme still follows the OS by default, while the appearance settings let you force light or dark and switch off motion.
+
 ## v0.9.5 (parallel tools, eight new skills, skills that combine)
 - **Tools run in parallel**: when the model asks for several reads in one reply (file reads, listings and searches, web searches, page fetches, recall, skills, job logs), Blaze runs them at the same time, up to 6 at once, in the main chat and in background agents and specialists. Anything that changes things still runs one by one, in the model's order, and results go back in the order they were asked, so history and the steps list read the same. The prompt now tells the model to batch independent calls. Code: `internal/llm/batch.go`, `internal/tools/parallel.go`.
 - **Paper sketches**: the new **paper-sketch** skill draws doodles and hand-drawn illustrations that look like pencil, pen or marker on real paper (notebook, sketchbook, sticky note, graph paper, kraft). It builds a self-contained SVG with paper grain, pencil wobble and hatching, one group per part so Design can pick and edit each, and exports to PNG. The starter is `skills/paper-sketch/assets/sketch.svg`.
