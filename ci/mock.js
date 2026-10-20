@@ -298,6 +298,8 @@ if (/\/internal\/router\/web\//.test(location.href)) {
   window.__signIn = () => { Object.assign(window.__acct, { signed_in: true, user: acctUser, pending: "" }); };
   Object.assign(A, {
     AccountState: async () => ({ ...window.__acct }),
+    WritingMenu: async () => ({ tones: ["Clearer", "Shorter", "Friendlier", "More formal"], languages: ["English", "French", "Swahili"] }),
+    WriteAssist: async (text, mode, arg) => { window.__wa = { text, mode, arg }; await new Promise(r => setTimeout(r, 20)); return window.__waResult || { text: (mode === "translate" ? "[" + arg + "] " : "[" + arg + "] ") + text.trim() }; },
     CloudUsage: async () => (window.__usage || { cloud: true, signed_in: !!(window.__acct && window.__acct.signed_in), cap: 0, quota: null }),
     SetCloudDailyCap: async n => { window.__usage = { ...(window.__usage || {}), cap: n }; return window.__usage; },
     AccountPlan: async () => (window.__acct && window.__acct.signed_in ? (window.__plan || "basic") : ""),
