@@ -1,5 +1,5 @@
 # Desktop v0.4.1 plan: Answer cards
-The short answer is what you read; long detail folds into an expandable card above it, like Hark's chat cards but in Blaze's look.
+The short answer is what you read; long detail folds into an expandable card above it, like chat cards elsewhere, in Blaze's look.
 
 01 · The model shapes its reply
 

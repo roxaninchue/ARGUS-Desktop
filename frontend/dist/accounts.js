@@ -33,7 +33,7 @@ function connectorRow(c, redraw, opts = {}) {
   r.innerHTML = `${logo(c.id)}<div class="am"><div class="an">${esc(c.name)}</div><div class="ac">${cap}</div></div><div class="ar">${stat}</div>`;
   const open = () => { acctFrom = opts.from || ""; show("connector", c.id); };
   const b = connAction(c, redraw);
-  // Hark-style quiet buttons: Connect and Manage are line buttons, Reconnect stays accent.
+  // Quiet buttons: Connect and Manage are line buttons, Reconnect stays accent.
   if (b.textContent === "Connect" || b.textContent === "Set up") { b.className = "btn line sm"; b.textContent = "Connect"; }
   if (b.textContent === "Manage") { b.className = "btn ghost sm"; b.innerHTML = `Manage${icon("chev", "i sm")}`; }
   if (st === "needs_setup" || isLogin(c) && !c.one_click && st !== "connected" && st !== "expired" || st === "connected") b.onclick = e => { e.stopPropagation(); open(); };

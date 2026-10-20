@@ -1,6 +1,6 @@
 # v0.4.7: Background agents
 
-Blaze works like Hark: the main chat hands long work to background agents and stays
+Blaze works like this: the main chat hands long work to background agents and stays
 free for chatting while they run.
 
 ## How it works

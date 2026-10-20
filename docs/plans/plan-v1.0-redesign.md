@@ -26,7 +26,7 @@ Each one is its own PR and version bump.
   - Centre: a pill with `Chat | Projects`.
   - Right: a `Search` chip (Ctrl+K), the BlazeRouter status dot, and the account avatar.
 - **Left rail (Projects mode only):** the project list with status chips (`Working`, `Needs you`). In Chat mode the rail is the recent chats list, and it collapses below 1100px.
-- **Centre column (max 760px):** bubbles. User messages are right-aligned on an ink bubble (paper text in dark mode). Blaze messages are left-aligned with no bubble (plain text, like Hark), and cards stay square hairline boxes.
+- **Centre column (max 760px):** bubbles. User messages are right-aligned on an ink bubble (paper text in dark mode). Blaze messages are left-aligned with no bubble (plain text), and cards stay square hairline boxes.
 - **Work in progress is ONE live card** per turn: `● Working · 4 steps · 1m 12s ›`. Clicking it expands to today's steps view (reuse steps.js, specialists.js). When finished it collapses to `Worked · 13 steps · 3m 11s ›` and the answer follows as normal text.
 - **Composer:** one rounded bar with `+` on the left and Send on the right.
   - The `+` menu holds Attach, Voice, @files, Plan/Build, Auto/Autopilot and Model (opens BlazeRouter).

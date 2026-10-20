@@ -96,7 +96,7 @@ function updateCard() {
   const card = h("div", "card confirm updcard", `<div class="title"><span class="label acc">Update ready</span></div>
     <div>Blaze <span class="mono ink">${esc(u.latest)}</span> is out. You have <span class="mono">${esc(u.current)}</span>.</div>
     <div class="sub small" style="margin-top:4px">${esc(u.method || "")}</div><div class="label weak updstatus" style="margin-top:8px"></div>
-    <div class="actions"><button class="btn accent sm yes">${u.can_auto ? "Update now" : "Open release page"}</button><button class="btn line sm no">Later</button><button class="btn ghost sm skip">Skip this version</button></div>`);
+    <div class="actions"><button class="btn accent sm yes">${u.can_auto ? "Update now" : "Open downloads page"}</button><button class="btn line sm no">Later</button><button class="btn ghost sm skip">Skip this version</button></div>`);
   card.querySelector(".yes").onclick = () => { if (!u.can_auto) return API().OpenURL(u.page); card.remove(); SelfUpdate.run(); };
   card.querySelector(".no").onclick = () => card.remove();
   card.querySelector(".skip").onclick = async () => { await API().SkipUpdate(u.latest); UPD.skipped = true; $("#updCount").textContent = ""; card.remove(); };
@@ -2087,7 +2087,7 @@ async function setUpdates(col) {
     else if (u.available) ur.textContent = `Blaze ${u.latest} is out. You have ${u.current}. ${u.method || ""}`;
     else ur.textContent = `You're on the latest version, ${u.current}.`;
     ins.style.display = u.available ? "" : "none";
-    ins.textContent = u.can_auto ? "Update now" : "Open release page";
+    ins.textContent = u.can_auto ? "Update now" : "Open downloads page";
   };
   chk.onclick = async () => { chk.disabled = true; chk.textContent = "Checking…"; drawU(await checkUpdate(false)); chk.disabled = false; chk.textContent = "Check again"; };
   ins.onclick = () => UPD && (UPD.can_auto ? installUpdate(bx) : API().OpenURL(UPD.page));

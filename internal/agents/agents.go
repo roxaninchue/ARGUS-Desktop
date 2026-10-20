@@ -1,4 +1,4 @@
-// Package agents runs background agents for the main chat, the way Hark does it:
+// Package agents runs background agents for the main chat, like this:
 // the main agent hands a self-contained task to a sub-agent and its turn ends at
 // once, so the user keeps chatting. Each sub-agent runs in its own goroutine with
 // its own history, at most Cap at a time (the rest queue). When one finishes, its
