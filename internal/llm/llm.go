@@ -137,7 +137,7 @@ func Chat(ctx context.Context, p config.Provider, key, model string, msgs []Mess
 		req.Header.Set(k, v)
 	}
 	if p.ID == "openrouter" {
-		req.Header.Set("HTTP-Referer", "https://github.com/lacksonkapapahue/Blaze-dekstop")
+		req.Header.Set("HTTP-Referer", "https://blazeinchue.pages.dev")
 		req.Header.Set("X-Title", "Blaze Desktop")
 	}
 	resp, err := client.Do(req)

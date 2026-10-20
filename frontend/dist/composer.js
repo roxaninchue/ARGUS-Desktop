@@ -114,6 +114,8 @@ function initComposer(p) {
   $(".rcancel", p).onclick = () => stopRec(true);
   const input = $("#input", p);
   input.addEventListener("paste", onPaste);
+  // v0.19.1: warm the connection to Blaze Cloud on the first key press (the app limits it to once a minute).
+  input.addEventListener("keydown", prewarmCloud);
   // Files dropped anywhere on the window attach to the message (Wails resolves real paths).
   if (window.runtime && typeof window.runtime.OnFileDrop === "function") {
     try { window.runtime.OnFileDrop((x, y, paths) => attachPaths(paths), false); } catch (e) {}
@@ -127,6 +129,14 @@ function initComposer(p) {
   drawModes(p);
   setTimeout(() => Hints.start(), 0);
 }
+
+// v0.19.1: open the connection to Blaze Cloud before Send. Throttled here too, so typing never floods the bridge.
+let lastPrewarm = 0;
+function prewarmCloud() {
+  const now = Date.now(); if (now - lastPrewarm < 60000) return; lastPrewarm = now;
+  try { const f = window.go && window.go.main && window.go.main.App && window.go.main.App.CloudPrewarm; if (typeof f === "function") f().catch(() => {}); } catch (e) {}
+}
+addEventListener("focus", prewarmCloud);
 
 // ---------- modes ----------
 function drawModes(p = pane) {
@@ -227,7 +237,7 @@ function drawAttach() {
   if (warn) {
     warn.style.display = imgs && S && !S.vision_model ? "" : "none";
     warn.innerHTML = `${cmIcon("image")}<span>None of your models can see images, so Blaze sends them as file paths. Add a free Gemini key to let it see them.</span><a class="go">Add a model</a>`;
-    const g = $(".go", warn); if (g) g.onclick = () => show("router", "providers");
+    const g = $(".go", warn); if (g) g.onclick = () => addModels();
   }
 }
 
@@ -250,7 +260,7 @@ function plusItems() {
     { name: "@ File", icon: "at", desc: "or type @ in the box", run: () => { const i = $("#input"); i.value += (i.value && !i.value.endsWith(" ") ? " @" : "@"); i.focus(); i.dispatchEvent(new Event("input")); } },
     { name: MODES.work_mode === "plan" ? "Build mode" : "Plan mode", icon: "plan", desc: (MODES.work_mode === "plan" ? "switch back to every tool (now Plan)" : "read and scout only, then a plan") + " · Ctrl+Tab", run: () => setWorkMode(MODES.work_mode === "plan" ? "build" : "plan") },
     { name: MODES.approval === "autopilot" ? "Auto mode" : "Autopilot", icon: "pilot", desc: (MODES.approval === "autopilot" ? "ask before risky actions again (now Autopilot)" : "work until done, decide instead of asking") + " · Shift+Tab", run: () => setApproval(MODES.approval === "autopilot" ? "auto" : "autopilot") },
-    { name: "Model", icon: "model", desc: (($("#routeText") || {}).textContent || "") + " · BlazeRouter", run: () => { const r = $("#route"); modelPopover($("#plus") || r); } },
+    { name: "Model", icon: "model", desc: (($("#routeText") || {}).textContent || "") + (window.CloudModels && CloudModels.on() ? "" : " · Custom"), run: () => { const r = $("#route"); modelPopover($("#plus") || r); } },
     { name: "Views", icon: "views", desc: "Memory, Jobs, Schedule, Accounts, Doctor…", sub: async () => window.BlazeViews ? BlazeViews.items() : [] },
     { name: "Commands", icon: "slash", desc: "type / in the box", sub: async () => COMMANDS.map(c => ({ ...c, slash: true })) },
   ];

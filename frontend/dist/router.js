@@ -13,6 +13,7 @@ const Router = (() => {
 
   function paint() {
     const b = $("#routerBtn"); if (!b) return;
+    b.style.display = RV && RV.enabled ? "" : "none"; // v0.19.1: Blaze Cloud answers; the router is opt-in
     b.innerHTML = `${ICON}<span class="bt">Router</span><span class="brdot ${lvl(RV)}"></span>`;
     b.title = "BlazeRouter · " + note(RV) + (RV && RV.url ? " · " + RV.url : "");
     b.classList.toggle("on", typeof view !== "undefined" && view === "router");
@@ -98,6 +99,7 @@ const Router = (() => {
   // Model popover: BlazeRouter presets first (the curated ones), then "All presets".
   async function picks() { try { return await API().RouterPicker() || []; } catch (e) { return []; } }
   function pickerTop(body, close, picks) {
+    if (!RV || !RV.enabled) return; // off: Blaze Cloud and Custom only
     picks = picks || [];
     const top = picks.filter(p => p.group === "blazerouter" || p.group === "combo");
     const more = picks.filter(p => p.group === "preset");
@@ -149,6 +151,9 @@ const Router = (() => {
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 
-  return { info, paint, picks, pickerTop, menuItems, get view() { return RV; } };
+  // addModels: where "Add a model" goes. BlazeRouter's Providers page when it is on, else Settings › Models.
+  function addModels() { if (RV && RV.enabled) show("router", "providers"); else show("settings", "models"); }
+
+  return { info, paint, addModels, picks, pickerTop, menuItems, get view() { return RV; } };
 })();
 window.Router = Router;

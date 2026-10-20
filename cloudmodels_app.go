@@ -22,10 +22,28 @@ import (
 var cloudModels *cloudai.Router
 
 func (a *App) startCloudModels() {
-	choice := cloudai.LoadChoice(config.Dir(), !a.cfg.IsAuto())
+	// A fixed model keeps Custom, except BlazeRouter's own presets: those move to Blaze Cloud
+	// (v0.19.1), the way Blaze Mobile answers.
+	viaRouter := a.cfg.Default != nil && a.cfg.Default.Provider == config.RouterID
+	choice := cloudai.LoadChoice(config.Dir(), !a.cfg.IsAuto() && !viaRouter)
+	if choice.Mode == cloudai.ModeCustom && viaRouter && len(choice.Overrides) == 0 && !choice.RouterMoved {
+		choice.Mode, choice.RouterMoved = cloudai.ModeCloud, true
+		_ = choice.Save()
+	}
 	gw := cloudai.NewGateway(cloudai.BaseFrom(choice.GatewayURL), a.blazeToken)
 	cloudModels = cloudai.NewRouter(choice, gw)
 	llm.SetBackend(cloudModels)
+	go a.CloudPrewarm() // v0.19.1: the first message doesn't wait for DNS + TLS
+}
+
+// CloudPrewarm opens the connection to Blaze Cloud ahead of Send (v0.19.1): called at start-up,
+// on the first key press in the composer and when the window comes back to the front. At most
+// once a minute; a GET of the gateway's public /health, no account token, no model call.
+func (a *App) CloudPrewarm() bool {
+	if cloudModels == nil || cloudModels.GW == nil || !cloudModelsOn() {
+		return false
+	}
+	return cloudModels.GW.Prewarm(context.Background())
 }
 
 // blazeToken is the signed-in Blaze account's session token ("" when signed out).

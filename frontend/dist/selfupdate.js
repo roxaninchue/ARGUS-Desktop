@@ -50,7 +50,7 @@ const SelfUpdate = (() => {
       const u = await checkUpdate(false);
       if (!u || u.error) return end(t, `I couldn't check for an update. ${(u && u.error) || ""}`.trim(), [["Try again", run, "accent"]]);
       if (!u.available) return end(t, `You're on the newest version, **${u.current}**.`);
-      if (!u.can_auto) return end(t, `Blaze **${u.latest}** is out, but I can't install it on this computer by myself. ${u.method || ""}`.trim(), [["Open the release page", () => API().OpenURL(u.page), "accent"]]);
+      if (!u.can_auto) return end(t, `Blaze **${u.latest}** is out, but I can't install it on this computer by myself. ${u.method || ""}`.trim(), [["Open the downloads page", () => API().OpenURL(u.page), "accent"]]);
       t.latest = u.latest;
       say(t, `Updating you from ${u.current} to **${u.latest}**. Blaze restarts by itself when it's installed.${agentsLine()}`);
       updBusy = true;

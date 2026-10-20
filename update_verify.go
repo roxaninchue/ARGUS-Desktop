@@ -36,12 +36,7 @@ const detailsSep = "\n\nDetails: "
 func allowUnsigned() bool { return strings.TrimSpace(os.Getenv("BLAZE_ALLOW_UNSIGNED_UPDATE")) == "1" }
 
 // releaseFileURL is where to fetch a release asset, the same way download() does.
-func (a *App) releaseFileURL(as ghAsset) string {
-	if a.updateToken() != "" {
-		return as.APIURL
-	}
-	return as.Download
-}
+func (a *App) releaseFileURL(as ghAsset) string { return as.Download }
 
 // verifyUpdate checks file (downloaded as asset as) against rel's signed SHA256SUMS.
 // On failure it deletes file and returns the message to show.
@@ -58,9 +53,6 @@ func (a *App) verifyUpdate(rel *ghRelease, as ghAsset, file string) error {
 	hdr := http.Header{}
 	hdr.Set("Accept", "application/octet-stream")
 	hdr.Set("User-Agent", "Blaze-Desktop/"+version)
-	if t := a.updateToken(); t != "" {
-		hdr.Set("Authorization", "Bearer "+t)
-	}
 	sumsURL, sigURL := "", ""
 	if sums.Name != "" {
 		sumsURL = a.releaseFileURL(sums)

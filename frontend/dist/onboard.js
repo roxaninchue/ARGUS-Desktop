@@ -5,7 +5,7 @@
 
 const Onboard = (() => {
   IC.bell = IC.bell || '<path d="M4 11.5V7a4 4 0 0 1 8 0v4.5l1 1H3zM6.5 14h3"/>';
-  const STEPS = [["welcome", "Welcome"], ["model", "Model"], ["apps", "Apps"], ["perms", "Permissions"], ["tour", "Quick tour"], ["done", "Done"]];
+  const STEPS = [["welcome", "Welcome"], ["model", "Blaze Cloud"], ["apps", "Apps"], ["perms", "Permissions"], ["tour", "Quick tour"], ["done", "Done"]];
   const FREE = ["gemini", "groq", "cerebras", "openrouter", "mistral", "nvidia"];
   const reduce = window.BlazeMotion.query;
   let step = 0, root = null, pick = "", more = false;
@@ -84,6 +84,7 @@ const Onboard = (() => {
 
   // 02 · Pick & connect a model
   function model(body, nav) {
+    if (window.CloudModels && CloudModels.on()) return cloud(body, nav); // v0.19.1: like Blaze Mobile
     const provs = (S.providers || []).filter(p => p.id !== "pollinations");
     const ready = provs.filter(p => p.ready);
     body.append(h("h1", "", "Pick a model"), h("p", "lead", "Blaze needs one AI model that can use tools. These have free tiers; add a key and Blaze tests it straight away. Add more later and Auto switches when one is busy."));
@@ -100,6 +101,23 @@ const Onboard = (() => {
     const p = provs.find(x => x.id === pick);
     if (p) body.append(keyPanel(p));
     navBtns(nav, hasModel(S) ? "Continue" : "Skip for now", { note: hasModel(S) ? "" : "Blaze can't act until it has a model." });
+  }
+
+  // 02 · Blaze Cloud: no keys, just the Blaze account (the way Blaze Mobile starts).
+  function cloud(body, nav) {
+    const ch = CloudModels.choice || {};
+    body.append(h("h1", "", "Sign in to Blaze Cloud"), h("p", "lead", "Blaze Cloud picks a good model for each message. No API keys, nothing to set up. It uses your Blaze account, the same one as Blaze on your phone."));
+    const box = h("div", "obkey");
+    if (ch.signed_in) box.append(h("div", "obout small", `<span class="ok">${icon("check", "i sm")} Signed in as ${esc(ch.email || "your Blaze account")}. Ready.</span>`));
+    else {
+      const row = h("div", "keyrow");
+      const si = h("button", "btn accent sm", "Sign in"); si.onclick = () => { close(); show("signin"); };
+      row.append(si); box.append(row);
+    }
+    const own = h("button", "btn ghost sm", "Use my own keys instead"); own.onclick = () => { close(); show("settings", "models"); };
+    box.append(own);
+    body.append(box);
+    navBtns(nav, ch.signed_in ? "Continue" : "Skip for now", { note: ch.signed_in ? "" : "Blaze answers once you sign in." });
   }
 
   function keyPanel(p) {

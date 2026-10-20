@@ -38,6 +38,7 @@ func (a *App) trayReady() {
 	trayMu.Lock()
 	trayStatus = st
 	trayRouter = br
+	br.Hide() // shown once BlazeRouter is on (setTrayRouter)
 	trayMu.Unlock()
 	a.sh.mu.Lock()
 	a.sh.trayOK = trayAvailable()
@@ -80,6 +81,11 @@ func setTrayRouter(v RouterView) {
 	trayMu.Unlock()
 	if it == nil {
 		return
+	}
+	if v.Enabled {
+		it.Show()
+	} else {
+		it.Hide() // Blaze Cloud answers; the local router is an advanced option
 	}
 	dot := map[string]string{"green": "●", "amber": "◐", "red": "○"}[v.Level]
 	it.SetTitle(dot + " BlazeRouter dashboard")

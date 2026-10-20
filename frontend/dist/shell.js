@@ -132,7 +132,7 @@ const Shell = (() => {
       };
       row(AV, "Account", acct && acct.signed_in ? "Your Blaze account" : "Sign in to sync keys", () => { closePop(); show(acct && acct.signed_in ? "settings" : "signin", acct && acct.signed_in ? "account" : undefined); });
       row(icon("sliders", "i sm"), "Settings", "Behaviour, appearance, memory, skills", () => { closePop(); show("settings"); });
-      row(icon("layers", "i sm"), "BlazeRouter dashboard", (window.Router && Router.view && Router.view.note) || "Models, keys and usage", () => { closePop(); show("router"); });
+      if (window.Router && Router.view && Router.view.enabled) row(icon("layers", "i sm"), "BlazeRouter dashboard", (window.Router && Router.view && Router.view.note) || "Models, keys and usage", () => { closePop(); show("router"); });
       row(icon("route", "i sm"), "Model", ($("#routeText") || {}).textContent || "", () => { closePop(); modelPopover(anchor); });
       row(icon(dark ? "moon" : "sun", "i sm"), "Theme", dark ? "Dark · click for light" : "Light · click for dark", () => { const t = $("#themeBtn"); if (t) t.click(); closePop(); });
       row(icon("grid", "i sm"), "All views", "Memory, Jobs, Schedule, Accounts, Doctor…", () => { closePop(); BlazeViews.picker(); });

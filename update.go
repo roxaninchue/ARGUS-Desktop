@@ -1,21 +1,19 @@
 package main
 
-// In-app updates from the project's GitHub releases.
+// In-app updates from the Blaze downloads site (no GitHub).
 //
-// CI publishes every release as vX.Y.Z with one asset per platform. The app compares
-// its own version (stamped at build time) with the latest release, and installs the
-// asset that matches how it was installed: setup.exe or the portable exe on Windows,
-// the .dmg on macOS, and the .deb, Arch package or tar.gz on Linux. Nothing is
-// installed until the download checks out against the release's signed SHA256SUMS
-// (update_verify.go).
-//
-// The repo is public, so no token is needed. A private fork can set a GitHub token in
-// BLAZE_UPDATE_TOKEN (or GITHUB_TOKEN), or point updateRepo at a public repo.
+// CI publishes every release as vX.Y.Z with one asset per platform, and the site serves
+// them at <updateBase>/vX.Y.Z/<asset>, with <updateBase>/latest/ pointing at the newest
+// release. The app reads latest/SHA256SUMS: the version comes from the asset names and
+// the asset list is the file list. It compares that version with its own (stamped at
+// build time) and installs the asset that matches how it was installed: setup.exe or the
+// portable exe on Windows, the .dmg on macOS, and the .deb, Arch package or tar.gz on
+// Linux. Nothing is installed until the download checks out against the release's
+// signed SHA256SUMS (update_verify.go). No token is ever sent.
 
 import (
 	"archive/tar"
 	"compress/gzip"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -23,6 +21,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -32,9 +31,12 @@ import (
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
-// updateRepo is owner/name on GitHub. Override at build time with
-// -ldflags "-X main.updateRepo=owner/repo".
-var updateRepo = "lacksonkapapahue/Blaze-dekstop"
+// updateBase is where desktop releases are served. Override at build time with
+// -ldflags "-X main.updateBase=https://example.com/dl/desktop".
+var updateBase = "https://blazeinchue.pages.dev/dl/desktop"
+
+// updatePage is the downloads page shown when an update has to be installed by hand.
+var updatePage = "https://blazeinchue.pages.dev/download"
 
 type UpdateInfo struct {
 	Current   string `json:"current"`
@@ -42,7 +44,7 @@ type UpdateInfo struct {
 	Available bool   `json:"available"`
 	Skipped   bool   `json:"skipped"`  // the user chose to skip this version
 	Notes     string `json:"notes"`    // release notes
-	Page      string `json:"page"`     // release page on GitHub
+	Page      string `json:"page"`     // downloads page
 	Asset     string `json:"asset"`    // file that will be installed
 	Size      int64  `json:"size"`     // bytes
 	Method    string `json:"method"`   // what Install will do, in words
@@ -52,7 +54,6 @@ type UpdateInfo struct {
 
 type ghAsset struct {
 	Name     string `json:"name"`
-	APIURL   string `json:"url"`
 	Download string `json:"browser_download_url"`
 	Size     int64  `json:"size"`
 }
@@ -72,38 +73,54 @@ var (
 	installing bool
 )
 
-func updateToken() string {
-	for _, k := range []string{"BLAZE_UPDATE_TOKEN", "GITHUB_TOKEN"} {
-		if v := strings.TrimSpace(os.Getenv(k)); v != "" {
-			return v
+// siteVersion pulls vX.Y.Z out of a release asset name (Blaze-v0.19.1-..., blaze-desktop_0.19.1_amd64.deb).
+var siteVersion = regexp.MustCompile(`(?:^|[-_])v?([0-9]+\.[0-9]+\.[0-9]+)(?:[-_.]|$)`)
+
+// releaseFromSums turns a release's SHA256SUMS into the release the rest of the updater
+// works with: the tag from the asset names, and one asset per listed file plus the sums
+// and their signature, all served from the versioned folder.
+func releaseFromSums(base string, sums []byte) (*ghRelease, error) {
+	rel := &ghRelease{}
+	var names []string
+	for _, ln := range strings.Split(string(sums), "\n") {
+		f := strings.Fields(ln)
+		if len(f) != 2 || len(f[0]) != 64 {
+			continue
+		}
+		n := strings.TrimPrefix(f[1], "*")
+		if n == "" || strings.ContainsAny(n, "/\\") {
+			continue
+		}
+		names = append(names, n)
+		if m := siteVersion.FindStringSubmatch(n); m != nil {
+			v := "v" + m[1]
+			if rel.Tag == "" || newer(v, rel.Tag) {
+				rel.Tag = v
+			}
 		}
 	}
-	return ""
+	if rel.Tag == "" || len(names) == 0 {
+		return nil, errors.New("no release listed")
+	}
+	dir := strings.TrimRight(base, "/") + "/" + rel.Tag + "/"
+	for _, n := range append(names, "SHA256SUMS", "SHA256SUMS.sig") {
+		rel.Assets = append(rel.Assets, ghAsset{Name: n, Download: dir + n})
+	}
+	rel.HTMLURL = updatePage
+	rel.Body = "Blaze " + rel.Tag + " is ready. What's new is on the downloads page."
+	return rel, nil
 }
 
-func (a *App) updateToken() string {
-	if t := updateToken(); t != "" {
-		return t
-	}
-	if a.cfg != nil {
-		return a.cfg.Key("github") // keychain entry "github" under blaze-cli, if the user saved one
-	}
-	return ""
-}
-
-// CheckUpdate asks GitHub for the latest release.
+// CheckUpdate asks the downloads site for the latest release.
 func (a *App) CheckUpdate() UpdateInfo {
 	a.waitReady()
 	info := UpdateInfo{Current: version}
-	req, _ := http.NewRequest("GET", "https://api.github.com/repos/"+updateRepo+"/releases/latest", nil)
-	req.Header.Set("Accept", "application/vnd.github+json")
+	req, _ := http.NewRequest("GET", strings.TrimRight(updateBase, "/")+"/latest/SHA256SUMS", nil)
 	req.Header.Set("User-Agent", "Blaze-Desktop/"+version)
-	if t := a.updateToken(); t != "" {
-		req.Header.Set("Authorization", "Bearer "+t)
-	}
+	req.Header.Set("Cache-Control", "no-cache")
 	res, err := (&http.Client{Timeout: 20 * time.Second}).Do(req)
 	if err != nil {
-		info.Error = "Couldn't reach GitHub. Check your connection."
+		info.Error = "Couldn't reach the Blaze downloads site. Check your connection."
 		return info
 	}
 	defer res.Body.Close()
@@ -111,20 +128,21 @@ func (a *App) CheckUpdate() UpdateInfo {
 	case res.StatusCode == 404:
 		info.Error = "No release found yet. Check again later."
 		return info
-	case res.StatusCode == 403 || res.StatusCode == 429:
-		info.Error = "GitHub is rate-limiting update checks. Try again in a while."
+	case res.StatusCode == 429:
+		info.Error = "Too many update checks. Try again in a while."
 		return info
 	case res.StatusCode != 200:
-		info.Error = fmt.Sprintf("GitHub answered %d.", res.StatusCode)
+		info.Error = fmt.Sprintf("The downloads site answered %d.", res.StatusCode)
 		return info
 	}
-	var rel ghRelease
-	if err := json.NewDecoder(res.Body).Decode(&rel); err != nil {
-		info.Error = "GitHub sent something unexpected."
+	body, _ := io.ReadAll(io.LimitReader(res.Body, 64<<10))
+	rel, err := releaseFromSums(updateBase, body)
+	if err != nil {
+		info.Error = "The downloads site sent something unexpected."
 		return info
 	}
 	updMu.Lock()
-	updLast = &rel
+	updLast = rel
 	updMu.Unlock()
 
 	info.Latest, info.Notes, info.Page = rel.Tag, strings.TrimSpace(rel.Body), rel.HTMLURL
@@ -133,7 +151,7 @@ func (a *App) CheckUpdate() UpdateInfo {
 	if as, method, ok := pickAsset(rel.Assets); ok {
 		info.Asset, info.Size, info.Method, info.CanAuto = as.Name, as.Size, method, true
 	} else {
-		info.Method = "Download it from the release page."
+		info.Method = "Download it from the downloads page."
 	}
 	if version == "dev" {
 		info.Available, info.CanAuto = false, false
@@ -176,7 +194,7 @@ func (a *App) InstallUpdate() string {
 	}
 	as, _, ok := pickAsset(rel.Assets)
 	if !ok {
-		return "There's no download for this computer in " + rel.Tag + ". Get it from the release page."
+		return "There's no download for this computer in " + rel.Tag + ". Get it from the downloads page."
 	}
 	file, err := a.download(as)
 	if err != nil {
@@ -217,24 +235,16 @@ func (a *App) download(as ghAsset) (string, error) {
 	_ = os.MkdirAll(dir, 0o755)
 	dst := filepath.Join(dir, filepath.Base(as.Name))
 
-	url := as.Download
-	tok := a.updateToken()
-	if tok != "" {
-		url = as.APIURL // private repos only serve assets through the API
-	}
-	req, _ := http.NewRequest("GET", url, nil)
+	req, _ := http.NewRequest("GET", as.Download, nil)
 	req.Header.Set("Accept", "application/octet-stream")
 	req.Header.Set("User-Agent", "Blaze-Desktop/"+version)
-	if tok != "" {
-		req.Header.Set("Authorization", "Bearer "+tok)
-	}
 	res, err := (&http.Client{Timeout: 30 * time.Minute}).Do(req)
 	if err != nil {
 		return "", errors.New("The download failed. Check your connection and try again.")
 	}
 	defer res.Body.Close()
 	if res.StatusCode != 200 {
-		return "", fmt.Errorf("The download failed (GitHub answered %d).", res.StatusCode)
+		return "", fmt.Errorf("The download failed (the downloads site answered %d).", res.StatusCode)
 	}
 	f, err := os.Create(dst + ".part")
 	if err != nil {

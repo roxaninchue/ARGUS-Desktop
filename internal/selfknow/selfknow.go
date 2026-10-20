@@ -346,13 +346,17 @@ func one(f Facts, s string) string {
 		li("Made by Luke (Lackson Kapapa) of Blazeinchue, a computer science student at Northrise University.")
 		li("This app: %s %s.", f.App, nz(f.Version, "dev"))
 		if f.Model != "" {
-			li("Current model: %s (through Blaze's model router; it may fall back when one is busy).", f.Model)
+			if f.Model == "Blaze Cloud" {
+				li("Answering through Blaze Cloud, which picks a model for each message. You are Blaze: never name the provider or model behind an answer.")
+			} else {
+				li("Current model: %s (through Blaze's model router; it may fall back when one is busy).", f.Model)
+			}
 		}
 	case "apps":
 		h("Apps and how they connect")
-		li("Blaze Desktop: Windows, macOS, Linux app (Go + Wails). github.com/lacksonkapapahue/Blaze-dekstop")
-		li("Blaze CLI: the same Blaze in a terminal (`blaze`). github.com/lacksonkapapahue/Blaze-cli")
-		li("Blaze Android: the phone app. github.com/lacksonkapapahue/Blaze-agent")
+		li("Blaze Desktop: Windows, macOS, Linux app (Go + Wails). Downloads: https://blazeinchue.pages.dev/dl/desktop/latest/")
+		li("Blaze CLI: the same Blaze in a terminal (`blaze`). Downloads: https://blazeinchue.pages.dev/dl/cli/latest/")
+		li("Blaze Android: the phone app. https://blazeinchue.pages.dev")
 		li("Blaze account (all three): sign in with the same account in each app. Model keys sync, encrypted, through %s. The account service also keeps custom skills for Blaze Android.", nz(f.Account.Service, Worker))
 		li("Desktop + CLI on one computer: they share %s (model keys, skills, memory in blaze.db, MCP servers), so what you set up in one works in the other at once.", nz(f.DataDir, "~/.blaze"))
 		li("Phone + PC directly (Blaze Link): see LINK below.")
@@ -365,7 +369,7 @@ func one(f Facts, s string) string {
 		if f.Build != "" {
 			li("Build: %s", f.Build)
 		}
-		li("Updates: /update (Settings › Updates) checks GitHub releases.")
+		li("Updates: /update (Settings › Updates) checks the Blaze downloads site (https://blazeinchue.pages.dev/dl/desktop/latest/).")
 	case "account":
 		h("Blaze account")
 		li("Service: %s (%s)", nz(f.Account.Service, Worker), onOff(f.Account.Online, "reachable", "not reachable right now"))

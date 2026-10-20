@@ -92,7 +92,7 @@ func TestGatewayRequestShape(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Text != "Hello" || got.String() != "Hello" || r.Route != "Blaze Cloud · groq · llama-3.3" || r.Provider != ProviderID {
+	if r.Text != "Hello" || got.String() != "Hello" || r.Route != "Blaze Cloud" || r.Model != Model || r.Provider != ProviderID {
 		t.Fatalf("result %+v / %q", r, got.String())
 	}
 	b := f.bodies[0]

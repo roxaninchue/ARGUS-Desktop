@@ -30,6 +30,9 @@ type Pick struct {
 // Choice is models.json. Unknown keys in the file are kept on save.
 type Choice struct {
 	Mode string `json:"mode"` // cloud | custom
+	// RouterMoved: a Custom choice that only pointed at BlazeRouter was moved to Blaze
+	// Cloud once (v0.19.1), so it isn't moved again if the user picks it back.
+	RouterMoved bool `json:"router_moved,omitempty"`
 	// FallbackToCloud: when every Custom model fails, Blaze Cloud answers (and says so).
 	// Off unless the user switches it on.
 	FallbackToCloud bool            `json:"fallback_to_cloud,omitempty"`

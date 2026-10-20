@@ -73,6 +73,11 @@ type APIError struct {
 	Status int
 	Code   string
 	Retry  int
+	// mfa_required (blaze-auth 0.9+): the sign-in waits for a second factor.
+	MFAToken  string
+	Methods   []string // "app", "email", "recovery"
+	EmailHint string   // l**e@example.com
+	TriesLeft int      // invalid_code
 }
 
 func (e *APIError) Error() string { return e.Code }
@@ -114,6 +119,19 @@ func Message(err error) string {
 			return "You're signed out. Sign in again."
 		case "access_denied":
 			return "You declined access in the browser. Nothing changed."
+		case "mfa_required":
+			return "Enter your two-factor code to finish signing in."
+		case "invalid_code":
+			if ae.TriesLeft > 0 {
+				return fmt.Sprintf("That code isn't right. %d tries left.", ae.TriesLeft)
+			}
+			return "That code isn't right."
+		case "invalid_mfa_token":
+			return "This sign-in expired. Start again with your email and password."
+		case "too_many_codes":
+			return "That's the most codes for one sign-in. Start again in a few minutes."
+		case "mail_failed":
+			return "Blaze couldn't send the email. Try again in a moment."
 		}
 		return "Sign-in failed (" + ae.Code + ")."
 	}
@@ -137,14 +155,20 @@ type Tokens struct {
 }
 
 type User struct {
-	ID            string   `json:"id"`
-	Email         string   `json:"email"`
-	Name          string   `json:"name"`
-	AvatarURL     string   `json:"avatar_url"`
-	EmailVerified bool     `json:"email_verified"`
-	HasPassword   bool     `json:"has_password"`
-	Providers     []string `json:"providers"`
-	CreatedAt     int64    `json:"created_at"`
+	ID            string `json:"id"`
+	Email         string `json:"email"`
+	Name          string `json:"name"`
+	AvatarURL     string `json:"avatar_url"`
+	EmailVerified bool   `json:"email_verified"`
+	HasPassword   bool   `json:"has_password"`
+	TwoFactor     bool   `json:"two_factor"`
+	// TwoFactorMethods: an authenticator app and/or emailed codes (blaze-auth 0.9.1).
+	TwoFactorMethods struct {
+		App   bool `json:"app"`
+		Email bool `json:"email"`
+	} `json:"two_factor_methods"`
+	Providers []string `json:"providers"`
+	CreatedAt int64    `json:"created_at"`
 }
 
 // Redeemed is what /oauth/redeem returns: provider tokens, or a Blaze session.
@@ -194,8 +218,12 @@ func (c *Client) do(ctx context.Context, method, path, bearer string, body, out 
 	raw, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if resp.StatusCode >= 400 {
 		var e struct {
-			Error      string `json:"error"`
-			RetryAfter int    `json:"retry_after"`
+			Error      string   `json:"error"`
+			RetryAfter int      `json:"retry_after"`
+			MFAToken   string   `json:"mfa_token"`
+			Methods    []string `json:"methods"`
+			EmailHint  string   `json:"email_hint"`
+			TriesLeft  int      `json:"tries_left"`
 		}
 		_ = json.Unmarshal(raw, &e)
 		if e.Error == "" {
@@ -204,7 +232,7 @@ func (c *Client) do(ctx context.Context, method, path, bearer string, body, out 
 		if e.Error == "not_configured" {
 			return ErrNotConfigured
 		}
-		return &APIError{Status: resp.StatusCode, Code: e.Error, Retry: e.RetryAfter}
+		return &APIError{Status: resp.StatusCode, Code: e.Error, Retry: e.RetryAfter, MFAToken: e.MFAToken, Methods: e.Methods, EmailHint: e.EmailHint, TriesLeft: e.TriesLeft}
 	}
 	if out != nil {
 		if err := json.Unmarshal(raw, out); err != nil {
@@ -233,6 +261,50 @@ func (c *Client) SignIn(ctx context.Context, email, password string) (*Session, 
 	var s Session
 	err := c.do(ctx, "POST", "/v1/auth/login", "", map[string]string{"email": email, "password": password, "client": "Blaze Desktop"}, &s)
 	return &s, err
+}
+
+// ---------------- two-factor (blaze-auth 0.9.0 app codes, 0.9.1 emailed codes) ----------------
+
+// MFAVerify finishes a sign-in that answered mfa_required, with an app, emailed or recovery code.
+func (c *Client) MFAVerify(ctx context.Context, mfaToken, code string) (*Session, error) {
+	var s Session
+	err := c.do(ctx, "POST", "/v1/auth/2fa/verify", "", map[string]string{"mfa_token": mfaToken, "code": code}, &s)
+	return &s, err
+}
+
+// MFAEmail emails a 6-digit sign-in code (valid 10 minutes, at most 3 per sign-in).
+func (c *Client) MFAEmail(ctx context.Context, mfaToken string) (sentTo string, sendsLeft int, err error) {
+	var r struct {
+		SentTo    string `json:"sent_to"`
+		SendsLeft int    `json:"sends_left"`
+	}
+	err = c.do(ctx, "POST", "/v1/auth/2fa/email", "", map[string]string{"mfa_token": mfaToken}, &r)
+	return r.SentTo, r.SendsLeft, err
+}
+
+// EmailCodesSend emails a code to switch emailed sign-in codes on or off (purpose "enable" | "disable").
+func (c *Client) EmailCodesSend(ctx context.Context, token, purpose string) (string, error) {
+	var r struct {
+		SentTo string `json:"sent_to"`
+	}
+	err := c.do(ctx, "POST", "/v1/auth/2fa/email/send", token, map[string]string{"purpose": purpose}, &r)
+	return r.SentTo, err
+}
+
+// EmailCodesSet switches emailed sign-in codes on or off with the code from the email
+// (turning them off also takes an authenticator app code).
+func (c *Client) EmailCodesSet(ctx context.Context, token string, on bool, code string) (*User, error) {
+	path := "/v1/auth/2fa/email/disable"
+	if on {
+		path = "/v1/auth/2fa/email/enable"
+	}
+	var r struct {
+		User User `json:"user"`
+	}
+	if err := c.do(ctx, "POST", path, token, map[string]string{"code": code}, &r); err != nil {
+		return nil, err
+	}
+	return &r.User, nil
 }
 
 func (c *Client) Me(ctx context.Context, token string) (*User, error) {

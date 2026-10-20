@@ -29,7 +29,7 @@ const (
 
 type Settings struct {
 	Port        int               `json:"port"`
-	Enabled     *bool             `json:"enabled,omitempty"`     // server on (nil = on)
+	Enabled     *bool             `json:"enabled,omitempty"`     // server on (nil = off since v0.19.1: Blaze Cloud answers)
 	Autostart   *bool             `json:"autostart,omitempty"`   // starts with Blaze (nil = yes)
 	Compression string            `json:"compression,omitempty"` // off, light (default), standard, aggressive
 	APIKey      string            `json:"api_key"`               // the local key clients send
@@ -38,7 +38,7 @@ type Settings struct {
 	Migrated    bool              `json:"migrated,omitempty"`
 }
 
-func (s *Settings) On() bool        { return s.Enabled == nil || *s.Enabled }
+func (s *Settings) On() bool        { return s.Enabled != nil && *s.Enabled }
 func (s *Settings) AutoStart() bool { return s.Autostart == nil || *s.Autostart }
 
 var smu sync.Mutex

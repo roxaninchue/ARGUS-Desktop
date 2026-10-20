@@ -242,7 +242,7 @@ func (r *Router) send(ctx context.Context, p config.Provider, key string, body [
 		req.Header.Set(k, v)
 	}
 	if p.ID == "openrouter" {
-		req.Header.Set("HTTP-Referer", "https://github.com/lacksonkapapahue/Blaze-dekstop")
+		req.Header.Set("HTTP-Referer", "https://blazeinchue.pages.dev")
 		req.Header.Set("X-Title", "BlazeRouter")
 	}
 	resp, err := upstreamClient.Do(req)

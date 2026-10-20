@@ -325,6 +325,9 @@ func (a *App) afterTurn(s *session, started time.Time) {
 	}
 	a.mu.Unlock()
 	body := strings.Join(strings.Fields(mdRe.ReplaceAllString(text, " ")), " ")
+	if isPrivate(conv) {
+		body = "Blaze answered in your private chat." // never the words themselves
+	}
 	if body == "" {
 		body = "Your answer is ready."
 	}

@@ -6,6 +6,7 @@ package sched
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/hidecmd"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -161,7 +162,7 @@ func Add(j Job) string {
 			return "Error: Windows Task Scheduler needs 'daily 07:00', 'hourly', 'every 30m', 'weekly mon 09:00' or 'boot', not a cron line."
 		}
 		a := append([]string{"/Create", "/F", "/TN", `Blaze\` + j.Name, "/TR", run}, win...)
-		if out, err := exec.Command("schtasks", a...).CombinedOutput(); err != nil {
+		if out, err := hidecmd.Hide(exec.Command("schtasks", a...)).CombinedOutput(); err != nil {
 			return "Error: Task Scheduler refused: " + strings.TrimSpace(string(out))
 		}
 	} else {
@@ -210,7 +211,7 @@ func writeCron(lines []string) error {
 
 func Remove(name string) string {
 	if runtime.GOOS == "windows" {
-		_ = exec.Command("schtasks", "/Delete", "/F", "/TN", `Blaze\`+name).Run()
+		_ = hidecmd.Hide(exec.Command("schtasks", "/Delete", "/F", "/TN", `Blaze\`+name)).Run()
 	} else if _, err := exec.LookPath("crontab"); err == nil {
 		_ = writeCron(cronLines(name))
 	}

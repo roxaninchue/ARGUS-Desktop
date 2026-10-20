@@ -143,7 +143,7 @@ type StoreError struct {
 func (e *StoreError) Error() string { return e.Msg }
 func serr(f string, a ...any) error { return &StoreError{Msg: fmt.Sprintf(f, a...)} }
 
-const blazeUA = "Blaze/1 (Desktop; +https://github.com/lacksonkapapahue/Blaze-agent)"
+const blazeUA = "Blaze/1 (Desktop; +https://blazeinchue.pages.dev)"
 
 var client = &http.Client{Timeout: 30 * time.Second}
 

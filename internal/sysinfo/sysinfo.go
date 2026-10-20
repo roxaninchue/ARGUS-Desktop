@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/hidecmd"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -50,11 +51,36 @@ var pkgList = []string{"winget", "choco", "scoop", "brew", "port", "apt", "dnf",
 func out(timeout time.Duration, name string, args ...string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	b, err := exec.CommandContext(ctx, name, args...).CombinedOutput()
+	b, err := hidecmd.Hide(exec.CommandContext(ctx, name, args...)).CombinedOutput()
 	if err != nil && len(b) == 0 {
 		return ""
 	}
 	return strings.TrimSpace(string(b))
+}
+
+// macDevStubs are the /usr/bin programs macOS ships as stubs: running one without the
+// Command Line Tools (or, for java, without a JDK) pops up an "install" dialog. Blaze
+// never runs them just to read a version.
+var macDevStubs = map[string]bool{"git": true, "gcc": true, "make": true, "python3": true, "pip3": true, "clang": true, "cc": true, "java": true}
+
+var (
+	cltOnce, jdkOnce sync.Once
+	cltOK, jdkOK     bool
+)
+
+// MacStub reports whether path is a macOS stub that would show an install dialog.
+func MacStub(path string) bool {
+	if runtime.GOOS != "darwin" || !strings.HasPrefix(path, "/usr/bin/") || !macDevStubs[filepath.Base(path)] {
+		return false
+	}
+	if filepath.Base(path) == "java" {
+		// java_home only answers; it never shows a dialog.
+		jdkOnce.Do(func() { jdkOK = exec.Command("/usr/libexec/java_home").Run() == nil })
+		return !jdkOK
+	}
+	// xcode-select -p prints the developer folder, or fails quietly when the tools are missing.
+	cltOnce.Do(func() { cltOK = exec.Command("/usr/bin/xcode-select", "-p").Run() == nil })
+	return !cltOK
 }
 
 func firstLine(s string) string {
@@ -84,7 +110,8 @@ func Detect() Info {
 	for _, t := range toolList {
 		t := t
 		run(func() {
-			if _, err := exec.LookPath(t[0]); err != nil {
+			path, err := exec.LookPath(t[0])
+			if err != nil || MacStub(path) {
 				return
 			}
 			v := firstLine(out(4*time.Second, t[0], t[1]))
