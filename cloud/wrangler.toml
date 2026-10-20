@@ -9,7 +9,7 @@ workers_dev = true
 BASE_URL = "https://blaze-auth.blaze-app.workers.dev"
 # Comma-separated browser origins allowed to call the API (the desktop app calls from Go and
 # sends no Origin). The website signs in from these; web sign-in and reset links only return here.
-ALLOWED_ORIGINS = "https://blazeinchue.netlify.app,https://blazeinchue.pages.dev"
+ALLOWED_ORIGINS = "https://blazeinchue.pages.dev"
 # WebCrypto in Workers caps PBKDF2 at 100000 iterations. Lower it (e.g. 60000) only if
 # free-tier sign-ins hit "exceeded CPU time"; each user's hash keeps its own count.
 PBKDF2_ITERATIONS = "100000"
