@@ -19,6 +19,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/hidecmd"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/sysinfo"
 	"io"
 	"io/fs"
 	"os"
@@ -69,7 +71,7 @@ var skipDirs = map[string]bool{".git": true, "node_modules": true, ".venv": true
 var hideCmd = func(*exec.Cmd) {}
 
 func git(dir string, args ...string) (string, error) {
-	c := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	c := hidecmd.Hide(exec.Command("git", append([]string{"-C", dir}, args...)...))
 	hideCmd(c)
 	c.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "LC_ALL=C")
 	var out, errb bytes.Buffer
@@ -86,7 +88,7 @@ func git(dir string, args ...string) (string, error) {
 
 // gitInput runs git with stdin.
 func gitInput(dir string, in []byte, args ...string) (string, error) {
-	c := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	c := hidecmd.Hide(exec.Command("git", append([]string{"-C", dir}, args...)...))
 	hideCmd(c)
 	c.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "LC_ALL=C")
 	c.Stdin = bytes.NewReader(in)
@@ -99,7 +101,10 @@ func gitInput(dir string, in []byte, args ...string) (string, error) {
 }
 
 // HasGit reports whether a git binary is on PATH.
-func HasGit() bool { _, err := exec.LookPath("git"); return err == nil }
+func HasGit() bool {
+	p, err := exec.LookPath("git")
+	return err == nil && !sysinfo.MacStub(p) // macOS's /usr/bin/git stub would pop an install dialog
+}
 
 // repoTop is the git top-level folder of dir ("" when it isn't in a repo with commits).
 func repoTop(dir string) string {

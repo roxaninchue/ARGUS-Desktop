@@ -54,7 +54,7 @@ func run(ctx context.Context, args ...string) (string, error) {
 	}
 	a := append([]string{"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", sf}, args...)
 	c := exec.CommandContext(ctx, "powershell.exe", a...)
-	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000} // CREATE_NO_WINDOW
 	var out, errb bytes.Buffer
 	c.Stdout, c.Stderr = &out, &errb
 	if err := c.Run(); err != nil {
