@@ -178,6 +178,125 @@ func (a *App) AccountState() AccountView {
 type AccountResult struct {
 	Error string       `json:"error,omitempty"`
 	State *AccountView `json:"state,omitempty"`
+	MFA   *MFAStep     `json:"mfa,omitempty"`  // the sign-in needs a second factor
+	Sent  string       `json:"sent,omitempty"` // a code was emailed to this (masked) address
+}
+
+// MFAStep is the two-factor step of a sign-in (blaze-auth 0.9.1).
+type MFAStep struct {
+	Token     string   `json:"token"`
+	Methods   []string `json:"methods"` // app, email, recovery
+	EmailHint string   `json:"email_hint"`
+	SentTo    string   `json:"sent_to,omitempty"` // emailed already (no authenticator app)
+	SendError string   `json:"send_error,omitempty"`
+}
+
+func hasMethod(ms []string, m string) bool {
+	for _, x := range ms {
+		if x == m {
+			return true
+		}
+	}
+	return false
+}
+
+// mfaStep turns an mfa_required refusal into the two-factor step. Without an authenticator
+// app the code is emailed straight away.
+func (a *App) mfaStep(err error) *MFAStep {
+	var ae *cloud.APIError
+	if !errors.As(err, &ae) || ae.Code != "mfa_required" || ae.MFAToken == "" {
+		return nil
+	}
+	st := &MFAStep{Token: ae.MFAToken, Methods: ae.Methods, EmailHint: ae.EmailHint}
+	if len(st.Methods) == 0 {
+		st.Methods = []string{"app"} // blaze-auth 0.9.0 sent no methods: app codes only
+	}
+	if !hasMethod(st.Methods, "app") && hasMethod(st.Methods, "email") {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if to, _, e := a.cloud.client.MFAEmail(ctx, st.Token); e != nil {
+			st.SendError = cloud.Message(e)
+		} else {
+			st.SentTo = to
+		}
+	}
+	return st
+}
+
+// AccountMFAVerify finishes a two-factor sign-in with an app, emailed or recovery code.
+func (a *App) AccountMFAVerify(token, code string) AccountResult {
+	code = strings.ReplaceAll(strings.TrimSpace(code), " ", "")
+	if code == "" {
+		return AccountResult{Error: "Enter the code."}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	s, err := a.cloud.client.MFAVerify(ctx, token, code)
+	if err != nil {
+		return AccountResult{Error: cloud.Message(err)}
+	}
+	if err := a.setSession(s); err != nil {
+		return AccountResult{Error: err.Error()}
+	}
+	st := a.AccountState()
+	return AccountResult{State: &st}
+}
+
+// AccountMFAEmail emails a sign-in code ("Email me a code instead", "Send a new code").
+func (a *App) AccountMFAEmail(token string) AccountResult {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	to, _, err := a.cloud.client.MFAEmail(ctx, token)
+	if err != nil {
+		if errors.Is(err, cloud.ErrNotConfigured) {
+			return AccountResult{Error: "Emailed codes aren't switched on yet. Use your authenticator app."}
+		}
+		return AccountResult{Error: cloud.Message(err)}
+	}
+	return AccountResult{Sent: to}
+}
+
+// AccountEmailCodesSend emails the code that switches emailed sign-in codes on or off.
+func (a *App) AccountEmailCodesSend(on bool) AccountResult {
+	tok, _ := a.cloud.sec.Get(sessionKey)
+	if tok == "" {
+		return AccountResult{Error: "You're signed out. Sign in again."}
+	}
+	purpose := "disable"
+	if on {
+		purpose = "enable"
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	to, err := a.cloud.client.EmailCodesSend(ctx, tok, purpose)
+	if err != nil {
+		if errors.Is(err, cloud.ErrNotConfigured) {
+			return AccountResult{Error: "Emailed codes aren't switched on at Blaze yet."}
+		}
+		return AccountResult{Error: cloud.Message(err)}
+	}
+	return AccountResult{Sent: to}
+}
+
+// AccountEmailCodesSet switches emailed sign-in codes on or off with the emailed code.
+func (a *App) AccountEmailCodesSet(on bool, code string) AccountResult {
+	tok, _ := a.cloud.sec.Get(sessionKey)
+	if tok == "" {
+		return AccountResult{Error: "You're signed out. Sign in again."}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	u, err := a.cloud.client.EmailCodesSet(ctx, tok, on, strings.ReplaceAll(strings.TrimSpace(code), " ", ""))
+	if err != nil {
+		return AccountResult{Error: cloud.Message(err)}
+	}
+	a.cloud.mu.Lock()
+	a.cloud.user = u
+	a.cloud.mu.Unlock()
+	a.saveUser(u)
+	a.emitAccount()
+	st := a.AccountState()
+	return AccountResult{State: &st}
 }
 
 // AccountEmail signs in (mode "signin") or creates an account (mode "signup").
@@ -199,6 +318,9 @@ func (a *App) AccountEmail(mode, name, email, password string) AccountResult {
 		s, err = a.cloud.client.SignIn(ctx, email, password)
 	}
 	if err != nil {
+		if m := a.mfaStep(err); m != nil {
+			return AccountResult{MFA: m}
+		}
 		return AccountResult{Error: cloud.Message(err)}
 	}
 	if err := a.setSession(s); err != nil {
@@ -245,6 +367,13 @@ func (a *App) AccountSignIn(provider string) string {
 		}
 		if err == nil {
 			err = a.setSession(s)
+		}
+		if m := a.mfaStep(err); m != nil {
+			a.emitAccount()
+			wr.EventsEmit(a.ctx, "account_mfa", m) // the sign-in page asks for the second factor
+			wr.WindowUnminimise(a.ctx)
+			wr.WindowShow(a.ctx)
+			return
 		}
 		if err != nil {
 			a.emitAccount()

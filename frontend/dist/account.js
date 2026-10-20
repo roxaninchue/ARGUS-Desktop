@@ -27,8 +27,58 @@ function avatar(u, big) {
   return a;
 }
 
+// The two-factor step (blaze-auth 0.9.1): an authenticator app code, or a code emailed to
+// the account. Without an app the email has already gone out (Go sends it).
+let MFA = null;
+function mfaForm(onDone) {
+  const m = MFA, app = (m.methods || []).includes("app"), mail = (m.methods || []).includes("email"), rec = (m.methods || []).includes("recovery");
+  let byEmail = !app || !!m.sent_to;
+  const box = h("div", "signbox mfabox");
+  const draw = () => {
+    box.innerHTML = `<div class="label acc">Two-factor sign-in</div><h2>${byEmail ? "Check your email" : "Enter your code"}</h2>
+      <p class="sub small">${byEmail ? (m.sent_to ? `Blaze sent a 6-digit code to <span class="mono">${esc(m.sent_to)}</span>. It works for 10 minutes.` : `Blaze can send a 6-digit code to <span class="mono">${esc(m.email_hint || "your email")}</span>.`) : "Open your authenticator app and type the 6-digit code for Blaze."}${rec ? " You can also use a recovery code." : ""}</p>
+      <form class="formgrid signform" autocomplete="off">
+        <div class="fg"><label class="label">${byEmail ? "6-digit code from the email" : "Code"}</label><input class="field mono" name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" required></div>
+        <div class="out small" role="alert"></div>
+        <button class="btn accent go" type="submit">Verify</button>
+      </form>
+      <div class="switch small sub mfalinks"></div>`;
+    const out = $(".out", box), links = $(".mfalinks", box);
+    if (m.send_error) { out.className = "out small bad"; out.textContent = m.send_error; m.send_error = ""; }
+    const link = (t, f) => { const b = h("button", "btn ghost xs", t); b.type = "button"; b.onclick = f; links.append(b); };
+    const send = async () => {
+      out.className = "out small sub"; out.textContent = "Sending a code…";
+      const r = await API().AccountMFAEmail(m.token);
+      if (!r || r.error) { out.className = "out small bad"; out.textContent = (r && r.error) || "Couldn't send the code."; return; }
+      m.sent_to = r.sent; byEmail = true; draw();
+      const o = $(".out", box); o.className = "out small ok"; o.textContent = "Code sent.";
+    };
+    if (mail && !byEmail) link("Email me a code instead", send);
+    if (byEmail && mail) link(m.sent_to ? "Send a new code" : "Send the code", send);
+    if (byEmail && app) link("Use my authenticator app", () => { byEmail = false; draw(); });
+    link("Start over", () => { MFA = null; box.replaceWith(signinForm(onDone)); });
+    const form = $("form", box);
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const go = $(".go", box);
+      go.disabled = true; out.className = "out small sub"; out.textContent = "Checking…";
+      const r = await API().AccountMFAVerify(m.token, new FormData(form).get("code") || "");
+      go.disabled = false;
+      if (!r || r.error) { out.className = "out small bad"; out.textContent = (r && r.error) || "That code didn't work."; if (r && /expired/.test(r.error || "")) { MFA = null; setTimeout(() => box.replaceWith(signinForm(onDone)), 1500); } return; }
+      MFA = null;
+      ACCT = r.state || await loadAccount();
+      toast("Signed in as " + ACCT.user.email, "ok");
+      onDone && onDone();
+    };
+    setTimeout(() => { const i = $("input", box); if (i) i.focus(); }, 30);
+  };
+  draw();
+  return box;
+}
+
 // The sign-in / sign-up form. onDone runs after a successful sign-in.
 function signinForm(onDone) {
+  if (MFA) return mfaForm(onDone);
   const st = ACCT || { login: {} };
   const box = h("div", "signbox");
   const pend = st.pending;
@@ -75,6 +125,7 @@ function signinForm(onDone) {
     go.disabled = true; out.className = "out small sub"; out.textContent = up ? "Creating your account…" : "Signing in…";
     const r = await API().AccountEmail(up ? "signup" : "signin", f.get("name") || "", f.get("email") || "", f.get("password") || "");
     go.disabled = false;
+    if (r && r.mfa) { MFA = r.mfa; box.replaceWith(mfaForm(onDone)); return; }
     if (!r || r.error) { out.className = "out small bad"; out.textContent = (r && r.error) || "Sign-in failed."; return; }
     ACCT = r.state || await loadAccount();
     toast(up ? "Welcome to Blaze" : "Signed in as " + ACCT.user.email, "ok");
@@ -156,6 +207,7 @@ window.SETTINGS_FNS.account = async (col, redraw) => {
     if (st && st.message) toast(st.message, st.available === false ? undefined : "ok");
   };
   kb.append(kn, sb); ks.append(kb); col.append(ks);
+  col.append(securityGroup(redraw));
   const d = group("Delete account");
   const bx = h("div", "box pad keyrow dangerrow");
   bx.append(h("div", "note2", "Deletes your Blaze account and signs out everywhere. Nothing on this computer is removed."));
@@ -169,6 +221,44 @@ window.SETTINGS_FNS.account = async (col, redraw) => {
   };
   bx.append(del); d.append(bx); col.append(d);
 };
+
+// Account › Security: emailed sign-in codes (blaze-auth 0.9.1). Switching needs a code from the email.
+function securityGroup(redraw) {
+  const u = ACCT.user, tf = u.two_factor_methods || {};
+  const g = group("Security", tf.app ? "Two-factor sign-in with your authenticator app is on." : "Ask for a second step when you sign in on a new device.");
+  const bx = h("div", "box pad");
+  const row = h("label", "toggle", `<input type="checkbox" ${tf.email ? "checked" : ""}><span><span class="tt">Email codes</span><span class="td" style="display:block">When you sign in, Blaze emails a 6-digit code to <span class="mono">${esc(u.email)}</span>.</span></span>`);
+  const cb = $("input", row), step = h("div", "keyrow mfastep"), out = h("div", "out small", "");
+  step.hidden = true;
+  cb.onchange = async () => {
+    const want = cb.checked; cb.checked = !want; cb.disabled = true;
+    out.className = "out small sub"; out.textContent = "Sending a code…";
+    const r = await API().AccountEmailCodesSend(want);
+    cb.disabled = false;
+    if (!r || r.error) { out.className = "out small bad"; out.textContent = (r && r.error) || "Couldn't send the code."; return; }
+    out.className = "out small sub"; out.textContent = `Enter the code sent to ${r.sent || u.email}${!want && tf.app ? " (or an app code)" : ""}.`;
+    step.innerHTML = `<input class="field mono" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"><button class="btn accent sm">${want ? "Turn on" : "Turn off"}</button><button class="btn ghost sm">Cancel</button>`;
+    step.hidden = false;
+    const [inp] = $$("input", step), [ok, cancel] = $$("button", step);
+    inp.focus();
+    cancel.onclick = () => { step.hidden = true; out.textContent = ""; };
+    const done = async () => {
+      ok.disabled = true;
+      const s = await API().AccountEmailCodesSet(want, inp.value);
+      ok.disabled = false;
+      if (!s || s.error) { out.className = "out small bad"; out.textContent = (s && s.error) || "That code didn't work."; return; }
+      ACCT = s.state || await loadAccount();
+      toast(want ? "Email codes are on" : "Email codes are off", "ok");
+      redraw && redraw();
+    };
+    ok.onclick = done; inp.onkeydown = e => { if (e.key === "Enter") done(); };
+  };
+  bx.append(row, step, out); g.append(bx);
+  return g;
+}
+
+// A Google/GitHub sign-in that needs a second factor comes back here.
+on("account_mfa", m => { MFA = m; show("signin"); });
 
 on("account", async st => {
   ACCT = st || await loadAccount();
