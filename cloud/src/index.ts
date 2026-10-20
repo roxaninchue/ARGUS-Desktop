@@ -15,10 +15,11 @@ import { getKeys, putKeys } from "./keys";
 import { getSkills, putSkills } from "./skills";
 import { comments } from "./comments";
 import { putAvatar, deleteAvatar, getAvatar } from "./avatar";
+import { guard } from "./ratelimit";
 import { deviceStart, deviceInfo, deviceApprove, deviceDeny, devicePoll } from "./device";
 import { forgot, reset, setPassword, mfaSetup, mfaEnable, mfaDisable, mfaVerify, signInOrMfa, mailerConfigured, mfaEmailLogin, mfaEmailSend, mfaEmailEnable, mfaEmailDisable } from "./password";
 
-export const VERSION = "0.9.3";
+export const VERSION = "0.9.4";
 const STATE_TTL = 600; // the user has 10 minutes to finish at the provider
 const CODE_TTL = 120; // the desktop redeems within seconds of the loopback redirect; 2 minutes is slack, and the KV minimum is 60
 
@@ -94,11 +95,12 @@ export default {
     if (ch === null && req.method !== "GET") return json({ error: "forbidden_origin" }, 403);
     let res: Response;
     try {
+      await guard(req, env, new URL(req.url).pathname.replace(/\/+$/, "") || "/");
       res = await route(req, env);
     } catch (e) {
       if (e instanceof HttpError) res = json({ error: e.code, ...e.extra }, e.status, e.status === 429 ? { "Retry-After": String(e.extra.retry_after || 60) } : {});
       else {
-        console.error("unhandled", e);
+        console.error("unhandled", (e as Error)?.name || "Error");
         res = json({ error: "server_error" }, 500);
       }
     }
@@ -323,7 +325,7 @@ async function callback(req: Request, env: Env, pid: string): Promise<Response> 
     }
   } catch (e) {
     const c = e instanceof HttpError ? String(e.extra.provider_error || e.code) : "server_error";
-    if (!(e instanceof HttpError)) console.error("callback", e);
+    if (!(e instanceof HttpError)) console.error("callback", (e as Error)?.name || "Error");
     return back(rec, { error: c.slice(0, 64), provider: p.id });
   }
   const one = randomToken(32);
@@ -413,7 +415,7 @@ async function webCallback(env: Env, pid: ProviderId, rec: StateRecord, q: URLSe
     uid = (await userForIdentity(env, p.id, prof)).id; // same account as app sign-in
   } catch (e) {
     const c = e instanceof HttpError ? String(e.extra.provider_error || e.code) : "server_error";
-    if (!(e instanceof HttpError)) console.error("web callback", e);
+    if (!(e instanceof HttpError)) console.error("web callback", (e as Error)?.name || "Error");
     return fail(c);
   }
   const one = randomToken(32);

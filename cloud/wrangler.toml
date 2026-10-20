@@ -14,11 +14,27 @@ ALLOWED_ORIGINS = "https://blazeinchue.pages.dev"
 # free-tier sign-ins hit "exceeded CPU time"; each user's hash keeps its own count.
 PBKDF2_ITERATIONS = "100000"
 
+# 0.9.4: Workers Rate Limiting (free plan; period must be 10 or 60 seconds). See src/ratelimit.ts.
+[[ratelimits]]
+name = "RL_IP"          # per IP per endpoint group
+namespace_id = "9401"
+simple = { limit = 60, period = 60 }  # generous: mobile carriers put many users behind one IP (CGNAT)
+
+[[ratelimits]]
+name = "RL_ACCT"        # per target account / token per endpoint group
+namespace_id = "9402"
+simple = { limit = 6, period = 60 }
+
+[[ratelimits]]
+name = "RL_POLL"        # device-code polling per IP (clients poll every 5 s)
+namespace_id = "9403"
+simple = { limit = 30, period = 60 }
+
 [[kv_namespaces]]
 binding = "KV"
 id = "03a2047f64234d28946816100f97e46a"
 
-# blaze-gateway (0.9.0): password-reset mail goes out through its POST /internal/mail (Brevo).
+# blaze-gateway (0.6.3+): password-reset mail goes out through its POST /internal/mail (Brevo).
 # Workers on one account can't fetch each other's *.workers.dev URL, so this is a service binding.
 # (blaze-gateway binds back to blaze-auth as AUTH; Cloudflare allows the two-way binding.)
 [[services]]
@@ -31,7 +47,11 @@ service = "blaze-gateway"
 #   SPOTIFY_CLIENT_ID  SPOTIFY_CLIENT_SECRET
 #   NOTION_CLIENT_ID   NOTION_CLIENT_SECRET
 #   SLACK_CLIENT_ID    SLACK_CLIENT_SECRET
-#   INTERNAL_TOKEN     32+ random characters, the SAME value as blaze-gateway's INTERNAL_TOKEN (0.9.0):
+#   INTERNAL_TOKEN     32+ random characters, the SAME value as blaze-gateway INTERNAL_TOKEN (0.6.3+):
 #                      sent as X-Internal-Token to https://gateway/internal/mail. Without it (or without the
 #                      GATEWAY binding) /v1/providers says password_reset:false and /forgot answers 503.
 # A provider without both secrets answers 503 {"error":"not_configured"}.
+
+# 0.9.4: no request logging (bodies carry passwords/tokens); console.error prints error names only.
+[observability]
+enabled = false
