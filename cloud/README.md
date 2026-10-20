@@ -42,12 +42,21 @@ of provider tokens.
 
 | Method | Path | What |
 | --- | --- | --- |
-| GET | `/health` | `{"ok":true,"service":"blaze-auth","version":"0.6.0"}` |
+| GET | `/health` | `{"ok":true,"service":"blaze-auth","version":"0.9.0"}` |
 | GET | `/v1/providers` | which sign-ins and connectors are configured |
 | POST | `/v1/auth/signup` | `{email, password, name?}` → `201 {token, user}` (`409 email_taken`) |
 | POST | `/v1/auth/login` | `{email, password}` → `{token, user}` (`401 invalid_credentials`, `429 rate_limited`) |
 | GET | `/v1/auth/{google,github}/start` | `?state&code_challenge&redirect` → provider sign-in |
 | POST | `/v1/auth/redeem` (= `/oauth/redeem`) | `{code, code_verifier}` → `{kind:"session", token, user}` |
+| GET | `/v1/auth/{google,github}/web` | `?return=<https URL on an ALLOWED_ORIGINS origin>` → provider sign-in → `302 <return>#bz_oauth=<code>` (or `#bz_oauth_error=<code>`) (0.9.0) |
+| POST | `/v1/auth/web/redeem` | `{code, client?}` → `{token, user}`; the code is single use, 120 s (0.9.0) |
+| POST | `/v1/auth/password/forgot` | `{email, return?}` → always `200 {ok:true}`; mails a 1-hour reset link if the account exists (0.9.0) |
+| POST | `/v1/auth/password/reset` | `{token, password}` → `{ok:true}`; sets the password, marks the email verified, ends all sessions (0.9.0) |
+| POST | `/v1/auth/password/set` | Bearer `{password, current_password?}` (current needed only when `has_password`) → `{ok, user}` (0.9.0) |
+| POST | `/v1/auth/2fa/setup` | Bearer → `{secret, otpauth_uri}` (pending until enabled) (0.9.0) |
+| POST | `/v1/auth/2fa/enable` | Bearer `{code}` → `{recovery_codes: [10], user}` (0.9.0) |
+| POST | `/v1/auth/2fa/disable` | Bearer `{code}` (TOTP or recovery code) → `{ok, user}` (0.9.0) |
+| POST | `/v1/auth/2fa/verify` | `{mfa_token, code}` → `{token, user}` (0.9.0) |
 | GET | `/v1/me` | `Authorization: Bearer bz_…` → `{user}` |
 | POST | `/v1/logout` | ends this session |
 | POST | `/v1/account/delete` | `{"confirm":"delete"}` → deletes the account, identities, sessions and synced keys |
@@ -69,6 +78,23 @@ Rules the Worker enforces: `redirect` must be `http://127.0.0.1:<1024-65535>/…
 (43 chars); scopes must be on the provider's allow-list (`src/providers.ts`); states
 and codes are single use; browser origins not in `ALLOWED_ORIGINS` can't POST.
 
+### Web sign-in, password reset and two-factor (Worker 0.9.0)
+
+- **Web sign-in.** The website opens `/v1/auth/<google|github>/web?return=<its page>`. The state record says
+  `flow:"web"` and the **same callback URL** is used, so no provider console change is needed. The callback finds or
+  creates the account exactly like app sign-in (same Google/GitHub identity = same account) and sends the browser to
+  `<return>#bz_oauth=<one-time code>`; the page posts it to `/v1/auth/web/redeem` (from the same origin) for a session.
+- **Password reset.** `/forgot` answers the same for every address (no account enumeration), is limited per IP
+  (10/h) and per address (5 mails/h, silently), and mails `<return origin or https://blazeinchue.pages.dev>/?reset=<token>#reset`
+  through blaze-gateway: service binding `GATEWAY`, `POST https://gateway/internal/mail` with
+  `X-Internal-Token: <INTERNAL_TOKEN>`. Accounts made with Google or GitHub can use it to add a password.
+  A reset on an account whose email was never verified also drops any 2FA set on it.
+- **Two-factor.** TOTP (RFC 6238: SHA-1, 6 digits, 30 s, ±1 step; a used step can't be replayed) plus 10
+  single-use recovery codes stored as SHA-256 hashes. With 2FA on, password login, `/v1/auth/web/redeem` and app
+  `/oauth/redeem` (login codes) answer `401 {"error":"mfa_required","mfa_token"}`; the token lasts 5 minutes,
+  is single use and allows 5 tries at `/v1/auth/2fa/verify`.
+- `user` now carries `has_password` and `two_factor`; `/v1/providers` adds `web_login`, `password_reset` and `two_factor`.
+
 ## Storage (KV only)
 
 | Key | Value | TTL |
@@ -79,7 +105,10 @@ and codes are single use; browser origins not in `ALLOWED_ORIGINS` can't POST.
 | `sess:<sha256(token)>` | session | 90 days |
 | `oauthstate:<state>` | the flow (login/connect), desktop state, PKCE challenge, loopback | 10 min |
 | `oauthcode:<sha256(code)>` | tokens or the signed-in user id, bound to the challenge | 2 min |
-| `rl:<kind>:<key>` | failed sign-in / sign-up counters | the window |
+| `rl:<kind>:<key>` | failed sign-in / sign-up counters, reset-mail counters | the window |
+| `reset:<sha256(token)>` | password-reset link `{uid}` (0.9.0) | 1 h |
+| `mfa:<sha256(token)>` | sign-in waiting for its second factor `{uid, client, tries}` (0.9.0) | 5 min |
+| `webcode:<sha256(code)>` | web sign-in code `{uid, provider, origin}` (0.9.0) | 2 min |
 | `keys:<id>` | synced model keys: `{rev, blob, updated_at}`, blob encrypted by the apps | none |
 | `keykey:<id>` | the account's random 32-byte blob key | none |
 
@@ -146,6 +175,7 @@ curl https://blaze-auth.blaze-app.workers.dev/health
 2. Save its ID and secret as Worker secrets (prompts for the value; nothing is written to disk):
 
 ```bash
+npx wrangler secret put INTERNAL_TOKEN   # 0.9.0: same value as on blaze-gateway (password-reset mail)
 npx wrangler secret put GOOGLE_CLIENT_ID
 npx wrangler secret put GOOGLE_CLIENT_SECRET
 npx wrangler secret put GITHUB_CLIENT_ID
