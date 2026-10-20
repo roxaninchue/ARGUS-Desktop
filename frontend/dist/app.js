@@ -67,6 +67,8 @@ async function boot() {
   setInterval(refreshJobCount, 4000);
   if (window.refreshConnCount) refreshConnCount(S.connected);
   if (!S.prefs.no_update_check) setTimeout(() => checkUpdate(true), 3000);
+  // v0.19.3: Blaze can stay open for days, so look again once a day (quietly when offline).
+  setInterval(() => { if (!S.prefs.no_update_check) checkUpdate(true); }, 864e5);
 }
 
 async function refreshState() { S = await API().State(); setModel(S.model, S.selection); return S; }
@@ -87,8 +89,23 @@ async function checkUpdate(auto) {
   if (!u || typeof u !== "object") return null;
   UPD = u;
   $("#updCount").textContent = u.available && !u.skipped ? "NEW" : "";
+  updPill(u);
   if (auto && u.available && !u.skipped && S.setup_done) updateCard();
   return u;
+}
+
+// "Update available" pill in the top bar (v0.19.3): stays visible on every view until the
+// update is installed or skipped. A check that failed (offline) changes nothing.
+function updPill(u) {
+  if (!u || u.error) return;
+  let b = $("#updPill");
+  if (!(u.available && !u.skipped)) { if (b) b.remove(); return; }
+  if (!b) {
+    b = h("button", "chip updpill", `<span class="dot"></span><span>Update available</span>`); b.id = "updPill";
+    b.onclick = () => { if (typeof show === "function") show("work"); setTimeout(() => { updateCard(); const c = $("#log .col .updcard", pane); if (c) c.scrollIntoView({ block: "nearest" }); }, 60); };
+    const at = $("#routerBtn"); if (at) at.before(b); else $("#top").append(b);
+  }
+  b.title = `Blaze ${u.latest} is out. You have ${u.current}.`;
 }
 
 function updateCard() {
@@ -99,7 +116,7 @@ function updateCard() {
     <div class="actions"><button class="btn accent sm yes">${u.can_auto ? "Update now" : "Open downloads page"}</button><button class="btn line sm no">Later</button><button class="btn ghost sm skip">Skip this version</button></div>`);
   card.querySelector(".yes").onclick = () => { if (!u.can_auto) return API().OpenURL(u.page); card.remove(); SelfUpdate.run(); };
   card.querySelector(".no").onclick = () => card.remove();
-  card.querySelector(".skip").onclick = async () => { await API().SkipUpdate(u.latest); UPD.skipped = true; $("#updCount").textContent = ""; card.remove(); };
+  card.querySelector(".skip").onclick = async () => { await API().SkipUpdate(u.latest); UPD.skipped = true; $("#updCount").textContent = ""; updPill(UPD); card.remove(); };
   $("#log .col", pane).append(card); scrollDown(true);
 }
 

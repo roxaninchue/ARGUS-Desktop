@@ -42,3 +42,7 @@ blaze-emblem.morb { display: block; flex: none; pointer-events: none; }
    shimmer blends with the text through it (mix-blend-mode needs the shared stacking context). */
 body { position: relative; z-index: 0; }
 #edge-particles { transition: none; }
+
+/* "Update available" pill (v0.19.3) */
+.updpill { gap: 6px; color: var(--ink); }
+.updpill .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--acc, #ff7a1a); box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc, #ff7a1a) 25%, transparent); }

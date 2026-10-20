@@ -14,6 +14,7 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -152,6 +153,20 @@ func (a *App) CheckUpdate() UpdateInfo {
 		info.Asset, info.Size, info.Method, info.CanAuto = as.Name, as.Size, method, true
 	} else {
 		info.Method = "Download it from the downloads page."
+	}
+	// versions.json (published by the downloads site) says which version each kind of install is
+	// on, since not every system gets every patch. Best effort: offline or odd answers change nothing.
+	if v, notes, ok := fetchPlatformVersion(); ok {
+		if !newer(v, version) {
+			info.Available, info.Skipped = false, false
+		}
+		if info.Notes == "" {
+			info.Notes = notes
+		}
+	}
+	// A release with nothing for this system (e.g. a Windows-only patch) isn't an update here.
+	if info.Available && !hasOSAsset(rel.Assets, runtime.GOOS) {
+		info.Available, info.Skipped = false, false
 	}
 	if version == "dev" {
 		info.Available, info.CanAuto = false, false
@@ -567,4 +582,62 @@ func parseVer(s string) ([3]int, bool) {
 		v[i] = n
 	}
 	return v, true
+}
+
+// hasOSAsset says whether a release carries any file for this operating system.
+func hasOSAsset(assets []ghAsset, goos string) bool {
+	tag := map[string][]string{"windows": {"-windows-"}, "darwin": {"-macos-"}, "linux": {"-linux-", ".deb", ".pkg.tar.zst"}}[goos]
+	for _, as := range assets {
+		for _, t := range tag {
+			if strings.Contains(as.Name, t) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// versionsURL is the downloads site's machine-readable list of current versions.
+var versionsURL = "https://blazeinchue.pages.dev/versions.json"
+
+// platformKey maps installKind() to the downloads site's platform names.
+var platformKey = map[string]string{"portable": "windows", "setup": "windows-setup", "dmg": "mac", "deb": "linux-deb", "tarball": "linux-tar", "arch": "arch"}
+
+func fetchPlatformVersion() (string, string, bool) {
+	req, err := http.NewRequest("GET", versionsURL, nil)
+	if err != nil {
+		return "", "", false
+	}
+	req.Header.Set("User-Agent", "Blaze-Desktop/"+version)
+	req.Header.Set("Cache-Control", "no-cache")
+	res, err := (&http.Client{Timeout: 8 * time.Second}).Do(req)
+	if err != nil {
+		return "", "", false
+	}
+	defer res.Body.Close()
+	if res.StatusCode != 200 {
+		return "", "", false
+	}
+	body, _ := io.ReadAll(io.LimitReader(res.Body, 256<<10))
+	return platformVersion(body, installKind())
+}
+
+// platformVersion reads desktop.platforms[<kind>].version (and desktop.notes) from versions.json.
+func platformVersion(body []byte, kind string) (string, string, bool) {
+	var v struct {
+		Desktop struct {
+			Notes     string `json:"notes"`
+			Platforms map[string]struct {
+				Version string `json:"version"`
+			} `json:"platforms"`
+		} `json:"desktop"`
+	}
+	if json.Unmarshal(body, &v) != nil {
+		return "", "", false
+	}
+	p, ok := v.Desktop.Platforms[platformKey[kind]]
+	if !ok || p.Version == "" {
+		return "", "", false
+	}
+	return p.Version, strings.TrimSpace(v.Desktop.Notes), true
 }
