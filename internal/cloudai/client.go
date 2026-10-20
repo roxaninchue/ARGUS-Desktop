@@ -61,6 +61,7 @@ type Gateway struct {
 	lastRoute string    // "groq/llama-3.3-70b-versatile" of the last call (blaze_avoid names it)
 	lastError string    // raw text of the last failure (diagnostics only)
 	lastWarm  time.Time // v0.19.1: the last Prewarm
+	quota     *Quota    // v0.19.9: the newest allowance (usage meter)
 }
 
 // NewGateway uses base with a shared keep-alive client.
@@ -361,6 +362,9 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 	st.Provider, st.Model, st.Status = prov, model, resp.StatusCode
 	st.TTFBms, _ = strconv.Atoi(resp.Header.Get("X-Blaze-TTFB-Ms"))
 	st.Hedged = resp.Header.Get("X-Blaze-Hedged") != ""
+	st.FastLane = resp.Header.Get("X-Blaze-Fast-Lane") == "1"
+	st.Fallback = resp.Header.Get("X-Blaze-Fallback") == "1"
+	quota := QuotaFrom(resp.Header)
 	st.RequestID = resp.Header.Get("X-Request-Id")
 	st.ServerTTFTms, _ = strconv.Atoi(resp.Header.Get("X-Blaze-TTFT-Ms"))
 	st.ServerTiming = resp.Header.Get("Server-Timing")
@@ -373,6 +377,7 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 		g.mu.Unlock()
 	}
 	if resp.StatusCode >= 300 {
+		g.noteQuota(quota, 0) // a 429 still says what's left
 		raw, _ := io.ReadAll(io.LimitReader(resp.Body, 8000))
 		ra, _ := strconv.Atoi(strings.TrimSpace(resp.Header.Get("Retry-After")))
 		return nil, &llm.HTTPError{Code: resp.StatusCode, Body: gatewayErr(raw), RetryAfter: ra}
@@ -435,6 +440,13 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 		return nil, &llm.HTTPError{Code: 0, Body: err.Error()}
 	}
 	r.Headers = llm.RateHeaders(resp.Header)
+	if quota != nil {
+		toks := 0
+		if r.Usage != nil {
+			toks = r.Usage.Prompt + r.Usage.Completion
+		}
+		g.noteQuota(quota, toks)
+	}
 	if prov != "" && model != "" {
 		turn.Served(prov + "/" + model)
 	}

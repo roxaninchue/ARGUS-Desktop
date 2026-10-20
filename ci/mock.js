@@ -298,6 +298,8 @@ if (/\/internal\/router\/web\//.test(location.href)) {
   window.__signIn = () => { Object.assign(window.__acct, { signed_in: true, user: acctUser, pending: "" }); };
   Object.assign(A, {
     AccountState: async () => ({ ...window.__acct }),
+    CloudUsage: async () => (window.__usage || { cloud: true, signed_in: !!(window.__acct && window.__acct.signed_in), cap: 0, quota: null }),
+    SetCloudDailyCap: async n => { window.__usage = { ...(window.__usage || {}), cap: n }; return window.__usage; },
     AccountPlan: async () => (window.__acct && window.__acct.signed_in ? (window.__plan || "basic") : ""),
     AccountAvatar: async url => { if (window.__acct.user) window.__acct.user.avatar_url = url ? "https://example.test/v1/avatar/u1?v=" + Date.now() : ""; return { state: { ...window.__acct } }; },
     AccountEmail: async (mode, name, email, password) => { if ((password || "").length < 8) return { error: "That email and password don't match." }; window.__signIn(); return { state: { ...window.__acct } }; },
