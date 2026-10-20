@@ -302,6 +302,15 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 		}
 		TurnFrom(ctx).Record(st)
 	}()
+	if onText != nil {
+		inner := onText
+		onText = func(t string) {
+			if st.ClientTTFTms == 0 {
+				st.ClientTTFTms = int(time.Since(st.Started).Milliseconds())
+			}
+			inner(t)
+		}
+	}
 	body := map[string]any{"messages": json.RawMessage(llm.Wire(msgs, true, false))}
 	Tag(body, task)
 	if onText != nil {
@@ -313,6 +322,7 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 	if len(tools) > 0 {
 		body["tools"] = llm.AdaptTools(tools, "")
 		body["tool_choice"] = "auto"
+		body["blaze_tools"] = "auto" // gateway 0.6.9 drops them on turns with no action intent
 	}
 	b, _ := json.Marshal(body)
 	ctx, cancel := context.WithCancel(ctx)
@@ -351,6 +361,11 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 	st.Provider, st.Model, st.Status = prov, model, resp.StatusCode
 	st.TTFBms, _ = strconv.Atoi(resp.Header.Get("X-Blaze-TTFB-Ms"))
 	st.Hedged = resp.Header.Get("X-Blaze-Hedged") != ""
+	st.RequestID = resp.Header.Get("X-Request-Id")
+	st.ServerTTFTms, _ = strconv.Atoi(resp.Header.Get("X-Blaze-TTFT-Ms"))
+	st.ServerTiming = resp.Header.Get("Server-Timing")
+	st.Lane = resp.Header.Get("X-Blaze-Lane")
+	st.ToolsDropped = resp.Header.Get("X-Blaze-Tools-Dropped") == "1"
 	st.Replay = resp.Header.Get("X-Blaze-Replay") != ""
 	if prov != "" && model != "" {
 		g.mu.Lock()

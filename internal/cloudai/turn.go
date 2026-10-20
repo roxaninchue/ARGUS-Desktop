@@ -76,6 +76,13 @@ type Step struct {
 	TokensIn  int       `json:"tokens_in,omitempty"`
 	TokensOut int       `json:"tokens_out,omitempty"`
 	Error     string    `json:"error,omitempty"`
+	// Gateway 0.6.9 timings (v0.19.8).
+	RequestID    string `json:"request_id,omitempty"`     // X-Request-Id
+	ServerTTFTms int    `json:"server_ttft_ms,omitempty"` // X-Blaze-TTFT-Ms: gateway receive -> first byte
+	ServerTiming string `json:"server_timing,omitempty"`  // Server-Timing
+	Lane         string `json:"lane,omitempty"`           // X-Blaze-Lane ("fast")
+	ToolsDropped bool   `json:"tools_dropped,omitempty"`  // X-Blaze-Tools-Dropped
+	ClientTTFTms int    `json:"client_ttft_ms,omitempty"` // request sent -> first streamed word, measured here
 }
 
 // Record adds one attempt (at most 200 per turn).

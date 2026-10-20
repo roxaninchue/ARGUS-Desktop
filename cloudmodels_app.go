@@ -10,6 +10,7 @@ package main
 
 import (
 	"context"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/persona"
 	"strings"
 	"sync"
 	"time"
@@ -39,6 +40,16 @@ func (a *App) startCloudModels() {
 	cloudModels = cloudai.NewRouter(choice, gw)
 	llm.SetBackend(cloudModels)
 	go a.CloudPrewarm() // v0.19.1: the first message doesn't wait for DNS + TLS
+	// v0.19.8: the shared persona, cached on disk and refreshed at most daily.
+	persona.Load(config.Dir())
+	go func() {
+		for {
+			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+			_ = persona.Refresh(ctx, config.Dir(), nil)
+			cancel()
+			time.Sleep(6 * time.Hour)
+		}
+	}()
 }
 
 // CloudPrewarm opens the connection to Blaze Cloud ahead of Send (v0.19.1): called at start-up,
@@ -209,4 +220,23 @@ func (a *App) AccountPlan(force bool) string {
 	planVal, planAt = p, time.Now()
 	planMu.Unlock()
 	return p
+}
+
+// firstNameLine tells the model the signed-in user's first name (the persona uses it only when
+// the user greets first).
+func (a *App) firstNameLine() string {
+	if a.cloud == nil {
+		return ""
+	}
+	a.cloud.mu.Lock()
+	u := a.cloud.user
+	a.cloud.mu.Unlock()
+	if u == nil {
+		return ""
+	}
+	f := strings.Fields(strings.TrimSpace(u.Name))
+	if len(f) == 0 {
+		return ""
+	}
+	return "\nUser's first name: " + f[0] + ".\n"
 }

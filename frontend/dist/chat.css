@@ -14,13 +14,13 @@ body.shell #log .col, #log .col { max-width: 780px; }
 
 /* your bubble */
 .msg.user .bubble, body.shell .msg.user .bubble {
-  max-width: min(78%, 560px); background: var(--ink); color: var(--paper); border: 0;
+  max-width: min(78%, 560px); background: var(--ink); color: var(--on-ink); border: 0; /* v0.19.8: was --paper (translucent), unreadable in light */
   padding: 9px 14px; font-size: 14px; line-height: 1.5; border-radius: 18px 4px 18px 18px;
 }
 .msg.user.g-first .bubble { border-radius: 18px 4px 6px 18px; }
 .msg.user.g-mid .bubble { border-radius: 18px 6px 6px 18px; }
 .msg.user.g-last .bubble { border-radius: 18px 6px 18px 18px; }
-.msg.user .bubble .label.acc { color: var(--paper); opacity: .7; }
+.msg.user .bubble .label.acc { color: var(--on-ink); opacity: .8; }
 .msg.user.cont .bubble, body.shell .msg.user.cont .bubble { background: var(--bubble); color: var(--sub); }
 .msg.user .chips { margin-top: 6px; }
 .chatpane.narrow .msg.user .bubble { max-width: 90%; }

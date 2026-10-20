@@ -88,17 +88,24 @@ func TestHeaderSafe(t *testing.T) {
 	nilTurn.Apply(http.Header{})
 }
 
-// Prewarm hits the gateway root's /health (never /v1/health, never with the account token), at
-// most once a minute, and leaves the connection in the pool for the chat request.
+// Prewarm: signed in it POSTs /v1/warm with the account token (gateway 0.6.9); signed out it hits
+// the root's /health without a token. At most once per PrewarmEvery, and the connection stays in
+// the pool for the chat request.
 func TestPrewarm(t *testing.T) {
-	var health, chat, conns atomic.Int32
-	var authOnHealth atomic.Value
+	var health, warm, chat, conns atomic.Int32
+	var authOnHealth, authOnWarm atomic.Value
 	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/health":
 			health.Add(1)
 			authOnHealth.Store(r.Header.Get("Authorization"))
 			fmt.Fprint(w, `{"ok":true,"service":"blaze-gateway","version":"0.6.1"}`)
+		case "/v1/warm":
+			if r.Method == "POST" {
+				warm.Add(1)
+				authOnWarm.Store(r.Header.Get("Authorization"))
+			}
+			fmt.Fprint(w, `{"ok":true,"version":"0.6.9","user":true,"ms":3}`)
 		case "/v1/chat/completions":
 			chat.Add(1)
 			w.Header().Set("Content-Type", "application/json")
@@ -124,16 +131,26 @@ func TestPrewarm(t *testing.T) {
 	if g.Prewarm(context.Background()) {
 		t.Fatal("second prewarm within a minute should be skipped")
 	}
-	if health.Load() != 1 {
-		t.Fatalf("health hits = %d", health.Load())
+	if warm.Load() != 1 || health.Load() != 0 {
+		t.Fatalf("signed in: warm hits = %d, health hits = %d", warm.Load(), health.Load())
 	}
-	if a, _ := authOnHealth.Load().(string); a != "" {
-		t.Fatal("prewarm must not send the account token")
+	if a, _ := authOnWarm.Load().(string); a != "Bearer bz_test_token_aaaaaaaaaaaaaaaaaaaaa" {
+		t.Fatalf("warm must carry the token, got %q", a)
+	}
+	if WarmURL(srv.URL+"/v1") != srv.URL+"/v1/warm" {
+		t.Fatal("WarmURL")
 	}
 	if _, err := g.Complete(context.Background(), []llm.Message{{Role: "user", Content: "hi"}}, nil, nil, false); err != nil {
 		t.Fatal(err)
 	}
 	if chat.Load() != 1 || conns.Load() != 1 {
 		t.Fatalf("the chat request should reuse the warmed connection: chats=%d conns=%d", chat.Load(), conns.Load())
+	}
+	out := NewGateway(srv.URL+"/v1", func() string { return "" })
+	if !out.Prewarm(context.Background()) || health.Load() != 1 {
+		t.Fatal("signed out: prewarm should hit /health")
+	}
+	if a, _ := authOnHealth.Load().(string); a != "" {
+		t.Fatal("/health must not get a token")
 	}
 }
