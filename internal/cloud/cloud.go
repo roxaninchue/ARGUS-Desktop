@@ -105,6 +105,10 @@ func Message(err error) string {
 		return "Couldn't reach Blaze's sign-in service. Check your internet connection."
 	case errors.As(err, &ae):
 		switch ae.Code {
+		case "too_large":
+			return "That picture is too big. Pick a smaller one."
+		case "unsupported_type":
+			return "Use a PNG, JPEG or WebP picture."
 		case "invalid_credentials":
 			return "That email and password don't match."
 		case "email_taken":
@@ -191,7 +195,10 @@ type Session struct {
 
 func (c *Client) do(ctx context.Context, method, path, bearer string, body, out any) error {
 	var rd io.Reader
-	if body != nil {
+	ctype := "application/json"
+	if rb, ok := body.(rawBody); ok {
+		rd, ctype = bytes.NewReader(rb.data), rb.ctype
+	} else if body != nil {
 		b, _ := json.Marshal(body)
 		rd = bytes.NewReader(b)
 	}
@@ -202,7 +209,7 @@ func (c *Client) do(ctx context.Context, method, path, bearer string, body, out 
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "Blaze-Desktop")
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", ctype)
 	}
 	if bearer != "" {
 		req.Header.Set("Authorization", "Bearer "+bearer)
@@ -312,6 +319,45 @@ func (c *Client) Me(ctx context.Context, token string) (*User, error) {
 		User User `json:"user"`
 	}
 	if err := c.do(ctx, "GET", "/v1/me", token, nil, &r); err != nil {
+		return nil, err
+	}
+	return &r.User, nil
+}
+
+// rawBody is a request body sent as-is (an image), not as JSON.
+type rawBody struct {
+	ctype string
+	data  []byte
+}
+
+// MaxAvatar is the largest profile picture blaze-auth accepts (0.9.3).
+const MaxAvatar = 256 << 10
+
+// AvatarUpload sets the account's profile picture (image/webp, png or jpeg, at most 256 KB).
+func (c *Client) AvatarUpload(ctx context.Context, token, ctype string, data []byte) (*User, error) {
+	switch ctype {
+	case "image/webp", "image/png", "image/jpeg":
+	default:
+		return nil, &APIError{Status: 415, Code: "unsupported_type"}
+	}
+	if len(data) == 0 || len(data) > MaxAvatar {
+		return nil, &APIError{Status: 413, Code: "too_large"}
+	}
+	var r struct {
+		User User `json:"user"`
+	}
+	if err := c.do(ctx, "POST", "/v1/me/avatar", token, rawBody{ctype, data}, &r); err != nil {
+		return nil, err
+	}
+	return &r.User, nil
+}
+
+// AvatarDelete goes back to the letter avatar.
+func (c *Client) AvatarDelete(ctx context.Context, token string) (*User, error) {
+	var r struct {
+		User User `json:"user"`
+	}
+	if err := c.do(ctx, "POST", "/v1/me/avatar/delete", token, map[string]string{}, &r); err != nil {
 		return nil, err
 	}
 	return &r.User, nil

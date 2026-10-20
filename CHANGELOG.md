@@ -2,6 +2,11 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## v0.19.4 (profile pictures, blaze-auth 0.9.3)
+- **Your picture in the top bar**: signed in, the avatar button shows your profile picture, or the first letter of your name (else your email) on a colour picked from it, the same letter and colours as the website.
+- **Add, change or remove it** in Settings › Account. Blaze centre-crops the picture to a 256 px square and compresses it (WebP, under 256 KB) before uploading it to `POST /v1/me/avatar`. Remove goes back to the letter (`POST /v1/me/avatar/delete`). PNG, JPEG and WebP only.
+- `internal/cloud`: `AvatarUpload` (raw image body, type and size checked before sending) and `AvatarDelete`; test `TestAvatarUpload`. Not tried against the live service from a real desktop yet.
+
 ## v0.19.3 (tells you when an update is out)
 - **"Update available" in the top bar** (`app.js` `updPill`): the signed updater already checked the downloads site 3 seconds after launch, but its only signs were a card in the chat and a hidden badge. Now a pill with an orange dot sits in the top bar on every view until you update or skip that version; clicking it opens the Update card (Update now / Later / Skip this version).
 - **Checks again once a day** while Blaze stays open. Offline checks fail quietly. Settings › Updates › "Check on launch" turns both off.

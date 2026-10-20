@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"os"
@@ -297,6 +298,51 @@ func (a *App) AccountEmailCodesSet(on bool, code string) AccountResult {
 	a.emitAccount()
 	st := a.AccountState()
 	return AccountResult{State: &st}
+}
+
+// AccountAvatar sets the profile picture from a data: URL the page made (already cropped to a
+// 256 px square and compressed), or removes it when dataURL is "" (back to the letter avatar).
+func (a *App) AccountAvatar(dataURL string) AccountResult {
+	tok, _ := a.cloud.sec.Get(sessionKey)
+	if tok == "" {
+		return AccountResult{Error: "You're signed out. Sign in again."}
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	var u *cloud.User
+	var err error
+	if dataURL == "" {
+		u, err = a.cloud.client.AvatarDelete(ctx, tok)
+	} else {
+		ctype, data, ok := parseDataURL(dataURL)
+		if !ok {
+			return AccountResult{Error: "Use a PNG, JPEG or WebP picture."}
+		}
+		u, err = a.cloud.client.AvatarUpload(ctx, tok, ctype, data)
+	}
+	if err != nil {
+		return AccountResult{Error: cloud.Message(err)}
+	}
+	a.cloud.mu.Lock()
+	a.cloud.user = u
+	a.cloud.mu.Unlock()
+	a.saveUser(u)
+	a.emitAccount()
+	st := a.AccountState()
+	return AccountResult{State: &st}
+}
+
+// parseDataURL splits "data:image/webp;base64,..." into its type and bytes.
+func parseDataURL(s string) (string, []byte, bool) {
+	head, b64, ok := strings.Cut(s, ",")
+	if !ok || !strings.HasPrefix(head, "data:") || !strings.HasSuffix(head, ";base64") {
+		return "", nil, false
+	}
+	data, err := base64.StdEncoding.DecodeString(b64)
+	if err != nil {
+		return "", nil, false
+	}
+	return strings.TrimSuffix(strings.TrimPrefix(head, "data:"), ";base64"), data, true
 }
 
 // AccountEmail signs in (mode "signin") or creates an account (mode "signup").
