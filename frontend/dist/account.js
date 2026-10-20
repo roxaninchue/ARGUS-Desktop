@@ -9,7 +9,69 @@ IC.mail = '<rect x="1.5" y="3.5" width="13" height="9"/><path d="m1.5 4 6.5 5 6.
 let ACCT = null; // last AccountState()
 let signMode = "signin"; // signin | signup
 
-async function loadAccount() { ACCT = await API().AccountState() || { signed_in: false, login: {} }; return ACCT; }
+async function loadAccount() { ACCT = await API().AccountState() || { signed_in: false, login: {} }; topAvatar(); return ACCT; }
+
+// Profile pictures (blaze-auth 0.9.3): avatar_url is "" (letter avatar) or an https image.
+// The letter is the first character of the name (else the email) on a colour hashed from it,
+// the same colours and hash as the website.
+const AV_COLORS = ["#0071e3", "#34a853", "#af52de", "#ff9500", "#ff2d55", "#5856d6", "#00a2b8", "#a2845e"];
+function avLetter(u) { return ((u.name || u.email || "?").trim()[0] || "?").toUpperCase(); }
+function avColor(u) { const s = (u.name || u.email || ""); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return AV_COLORS[h % AV_COLORS.length]; }
+
+// The top-bar avatar shows the signed-in account's picture or letter.
+function topAvatar() {
+  const b = $("#avatar"); if (!b) return;
+  if (!b.dataset.icon) b.dataset.icon = b.innerHTML;
+  const u = ACCT && ACCT.signed_in && ACCT.user;
+  if (!u) { b.innerHTML = b.dataset.icon; b.classList.remove("hasav"); b.style.background = ""; return; }
+  const key = (u.avatar_url || "") + "|" + avLetter(u);
+  if (b.dataset.key === key) return;
+  b.dataset.key = key; b.classList.add("hasav");
+  b.style.background = avColor(u); b.textContent = avLetter(u);
+  if (/^https:\/\//.test(u.avatar_url || "")) {
+    const img = new Image(); img.alt = ""; img.referrerPolicy = "no-referrer";
+    img.onload = () => { if (b.dataset.key === key) { b.textContent = ""; b.append(img); } };
+    img.src = u.avatar_url;
+  }
+}
+
+// Picks a picture, centre-crops it to a 256 px square and compresses it under 256 KB
+// (WebP from quality 0.85 down, PNG if WebP isn't available), then uploads it.
+function pickAvatar(done) {
+  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/png,image/jpeg,image/webp";
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    try {
+      const url = await avatarDataURL(f);
+      const r = await API().AccountAvatar(url);
+      if (!r || r.error) { toast((r && r.error) || "Couldn't save the picture.", "bad"); return; }
+      ACCT = r.state || await loadAccount(); topAvatar(); toast("Picture updated", "ok"); done && done();
+    } catch (e) { toast("Couldn't read that picture.", "bad"); }
+  };
+  inp.click();
+}
+
+function avatarDataURL(file) {
+  return new Promise((ok, bad) => {
+    const img = new Image(), src = URL.createObjectURL(file);
+    img.onerror = () => { URL.revokeObjectURL(src); bad(new Error("not an image")); };
+    img.onload = () => {
+      URL.revokeObjectURL(src);
+      const n = Math.min(img.naturalWidth, img.naturalHeight), cv = document.createElement("canvas");
+      cv.width = cv.height = 256;
+      cv.getContext("2d").drawImage(img, (img.naturalWidth - n) / 2, (img.naturalHeight - n) / 2, n, n, 0, 0, 256, 256);
+      const size = d => Math.floor((d.length - d.indexOf(",") - 1) * 3 / 4);
+      for (let q = 0.85; q >= 0.3; q -= 0.1) {
+        const d = cv.toDataURL("image/webp", q);
+        if (d.startsWith("data:image/webp") && size(d) <= 256 * 1024) return ok(d);
+      }
+      const d = cv.toDataURL("image/png");
+      if (size(d) <= 256 * 1024) return ok(d);
+      bad(new Error("too big"));
+    };
+    img.src = src;
+  });
+}
 
 function initials(u) {
   const s = (u.name || u.email || "?").trim();
@@ -18,7 +80,8 @@ function initials(u) {
 }
 
 function avatar(u, big) {
-  const a = h("span", "uav" + (big ? " big" : ""), esc(initials(u)));
+  const a = h("span", "uav" + (big ? " big" : ""), esc(avLetter(u)));
+  a.style.background = avColor(u); a.style.color = "#fff";
   if (u.avatar_url && /^https:\/\//.test(u.avatar_url)) {
     const img = new Image(); img.alt = ""; img.referrerPolicy = "no-referrer";
     img.onload = () => { a.textContent = ""; a.append(img); };
@@ -151,6 +214,13 @@ function accountCard(compact, redraw) {
   } else {
     main.append(h("div", "upills", via.map(v => `<span class="pill">${esc(v)}</span>`).join("") + (u.email_verified ? '<span class="pill acc">Verified</span>' : "")));
     if (since) main.append(h("div", "note2", `Member since ${esc(since)}`));
+    const pic = h("button", "btn line sm", u.avatar_url ? "Change picture" : "Add picture");
+    pic.onclick = () => pickAvatar(redraw); acts.append(pic);
+    if (u.avatar_url) {
+      const rm = h("button", "btn ghost sm", "Remove picture");
+      rm.onclick = async () => { rm.disabled = true; const r = await API().AccountAvatar(""); if (!r || r.error) { rm.disabled = false; toast((r && r.error) || "Couldn't remove the picture.", "bad"); return; } ACCT = r.state || await loadAccount(); topAvatar(); redraw && redraw(); };
+      acts.append(rm);
+    }
     const so = h("button", "btn line sm", "Sign out");
     so.onclick = async () => { so.disabled = true; await API().AccountSignOut(); await loadAccount(); toast("Signed out of Blaze"); redraw && redraw(); };
     acts.append(so);
@@ -262,9 +332,13 @@ on("account_mfa", m => { MFA = m; show("signin"); });
 
 on("account", async st => {
   ACCT = st || await loadAccount();
+  topAvatar();
   if (view === "signin") { if (ACCT.signed_in) show("settings", "account"); else show("signin"); }
   if (view === "settings" && settingsSection === "account") show("settings", "account");
   if (view === "accounts" && connRedraw) connRedraw();
 });
 
 COMMANDS.splice(COMMANDS.findIndex(c => c.name === "accounts"), 0, { name: "account", desc: "Your Blaze account: sign in, sign out", run: () => { loadAccount().then(a => show(a.signed_in ? "settings" : "signin", a.signed_in ? "account" : undefined)); } });
+
+// Show the account's picture in the top bar once the app is up (the service is optional).
+setTimeout(() => { loadAccount().catch(() => {}); }, 1500);

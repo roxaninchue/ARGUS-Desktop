@@ -298,6 +298,7 @@ if (/\/internal\/router\/web\//.test(location.href)) {
   window.__signIn = () => { Object.assign(window.__acct, { signed_in: true, user: acctUser, pending: "" }); };
   Object.assign(A, {
     AccountState: async () => ({ ...window.__acct }),
+    AccountAvatar: async url => { if (window.__acct.user) window.__acct.user.avatar_url = url ? "https://example.test/v1/avatar/u1?v=" + Date.now() : ""; return { state: { ...window.__acct } }; },
     AccountEmail: async (mode, name, email, password) => { if ((password || "").length < 8) return { error: "That email and password don't match." }; window.__signIn(); return { state: { ...window.__acct } }; },
     AccountSignIn: async p => { window.__acct.pending = p; return ""; }, AccountCancel: async () => { window.__acct.pending = ""; },
     AccountSignOut: async () => { Object.assign(window.__acct, { signed_in: false, user: null }); return ""; }, AccountDelete: async () => { Object.assign(window.__acct, { signed_in: false, user: null }); return ""; },
