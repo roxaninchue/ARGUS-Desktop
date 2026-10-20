@@ -3,6 +3,7 @@ package home
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -47,6 +48,22 @@ type Fetcher struct {
 	Loc     *time.Location // for match times
 	// Locate finds an approximate place for "use my location" (desktop has no GPS); nil = ask for a city.
 	Locate func(ctx context.Context) (Place, error)
+	// Now, when set, gives the current conditions from Blaze Cloud's weather (the same numbers the
+	// chat's get_weather gets). The card then shows those, with their source and time; the days
+	// ahead still come from the forecast.
+	Now func(ctx context.Context, lat, lon float64, fahrenheit bool) (Current, error)
+}
+
+// Current is one weather reading from Blaze Cloud.
+type Current struct {
+	Temp      float64
+	Unit      string // "°C"
+	Condition string // "Clear night"
+	FeelsLike *float64
+	Wind      float64
+	WindUnit  string
+	Source    string // "Open-Meteo"
+	Observed  time.Time
 }
 
 // Result is a fetch's content plus config it learned (a city's coordinates, a team id) to save on the widget.
@@ -187,6 +204,25 @@ func (f Fetcher) weather(ctx context.Context, w Widget) (Result, error) {
 		return Result{}, err
 	}
 	d.Link = "https://open-meteo.com/"
+	if f.Now != nil {
+		if c, err := f.Now(ctx, lat, lon, fahr); err == nil {
+			d.Value = fmt.Sprintf("%d%s", round(c.Temp), firstRunes(c.Unit, 2))
+			ch := c.Condition
+			if c.FeelsLike != nil {
+				ch += fmt.Sprintf(" · feels %d°", round(*c.FeelsLike))
+			}
+			if c.WindUnit != "" {
+				ch += fmt.Sprintf(" · wind %d %s", round(c.Wind), c.WindUnit)
+			}
+			if c.Source != "" {
+				ch += " · " + c.Source
+				if !c.Observed.IsZero() {
+					ch += " " + c.Observed.In(time.Local).Format("15:04")
+				}
+			}
+			d.Change = ch
+		}
+	}
 	return Result{Data: d, Learned: learned}, nil
 }
 

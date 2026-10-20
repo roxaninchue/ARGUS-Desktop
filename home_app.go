@@ -167,7 +167,7 @@ func (a *App) HomeRefresh(id, locale string) home.Data {
 		lang, cc := splitLocale(locale)
 		ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 		defer cancel()
-		f := home.Fetcher{Net: homeNet, Lang: lang, Country: cc, Loc: time.Local, Locate: homeLocate}
+		f := home.Fetcher{Net: homeNet, Lang: lang, Country: cc, Loc: time.Local, Locate: homeLocate, Now: homeWeatherNow}
 		r := f.Fetch(ctx, w, now)
 		if len(r.Learned) > 0 {
 			if w.Config == nil {
@@ -221,9 +221,9 @@ func (a *App) HomeInto(text string) int {
 	return len(parts)
 }
 
-func (a *App) HomeRemove(id string)              { homeBoard().Remove(id) }
+func (a *App) HomeRemove(id string)               { homeBoard().Remove(id) }
 func (a *App) HomeMove(id string, delta int) bool { return homeBoard().Move(id, delta) }
-func (a *App) HomeReorder(ids []string)          { homeBoard().Reorder(ids) }
+func (a *App) HomeReorder(ids []string)           { homeBoard().Reorder(ids) }
 
 // HomeResize sets S, M or L.
 func (a *App) HomeResize(id, size string) {
