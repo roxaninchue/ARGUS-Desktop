@@ -26,15 +26,19 @@ import (
 )
 
 // PublicKey is Blaze's release-signing public key (raw 32-byte ed25519, base64).
-// The matching private key is kept in the owner's secret vault and handed to ci/sign as
-// BLAZE_UPDATE_SIGNING_KEY at release time; it is never committed. v0.19.2 rotated to this key
-// (the previous key was lost with the old CI), so builds up to v0.19.1 need one manual reinstall.
-const PublicKey = "h+BLX1pI7e4k9Xti6+dRn8tAz+kfZ+GgKqmoiUNkMFo="
+// The matching private key is a masked, protected CI/CD variable on the GitLab project
+// (BLAZE_UPDATE_SIGNING_KEY_HEX), read by the release build and handed to ci/sign; it is never
+// committed or printed. v0.19.6 rotated to this key.
+const PublicKey = "moDRRNAnYCRxRjblqUI1oDlGgfRI13NumGA4sLrd4QI="
+
+// PreviousKey signed v0.19.2 to v0.19.5. v0.19.6 still trusts it (and is signed with it) so those
+// installs can update into v0.19.6; the release after that drops it.
+const PreviousKey = "h+BLX1pI7e4k9Xti6+dRn8tAz+kfZ+GgKqmoiUNkMFo="
 
 // TrustedKeys are the keys a release may be signed with. Normally just PublicKey;
 // during a key rotation one release trusts the old and the new key together (see
 // "Signed updates" in the README).
-var TrustedKeys = []string{PublicKey}
+var TrustedKeys = []string{PublicKey, PreviousKey}
 
 // Keys is a set of trusted public keys; a signature by any one of them is accepted.
 type Keys []ed25519.PublicKey

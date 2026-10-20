@@ -2,6 +2,10 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## v0.19.6 (signing key rotation, step 1)
+- **New release-signing key** (`internal/updsig`): `moDRRNAnYCRxRjblqUI1oDlGgfRI13NumGA4sLrd4QI=`. Its private half lives only as a masked, protected CI/CD variable on the GitLab project; the release build reads it from there and it's never printed.
+- **Smooth hand-over**: v0.19.6 trusts both the new key and the previous one (`h+BLX1pI…MFo=`), and is itself signed with the previous key, so v0.19.2 to v0.19.5 update into it as usual. The next release is signed with the new key only and drops the previous one. Test: `TestRotationTrustsBoth`.
+
 ## v0.19.5 (profile badge, like the website)
 - **Plan pill on your avatar**: a small Basic, Standard or Pro pill sits centred on the bottom edge of the round top-bar avatar, in the theme's colours (Pro filled with the accent). The plan comes from Blaze Cloud (`GET /v1/billing/me`, `term.plan` else `plan`; `internal/cloudai/plan.go`, `AccountPlan`, cached 10 minutes). It's hidden when signed out or offline.
 - **Account menu**: clicking the avatar shows your picture or initial, name, email and plan, then Upgrade (Basic and Standard; opens the plans on the website), Add / Change picture, Remove picture, the usual rows, and Sign out.

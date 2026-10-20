@@ -212,3 +212,13 @@ func TestRotationAcceptsEitherKey(t *testing.T) {
 	}
 	wantFail(t, VerifyFile(Keys{}, f.sums, f.sig, asset, f.path), "signature")
 }
+
+// v0.19.6 rotation: both the new key and the previous one are trusted, new one first.
+func TestRotationTrustsBoth(t *testing.T) {
+	ks := DefaultKeys()
+	pub, _ := ParsePublicKey(PublicKey)
+	prev, _ := ParsePublicKey(PreviousKey)
+	if len(ks) != 2 || !ks.Has(pub) || !ks.Has(prev) || PublicKey == PreviousKey {
+		t.Fatalf("want the new and the previous key trusted, got %d keys", len(ks))
+	}
+}

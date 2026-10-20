@@ -48,11 +48,11 @@ There is no grace period: v0.15.1 and later only install signed releases. (Versi
 no verifier and update into v0.15.1 as before.) For local testing only, `BLAZE_ALLOW_UNSIGNED_UPDATE=1`
 skips the refusal and logs a loud warning; never set it on a normal install.
 
-Public key (raw, base64), since v0.19.2: `h+BLX1pI7e4k9Xti6+dRn8tAz+kfZ+GgKqmoiUNkMFo=` (v0.15.1 to v0.19.1 trusted `A/yWqdv1xeM1tQhvGj/2uzF2bFpp6OTBrONLxkkctUA=`, whose private key is gone, so those versions need one manual reinstall to reach v0.19.2).
+Public key (raw, base64), since v0.19.6: `moDRRNAnYCRxRjblqUI1oDlGgfRI13NumGA4sLrd4QI=`. v0.19.6 also trusts the previous key `h+BLX1pI7e4k9Xti6+dRn8tAz+kfZ+GgKqmoiUNkMFo=` (v0.19.2 to v0.19.5) for one release; the release after drops it. Versions up to v0.19.1 trusted `A/yWqdv1xeM1tQhvGj/2uzF2bFpp6OTBrONLxkkctUA=` and need one manual reinstall.
 
 ```
 -----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAh+BLX1pI7e4k9Xti6+dRn8tAz+kfZ+GgKqmoiUNkMFo=
+MCowBQYDK2VwAyEAmoDRRNAnYCRxRjblqUI1oDlGgfRI13NumGA4sLrd4QI=
 -----END PUBLIC KEY-----
 ```
 
