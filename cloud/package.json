@@ -1,6 +1,6 @@
 {
   "name": "blaze-auth",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "private": true,
   "description": "Blaze accounts and the one-click OAuth connector broker, on Cloudflare Workers + KV (free tier).",
   "type": "module",

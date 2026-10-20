@@ -1,5 +1,8 @@
 # blaze-auth changelog
 
+## 0.9.2 (2026-10-20)
+- Device-code sign-in for terminals (RFC 8628 shaped): POST /v1/auth/device/start, /poll, /approve (Bearer), /deny, GET /v1/auth/device/info. user_code ABCD-EFGH (no 0/O/1/I), TTL 600 s, interval 5 s, single use. verification_uri https://blazeinchue.pages.dev/device (GET /device on this worker redirects there).
+
 ## 0.9.1 (2026-10-20)
 - Emailed two-factor codes. `mfa_required` now carries `methods` (app, email, recovery) and a masked `email_hint`.
 - `POST /v1/auth/2fa/email {mfa_token}` emails a 6-digit sign-in code (10 min, 3 sends per sign-in). `/v1/auth/2fa/verify` accepts it like an app code.
