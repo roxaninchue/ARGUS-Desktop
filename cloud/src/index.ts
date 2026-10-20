@@ -3,7 +3,7 @@
 
 import {
   Env, HttpError, json, redirect, html, esc, readJSON, clientIP, randomToken, sha256, pkceChallenge, safeEqual,
-  hashPassword, verifyPassword, iterations, normEmail, validPassword, cleanName, loopbackRedirect,
+  hashPassword, verifyPassword, iterations, normEmail, validPassword, cleanName, loopbackRedirect, appRedirect, appHandoff,
   STATE_RE, CHALLENGE_RE, VERIFIER_RE, CODE_RE, softLimit, webReturn,
 } from "./util";
 import { PROVIDERS, ProviderId, provider, credentials, callbackURL, pickScopes, tokenRequest, fetchProfile, Tokens } from "./providers";
@@ -19,7 +19,7 @@ import { guard } from "./ratelimit";
 import { deviceStart, deviceInfo, deviceApprove, deviceDeny, devicePoll } from "./device";
 import { forgot, reset, setPassword, mfaSetup, mfaEnable, mfaDisable, mfaVerify, signInOrMfa, mailerConfigured, mfaEmailLogin, mfaEmailSend, mfaEmailEnable, mfaEmailDisable } from "./password";
 
-export const VERSION = "0.9.4";
+export const VERSION = "0.9.5";
 const STATE_TTL = 600; // the user has 10 minutes to finish at the provider
 const CODE_TTL = 120; // the desktop redeems within seconds of the loopback redirect; 2 minutes is slack, and the KV minimum is 60
 
@@ -207,6 +207,8 @@ function providers(env: Env): Response {
     two_factor: true,
     two_factor_methods: { app: true, email: mailerConfigured(env) },
     device_login: true,
+    features: { app_redirect: true },
+    app_redirect: "blaze://auth/cb",
   });
 }
 
@@ -263,10 +265,10 @@ async function start(req: Request, env: Env, pid: string, flow: "login" | "conne
   const ds = q.get("state") || "";
   const cc = q.get("code_challenge") || "";
   const method = q.get("code_challenge_method") || "S256";
-  const rd = loopbackRedirect(q.get("redirect"));
+  const rd = loopbackRedirect(q.get("redirect")) || appRedirect(q.get("redirect"));
   if (!STATE_RE.test(ds)) throw new HttpError(400, "invalid_state");
   if (!CHALLENGE_RE.test(cc) || method !== "S256") throw new HttpError(400, "invalid_code_challenge");
-  if (!rd) throw new HttpError(400, "invalid_redirect", { hint: "only http://127.0.0.1:<port>/... or http://[::1]:<port>/..." });
+  if (!rd) throw new HttpError(400, "invalid_redirect", { hint: "only http://127.0.0.1:<port>/..., http://[::1]:<port>/... or blaze://auth/cb" });
   const scopes = flow === "login" ? (p.login as string[]) : pickScopes(p, q.get("scope"));
 
   const state = randomToken(24);
@@ -293,6 +295,7 @@ function back(rec: StateRecord, params: Record<string, string>): Response {
   const u = new URL(rec.redirect);
   u.searchParams.set("state", rec.ds);
   for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+  if (rec.redirect === "blaze://auth/cb") return appHandoff(u.toString());
   return redirect(u.toString());
 }
 

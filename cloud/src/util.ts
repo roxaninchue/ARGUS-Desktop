@@ -128,6 +128,23 @@ export function loopbackRedirect(v: string | null): string | null {
   return u.toString();
 }
 
+/** 0.9.5: the Android app's custom-scheme callback. Exact match only; PKCE S256 + state bind the code to the app. */
+export const APP_REDIRECT = "blaze://auth/cb";
+export function appRedirect(v: string | null): string | null {
+  return v === APP_REDIRECT ? APP_REDIRECT : null;
+}
+
+/** HTML hand-off to a custom-scheme URL: browsers often block a silent 302 to blaze://, so script + meta refresh + a button. */
+export function appHandoff(url: string): Response {
+  const nonce = randomToken(12);
+  const e = esc(url);
+  const body = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>Blaze</title><meta http-equiv="refresh" content="0;url=${e}"><body style="font:16px/1.5 system-ui,sans-serif;background:#f5f5f7;color:#1d1d1f;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center"><div style="padding:32px"><h2 style="margin:0 0 8px;font-weight:600">Signed in</h2><p style="margin:0 0 20px;color:#6e6e73">Returning you to Blaze…</p><a href="${e}" style="display:inline-block;padding:12px 24px;border-radius:999px;background:#0071e3;color:#fff;text-decoration:none;font-weight:500">Open Blaze</a></div><script nonce="${nonce}">location.href=${JSON.stringify(url).replace(/</g, "\\u003c")};</script></body>`;
+  return new Response(body, {
+    status: 200,
+    headers: { ...BASE_HEADERS, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Content-Security-Policy": `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; frame-ancestors 'none'; base-uri 'none'`, "Referrer-Policy": "no-referrer" },
+  });
+}
+
 export const STATE_RE = /^[A-Za-z0-9_-]{16,128}$/;
 export const CHALLENGE_RE = /^[A-Za-z0-9_-]{43}$/;
 export const VERIFIER_RE = /^[A-Za-z0-9._~-]{43,128}$/;
