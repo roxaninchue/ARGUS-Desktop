@@ -614,8 +614,11 @@ func (a *App) Stop() {
 func (a *App) run(ctx context.Context, s *session) {
 	started := time.Now()
 	// v0.19.1: every gateway request of this turn carries X-Blaze-Turn / X-Blaze-Prefer.
-	ctx = cloudai.WithTurn(ctx, cloudai.NewTurn())
-	var toolOrder []string // v0.19.1: tools keep their place across the turn's steps
+	turn := cloudai.NewTurn()
+	ctx = cloudai.WithTurn(ctx, turn)
+	tr := &turnTrace{Turn: turn.ID}
+	defer a.emitTrace(s, tr, turn, started) // v0.19.7: the reply's "What happened" view
+	var toolOrder []string                  // v0.19.1: tools keep their place across the turn's steps
 	setTrayStatus("Working…")
 	defer setTrayStatus("Idle")
 	var changed, urls []string
@@ -680,6 +683,7 @@ func (a *App) run(ctx context.Context, s *session) {
 		q := recentQuery(hist)
 		sys := promptOrder(a.systemStable(q), agents.Delegation+agents.Orchestration+longChatLine, a.systemLive(q), tools.ExtraLine(conv), longExtra, note)
 		private := isPrivate(s.id)
+		sys += weatherLine // v0.19.7: weather only from get_weather
 		if private {
 			sys += privateLine
 		}
@@ -687,23 +691,31 @@ func (a *App) run(ctx context.Context, s *session) {
 		// Connector tools join only when connected and enabled, and a group's tools
 		// only after the model loads it, so the list stays small.
 		// Blaze's own tools: the core set plus what find_tools turned on in this chat.
-		all := append(append(append(tools.Select(conv), a.conn.Tools()...), agents.MainTools()...), updateBlazeTool())
+		all := append(append(append(tools.Select(conv), a.conn.Tools()...), agents.MainTools()...), updateBlazeTool(), weatherTool())
 		if private {
 			// No specialists (they keep files) and nothing that saves memories or skills.
-			all = privateTools(append(tools.Select(conv), a.conn.Tools()...))
+			all = privateTools(append(append(tools.Select(conv), a.conn.Tools()...), weatherTool()))
 		}
-		known := append(append(append(tools.Names(), a.conn.Known()...), agents.MainToolNames...), "update_blaze")
+		known := append(append(append(tools.Names(), a.conn.Known()...), agents.MainToolNames...), "update_blaze", "get_weather")
 		a.temit(s, "thinking", step)
 		var partial strings.Builder // what streamed, kept if the reply breaks off
 		var sent []llm.Tool
 		sent, toolOrder = keepToolOrder(toolOrder, a.modeTools(all))
+		stepStart, ttft := time.Now(), time.Duration(0)
 		r, err := llm.CompleteWith(ctx, a.cfg, msgs, sent, llm.Opts{
-			OnText:   func(t string) { partial.WriteString(t); a.temit(s, "delta", t) },
+			OnText: func(t string) {
+				if ttft == 0 {
+					ttft = time.Since(stepStart)
+				}
+				partial.WriteString(t)
+				a.temit(s, "delta", t)
+			},
 			OnStatus: func(t string) { a.temit(s, "status", t) },
 			// Keyless may answer plain chat in Work when nothing that can use tools is set up.
 			// Never in Design: a design turn without tools can't change anything.
 			PlainFallback: !design,
 		})
+		tr.step(step+1, r, err, time.Since(stepStart), ttft, len(sent), len(msgs))
 		if err != nil {
 			// Keep what the user already saw, so Continue picks up from there.
 			kept := a.keepPartial(s, partial.String())
@@ -751,6 +763,7 @@ func (a *App) run(ctx context.Context, s *session) {
 		// anything that changes things runs one by one, in the order the model asked.
 		calls := n.Calls
 		blocked := make([]string, len(calls))
+		t0 := make([]time.Time, len(calls))
 		completed := llm.RunBatch(len(calls),
 			func(i int) bool {
 				tc := calls[i]
@@ -761,6 +774,7 @@ func (a *App) run(ctx context.Context, s *session) {
 					return false
 				}
 				tc := calls[i]
+				t0[i] = time.Now()
 				a.temit(s, "tool", map[string]string{"id": tc.ID, "name": tc.Function.Name, "args": tc.Function.Arguments})
 				setTrayStatus("Working · " + friendlyTool(tc.Function.Name, tc.Function.Arguments))
 				blocked[i] = a.modeBlock(tc.Function.Name, tc.Function.Arguments) // Plan mode refuses what can change things
@@ -783,6 +797,8 @@ func (a *App) run(ctx context.Context, s *session) {
 					return out.Result
 				case tc.Function.Name == "update_blaze":
 					return a.selfUpdate()
+				case tc.Function.Name == "get_weather":
+					return a.runWeather(ctx, tc.Function.Arguments)
 				case a.conn.Handles(tc.Function.Name):
 					return a.conn.Run(ctx, tc.Function.Name, tc.Function.Arguments)
 				default:
@@ -794,6 +810,7 @@ func (a *App) run(ctx context.Context, s *session) {
 				if blocked[i] != "" || !agents.IsMainTool(tc.Function.Name) {
 					onlyAgentTools = false
 				}
+				tr.tool(step+1, tc.Function.Name, t0[i], res, blocked[i] != "")
 				changed, urls = a.designTouch(tc.Function.Name, tc.Function.Arguments, res, changed, urls)
 				a.temit(s, "tool_done", map[string]string{"id": tc.ID, "result": res})
 				a.mu.Lock()

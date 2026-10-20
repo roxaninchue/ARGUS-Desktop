@@ -2,7 +2,12 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
-## Unreleased (ships with the next release)
+## v0.19.7 (first word faster, What happened, show password)
+- **Show / hide on every password field** (`pwreveal.js`): an eye button inside every password and passphrase field (sign-in, create account, reset, two-factor, keys and tokens, and any field added later). It switches between dots and plain text, and the field goes back to dots when the form is sent. Fields opt out with `data-noreveal`.
+- **What happened** under each reply (`trace_app.go`, `whathappened.js`): the request ID, which is the `X-Blaze-Turn` the gateway logs; time to first word; the total time; each step's model, first word, time, tokens and how it ended; every Blaze Cloud request with its provider and model (`X-Blaze-Provider` / `X-Blaze-Model`), status, gateway first byte (`X-Blaze-TTFB-Ms`), hedged or replayed, and errors; and every tool with its time and any error. Closed by default.
+- **First word faster** (`internal/cloudai`): HTTP/2 on the Blaze Cloud connection, so a turn's steps and the warm-up share one warm connection; idle connections are kept 5 minutes (was 90 s); streams ask for no compression, so a gzip layer can't hold back the first words; warm-ups can run every 25 s (was 60 s), also when the window becomes visible; and a keep-warm ping every 45 s while the window has focus and was used in the last 5 minutes. The first streamed word was already drawn as soon as it arrived.
+- **Signed with the new update key** (`moDRRNAn…d4QI=`) from its GitLab CI/CD variable. v0.19.6 trusts it, so v0.19.6 updates in place. v0.19.5 and older, which only trust the previous key, need one manual download.
+- Tests: `ci/whathappened.test.js` covers the eye toggles and the What happened panel.
 - **No GitHub left in the release path**: the GitHub Actions workflows (`.github/workflows/build.yml`, `pr-shots.yml`) are removed. Releases are built in the sandbox from GitLab main, uploaded to the GitLab package registry, and published on blazeinchue.pages.dev. The "update Blaze" tool and the README no longer say updates come from GitHub. The updater already read only pages.dev (`latest/SHA256SUMS`, `versions.json`). Sign in with GitHub and the GitHub connector are user features and stay.
 
 ## v0.19.6 (signing key rotation, step 1)

@@ -15,7 +15,7 @@ import (
 )
 
 // PrewarmEvery is the shortest gap between two warm-ups.
-const PrewarmEvery = time.Minute
+const PrewarmEvery = 25 * time.Second // v0.19.7: was a minute
 
 // HealthURL is the gateway root's /health for a base like https://host/v1.
 func HealthURL(base string) string {

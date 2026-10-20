@@ -18,6 +18,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
@@ -30,6 +31,7 @@ type Turn struct {
 	ID string
 
 	mu       sync.Mutex
+	steps    []Step
 	pin      string
 	last     string
 	switches int
@@ -57,6 +59,45 @@ func (t *Turn) Served(route string) {
 		t.switches++
 	}
 	t.last = r
+}
+
+// Step is one gateway attempt of a turn, for the "What happened" view (v0.19.7). Provider and
+// Model are what the gateway's X-Blaze-Provider / X-Blaze-Model said.
+type Step struct {
+	Started   time.Time `json:"started"`
+	Seconds   float64   `json:"seconds"`
+	Provider  string    `json:"provider,omitempty"`
+	Model     string    `json:"model,omitempty"`
+	Status    int       `json:"status,omitempty"`
+	TTFBms    int       `json:"ttfb_ms,omitempty"`
+	Hedged    bool      `json:"hedged,omitempty"`
+	Replay    bool      `json:"replay,omitempty"`
+	Finish    string    `json:"finish,omitempty"`
+	TokensIn  int       `json:"tokens_in,omitempty"`
+	TokensOut int       `json:"tokens_out,omitempty"`
+	Error     string    `json:"error,omitempty"`
+}
+
+// Record adds one attempt (at most 200 per turn).
+func (t *Turn) Record(s Step) {
+	if t == nil {
+		return
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if len(t.steps) < 200 {
+		t.steps = append(t.steps, s)
+	}
+}
+
+// Steps is a copy of the attempts so far.
+func (t *Turn) Steps() []Step {
+	if t == nil {
+		return nil
+	}
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return append([]Step(nil), t.steps...)
 }
 
 // Pin is the route of the turn's first answered step ("" until then).
