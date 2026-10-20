@@ -123,6 +123,34 @@ export interface MfaRecord {
   client: string;
   tries: number;
   exp: number;
+  ecode?: string; // 0.9.1: sha256 of the emailed sign-in code
+  ecode_exp?: number;
+  sends?: number;
+}
+
+export const ECODE_TTL = 600;
+export const ECODE_SENDS = 3;
+
+/** A 6-digit code from the CSPRNG (no modulo bias worth caring about at 2^32). */
+export function newEmailCode(): string {
+  const a = new Uint32Array(1);
+  crypto.getRandomValues(a);
+  return String((a[0] as number) % 1000000).padStart(6, "0");
+}
+export async function hashEmailCode(uid: string, code: string): Promise<string> {
+  return sha256(`ec:${uid}:${code}`);
+}
+export function maskEmail(e: string): string {
+  const [l, d] = e.split("@");
+  if (!l || !d) return e;
+  return (l.length <= 2 ? l[0] + "*" : l[0] + "*".repeat(Math.min(6, l.length - 2)) + l[l.length - 1]) + "@" + d;
+}
+export function secondFactorMethods(u: User): string[] {
+  const m: string[] = [];
+  if (u.totp_secret) m.push("app");
+  m.push("email"); // any account with 2FA can get an emailed code
+  if (u.totp_secret && (u.totp_recovery || []).length) m.push("recovery");
+  return m;
 }
 
 /** Parks a sign-in that still needs the second factor and throws 401 mfa_required. */
@@ -130,5 +158,5 @@ export async function requireSecondFactor(env: Env, u: User, client: string): Pr
   const tok = "mfa_" + randomToken(32);
   const rec: MfaRecord = { uid: u.id, client, tries: 0, exp: Math.floor(Date.now() / 1000) + MFA_TTL };
   await env.KV.put(`mfa:${await sha256(tok)}`, JSON.stringify(rec), { expirationTtl: MFA_TTL });
-  throw new HttpError(401, "mfa_required", { mfa_token: tok });
+  throw new HttpError(401, "mfa_required", { mfa_token: tok, methods: secondFactorMethods(u), email_hint: maskEmail(u.email) });
 }

@@ -14,9 +14,9 @@ import {
 import { getKeys, putKeys } from "./keys";
 import { getSkills, putSkills } from "./skills";
 import { comments } from "./comments";
-import { forgot, reset, setPassword, mfaSetup, mfaEnable, mfaDisable, mfaVerify, signInOrMfa, mailerConfigured } from "./password";
+import { forgot, reset, setPassword, mfaSetup, mfaEnable, mfaDisable, mfaVerify, signInOrMfa, mailerConfigured, mfaEmailLogin, mfaEmailSend, mfaEmailEnable, mfaEmailDisable } from "./password";
 
-export const VERSION = "0.9.0";
+export const VERSION = "0.9.1";
 const STATE_TTL = 600; // the user has 10 minutes to finish at the provider
 const CODE_TTL = 120; // the desktop redeems within seconds of the loopback redirect; 2 minutes is slack, and the KV minimum is 60
 
@@ -130,6 +130,10 @@ async function route(req: Request, env: Env): Promise<Response> {
   if (path === "/v1/auth/2fa/enable" && m === "POST") return mfaEnable(req, env);
   if (path === "/v1/auth/2fa/disable" && m === "POST") return mfaDisable(req, env);
   if (path === "/v1/auth/2fa/verify" && m === "POST") return mfaVerify(req, env);
+  if (path === "/v1/auth/2fa/email" && m === "POST") return mfaEmailLogin(req, env);
+  if (path === "/v1/auth/2fa/email/send" && m === "POST") return mfaEmailSend(req, env);
+  if (path === "/v1/auth/2fa/email/enable" && m === "POST") return mfaEmailEnable(req, env);
+  if (path === "/v1/auth/2fa/email/disable" && m === "POST") return mfaEmailDisable(req, env);
   if ((path === "/oauth/redeem" || path === "/v1/auth/redeem") && m === "POST") return redeem(req, env);
   if (path === "/v1/me" && m === "GET") {
     const { user } = await requireUser(env, req);
@@ -180,6 +184,7 @@ function providers(env: Env): Response {
     web_login: true,
     password_reset: mailerConfigured(env),
     two_factor: true,
+    two_factor_methods: { app: true, email: mailerConfigured(env) },
   });
 }
 

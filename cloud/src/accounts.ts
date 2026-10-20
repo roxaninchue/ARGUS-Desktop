@@ -37,6 +37,8 @@ export interface User {
   totp_pending?: string; // set up but not yet confirmed
   totp_recovery?: string[]; // sha256 of unused recovery codes
   totp_last?: number; // last accepted TOTP time step
+  mfa_email?: boolean; // 0.9.1: emailed sign-in codes are this account's second factor
+  email_code?: { h: string; exp: number; tries: number; purpose: string }; // 0.9.1: pending emailed code for an account action
   created_at: number;
   updated_at: number;
 }
@@ -56,7 +58,8 @@ export function publicUser(u: User) {
     avatar_url: u.avatar_url,
     email_verified: u.email_verified,
     has_password: !!u.password_hash,
-    two_factor: !!u.totp_secret,
+    two_factor: !!(u.totp_secret || u.mfa_email),
+    two_factor_methods: { app: !!u.totp_secret, email: !!u.mfa_email },
     providers: u.identities.map(i => i.provider),
     created_at: u.created_at,
   };
@@ -178,6 +181,8 @@ export async function userForIdentity(env: Env, provider: ProviderId, p: Profile
       delete u.totp_pending;
       delete u.totp_recovery;
       delete u.totp_last;
+      delete u.mfa_email;
+      delete u.email_code;
       await revokeAllSessions(env, u);
     }
     u.email_verified = true;

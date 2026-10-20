@@ -1,5 +1,11 @@
 # blaze-auth changelog
 
+## 0.9.1 (2026-10-20)
+- Emailed two-factor codes. `mfa_required` now carries `methods` (app, email, recovery) and a masked `email_hint`.
+- `POST /v1/auth/2fa/email {mfa_token}` emails a 6-digit sign-in code (10 min, 3 sends per sign-in). `/v1/auth/2fa/verify` accepts it like an app code.
+- `POST /v1/auth/2fa/email/send {purpose}`, `/email/enable {code}`, `/email/disable {code}` (Bearer) let accounts with no authenticator app use emailed codes as their second factor.
+- `publicUser.two_factor_methods {app, email}`; `/v1/providers.two_factor_methods`.
+
 ## 0.9.0 (prepared 2026-10-20, NOT deployed; live is 0.5.0, so 0.6.0-0.8.0 ship with it)
 
 - **Web sign-in with Google and GitHub.** `GET /v1/auth/{google|github}/web?return=<url>` (`return` must be https on
