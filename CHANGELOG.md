@@ -2,6 +2,11 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## v0.19.5 (profile badge, like the website)
+- **Plan pill on your avatar**: a small Basic, Standard or Pro pill sits centred on the bottom edge of the round top-bar avatar, in the theme's colours (Pro filled with the accent). The plan comes from Blaze Cloud (`GET /v1/billing/me`, `term.plan` else `plan`; `internal/cloudai/plan.go`, `AccountPlan`, cached 10 minutes). It's hidden when signed out or offline.
+- **Account menu**: clicking the avatar shows your picture or initial, name, email and plan, then Upgrade (Basic and Standard; opens the plans on the website), Add / Change picture, Remove picture, the usual rows, and Sign out.
+- Tests: `TestPlan`, `ci/avatar.test.js` (initial and colour match the website's hash, pill follows the plan, menu rows, picture URL, signed-out reset).
+
 ## v0.19.4 (profile pictures, blaze-auth 0.9.3)
 - **Your picture in the top bar**: signed in, the avatar button shows your profile picture, or the first letter of your name (else your email) on a colour picked from it, the same letter and colours as the website.
 - **Add, change or remove it** in Settings › Account. Blaze centre-crops the picture to a 256 px square and compresses it (WebP, under 256 KB) before uploading it to `POST /v1/me/avatar`. Remove goes back to the letter (`POST /v1/me/avatar/delete`). PNG, JPEG and WebP only.
