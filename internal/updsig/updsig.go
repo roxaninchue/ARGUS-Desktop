@@ -26,8 +26,10 @@ import (
 )
 
 // PublicKey is Blaze's release-signing public key (raw 32-byte ed25519, base64).
-// The matching private key lives only in the BLAZE_UPDATE_SIGNING_KEY Actions secret.
-const PublicKey = "A/yWqdv1xeM1tQhvGj/2uzF2bFpp6OTBrONLxkkctUA="
+// The matching private key is kept in the owner's secret vault and handed to ci/sign as
+// BLAZE_UPDATE_SIGNING_KEY at release time; it is never committed. v0.19.2 rotated to this key
+// (the previous key was lost with the old CI), so builds up to v0.19.1 need one manual reinstall.
+const PublicKey = "h+BLX1pI7e4k9Xti6+dRn8tAz+kfZ+GgKqmoiUNkMFo="
 
 // TrustedKeys are the keys a release may be signed with. Normally just PublicKey;
 // during a key rotation one release trusts the old and the new key together (see

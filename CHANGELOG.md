@@ -2,6 +2,10 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## v0.19.2 (new update signing key)
+- **Release-signing key rotated** (`internal/updsig`): the private key behind the old public key `A/yWqdv1…ctUA=` was lost with the old CI, so v0.19.2 trusts a new key, `h+BLX1pI7e4k9Xti6+dRn8tAz+kfZ+GgKqmoiUNkMFo=`. Releases are built and signed outside CI now; the private key sits in the owner's secret vault and never in the repo.
+- **One manual reinstall**: v0.15.1 to v0.19.1 can't verify releases signed with the new key, so they say the update isn't signed and install nothing. Download v0.19.2 once from https://blazeinchue.pages.dev; in-app updates work again from there.
+
 ## v0.19.1 (faster first word, from Blaze Mobile 0.45.1)
 Speed only; nothing else changes. Not yet measured against Blaze Cloud from a real desktop.
 - **System prompt ordered for prompt caching** (`speed.go`, `app.go` `systemStable` / `systemLive`): AI services reuse their work for the longest identical start of a request. The stable parts (rules, about Blaze, personality, design rules, project, PC profile, connected accounts, skills for the request, learning rules) now come first, then the constant delegation, orchestration and long-chat blocks (they used to come after the per-step MORE TOOLS line), then the live part (current folder, memory, clock), then MORE TOOLS, the long-chat summary and the note about the last reply. No wording changed; only the order.
