@@ -2,6 +2,11 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## v0.19.3 (tells you when an update is out)
+- **"Update available" in the top bar** (`app.js` `updPill`): the signed updater already checked the downloads site 3 seconds after launch, but its only signs were a card in the chat and a hidden badge. Now a pill with an orange dot sits in the top bar on every view until you update or skip that version; clicking it opens the Update card (Update now / Later / Skip this version).
+- **Checks again once a day** while Blaze stays open. Offline checks fail quietly. Settings › Updates › "Check on launch" turns both off.
+- **No false alarms** (`update.go` `hasOSAsset`): a release with no file for your system (for example a Windows-only patch) isn't offered as an update. Test: `TestHasOSAsset`.
+
 ## v0.19.2 (new update signing key)
 - **Release-signing key rotated** (`internal/updsig`): the private key behind the old public key `A/yWqdv1…ctUA=` was lost with the old CI, so v0.19.2 trusts a new key, `h+BLX1pI7e4k9Xti6+dRn8tAz+kfZ+GgKqmoiUNkMFo=`. Releases are built and signed outside CI now; the private key sits in the owner's secret vault and never in the repo.
 - **One manual reinstall**: v0.15.1 to v0.19.1 can't verify releases signed with the new key, so they say the update isn't signed and install nothing. Download v0.19.2 once from https://blazeinchue.pages.dev; in-app updates work again from there.
