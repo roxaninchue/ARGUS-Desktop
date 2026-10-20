@@ -89,9 +89,9 @@ afterEach(() => {
 
 describe("0.9.0 discovery", () => {
   it("reports 0.9.0, web_login, two_factor and password_reset only with the mailer", async () => {
-    expect(await j(await call("GET", "/health"))).toEqual({ ok: true, service: "blaze-auth", version: "0.9.5" });
+    expect(await j(await call("GET", "/health"))).toEqual({ ok: true, service: "blaze-auth", version: "0.9.6" });
     let d = await j(await call("GET", "/v1/providers"));
-    expect(d).toMatchObject({ version: "0.9.5", web_login: true, two_factor: true, password_reset: false });
+    expect(d).toMatchObject({ version: "0.9.6", web_login: true, two_factor: true, password_reset: false });
     env.GATEWAY = gateway();
     expect((await j(await call("GET", "/v1/providers"))).password_reset).toBe(false); // token still missing
     env.INTERNAL_TOKEN = TOKEN;
@@ -392,5 +392,17 @@ describe("two-factor (TOTP)", () => {
     const s = await signup();
     expect((await call("POST", "/v1/auth/2fa/enable", { code: "123456" }, auth(s.token))).status).toBe(400);
     expect((await call("POST", "/v1/auth/2fa/verify", { mfa_token: "nope", code: "123456" })).status).toBe(401);
+  });
+});
+
+describe("0.9.6 session validity", () => {
+  it("a session stays valid when a stale write drops it from the user's list", async () => {
+    const r: any = await j(await call("POST", "/v1/auth/signup", { email: "race@example.com", password: "longpassword1", client: "CLI" }));
+    const tok = r.token as string;
+    // Simulate a lost update: another edge rewrites the user record without this session.
+    const key = kv.keys("user:")[0]!;
+    const e = kv.m.get(key)!; const u = JSON.parse(e.v); u.sessions = []; kv.m.set(key, { v: JSON.stringify(u), exp: 0 });
+    const me = await call("GET", "/v1/me", undefined, { Authorization: `Bearer ${tok}` });
+    expect(me.status).toBe(200);
   });
 });
