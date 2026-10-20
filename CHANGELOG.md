@@ -2,6 +2,9 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## Unreleased (ships with the next release)
+- **No GitHub left in the release path**: the GitHub Actions workflows (`.github/workflows/build.yml`, `pr-shots.yml`) are removed. Releases are built in the sandbox from GitLab main, uploaded to the GitLab package registry, and published on blazeinchue.pages.dev. The "update Blaze" tool and the README no longer say updates come from GitHub. The updater already read only pages.dev (`latest/SHA256SUMS`, `versions.json`). Sign in with GitHub and the GitHub connector are user features and stay.
+
 ## v0.19.6 (signing key rotation, step 1)
 - **New release-signing key** (`internal/updsig`): `moDRRNAnYCRxRjblqUI1oDlGgfRI13NumGA4sLrd4QI=`. Its private half lives only as a masked, protected CI/CD variable on the GitLab project; the release build reads it from there and it's never printed.
 - **Smooth hand-over**: v0.19.6 trusts both the new key and the previous one (`h+BLX1pI…MFo=`), and is itself signed with the previous key, so v0.19.2 to v0.19.5 update into it as usual. The next release is signed with the new key only and drops the previous one. Test: `TestRotationTrustsBoth`.

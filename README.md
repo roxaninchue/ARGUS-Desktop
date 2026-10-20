@@ -24,7 +24,7 @@ tools, scheduler). Settings, keys, memory and skills live in `~/.blaze` and are 
 - **Memory and skills**: learns facts and workflows as you go, with 40 bundled skills (including a student pack: study planner, tutor with flashcards, lecture notes, essay coach, group projects and Google Classroom sync; and a seller pack: content calendar, product listings, ad lab, competitor briefs, WhatsApp replies and a weekly store digest) you can edit or turn off. Blaze combines them when a request falls between skills (a hand-drawn poster, a pixel-art game with music), and saves a combination that keeps coming up as a skill of its own.
 - **Connected**: one-click Google, GitHub, Spotify, Notion and Slack, MCP servers shared with Blaze CLI (`~/.blaze/mcp.json`), and keys that sync through your Blaze account.
 - **Blaze Link**: pair Blaze for Android by QR code (Phone view, `/phone`). Ask the phone to work on your PC, or let Blaze here text, WhatsApp or call through the phone, always with your approval there. Direct and encrypted on your Wi-Fi or Tailscale.
-- **Updates itself** from GitHub releases.
+- **Updates itself** from the Blaze downloads site (blazeinchue.pages.dev), only installing releases whose SHA256SUMS carry a valid signature.
 
 What changed in each version: [`CHANGELOG.md`](CHANGELOG.md).
 
