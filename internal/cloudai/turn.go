@@ -83,6 +83,8 @@ type Step struct {
 	Lane         string `json:"lane,omitempty"`           // X-Blaze-Lane ("fast")
 	ToolsDropped bool   `json:"tools_dropped,omitempty"`  // X-Blaze-Tools-Dropped
 	ClientTTFTms int    `json:"client_ttft_ms,omitempty"` // request sent -> first streamed word, measured here
+	FastLane     bool   `json:"fast_lane,omitempty"`      // X-Blaze-Fast-Lane (gateway 0.7.0)
+	Fallback     bool   `json:"fallback,omitempty"`       // X-Blaze-Fallback: an earlier model failed first
 }
 
 // Record adds one attempt (at most 200 per turn).

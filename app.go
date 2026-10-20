@@ -46,6 +46,8 @@ type Prefs struct {
 	NoUpdateCheck bool   `json:"no_update_check"` // don't look for updates on launch
 	SkipUpdate    string `json:"skip_update"`     // a release the user chose to skip, e.g. v0.3.0
 
+	CloudDailyCap int `json:"cloud_daily_cap"` // v0.19.9: most Blaze Cloud messages a day the user allows (0 = none)
+
 	Background *bool  `json:"background,omitempty"` // closing the window keeps Blaze in the tray (default on)
 	Autostart  bool   `json:"autostart"`            // start Blaze (hidden) when the user signs in
 	Hotkey     string `json:"hotkey"`               // global shortcut preset; "" = default, "off"
@@ -672,6 +674,10 @@ func (a *App) run(ctx context.Context, s *session) {
 	note, retries := "", 0
 	ap, steps := a.startAutopilot(steps)
 	for step := 0; step < steps; step++ {
+		if why := a.capReached(); why != "" { // v0.19.9: the user's own daily cap
+			a.temit(s, "error", map[string]any{"message": why, "kind": "cap"})
+			return
+		}
 		if why := ap.stop(a.cfg.DailyCap, llm.TodayCost()); why != "" {
 			a.temit(s, "error", map[string]any{"message": why, "kind": "steps"})
 			return

@@ -2,6 +2,12 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## v0.19.9 (usage meter, no surprises)
+- **Usage meter in the top bar** (`usage.js`, `usage_app.go`, `internal/cloudai/usage.go`): signed in with Blaze Cloud answering, a chip shows the messages left today. It turns amber at 20% or less and red when none are left, and gives one heads-up a day at 10%. Click it for messages and tokens used against the plan (or "no cap"), the last reply's tokens, the plan, and when it resets in local time. The numbers are exactly the gateway 0.7.0 contract Blaze CLI shows (`X-Blaze-Requests-Used/-Limit`, `X-RateLimit-Remaining-Requests`, `X-Blaze-Tokens-Used/-Limit/-Remaining`, `X-Blaze-Quota-Reset`, `X-Blaze-Plan`; this reply's tokens from `usage`). They update from every reply, including a 429, and from the free `GET /v1/usage`. Hidden in Custom mode.
+- **Your own daily cap**: set a message cap in the meter, and Blaze stops before going over and tells you why, instead of quietly using more.
+- **What happened** also notes the fast lane (`X-Blaze-Fast-Lane`) and fallbacks (`X-Blaze-Fallback`).
+- Tests: `TestUsageMeter` and `ci/usage.test.js` (chip, levels, details, cap, hidden in Custom).
+
 ## v0.19.8 (readable bubbles, shared persona, gateway 0.6.9 speed contract)
 - **Your chat bubble is readable in the light theme again** (`chat.css`): the text used `--paper`, which is translucent white in light (1.84:1 on the dark bubble). It now uses `--on-ink`, at 18.9:1 in light and 17.2:1 in dark. New guard `ci/contrast.test.js` checks the bubbles and body text against WCAG AA (4.5:1) in every theme from the real stylesheets.
 - **One Blaze voice in every app** (`internal/persona`): the shared persona from blazeinchue.pages.dev/persona.json is sent as the FIRST system message, byte-identical every turn. It's fetched on start, cached and refetched at most daily, with v1.0.0 bundled as the offline fallback. Desktop's own instructions, the user's first name (when signed in) and the local time in natural form ("Tuesday, 20 October 2026, 7:15 PM", no zone IDs) go in a second system message.
