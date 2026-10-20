@@ -102,6 +102,9 @@ func (a *App) startSession(s *session, cancel context.CancelFunc) {
 			s.env = &e
 		}
 	}
+	if isPrivate(s.id) {
+		s.project = "" // a private chat belongs to no project
+	}
 	if s.tab == "" {
 		s.tab = "work"
 	}

@@ -379,6 +379,8 @@ if (/\/internal\/router\/web\//.test(location.href)) {
   Object.keys(hd).forEach((k, i) => hd[k].fetched = hnow - (6 + i * 3) * hm);
   const hstacks = () => { const out = []; hw.slice().sort((a, b) => a.order - b.order).forEach(w => { const k = "s:" + w.category.toLowerCase(); const s = out.find(x => x.key === k); if (s) s.widgets.push(w); else out.push({ key: k, category: w.category, widgets: [w] }); }); return out; };
   Object.assign(A, {
+    OpenPrivate: async () => "private-mock",
+    LeavePrivate: async () => ({ id: "main", messages: [] }),
     OpenMainPage: async turns => { state.project = null; state.prefs.project = ""; const start = win(mainMsgs, mainMsgs.length, turns); return { id: "main", title: "Blaze", messages: mainMsgs.slice(start), start, total: mainMsgs.length, agents: [] }; },
     MainHistory: async (before, turns) => { const start = win(mainMsgs, before, turns); return { id: "main", messages: mainMsgs.slice(start, before), start, total: mainMsgs.length }; },
     SearchHistory: async q => { const ws = q.toLowerCase().split(/\s+/).filter(Boolean); const out = [];

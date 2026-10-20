@@ -513,6 +513,9 @@ func (a *App) DeleteConversation(id string) {
 func (a *App) saveConv(s *session) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if isPrivate(s.id) {
+		return // private chats are never written (private_app.go)
+	}
 	a.nameSession(s)
 	title, src, turns := promptTitle(s.hist), "", 0
 	if m, ok := getTitle(s.id); ok && m.Title != "" {
@@ -638,6 +641,10 @@ func (a *App) run(ctx context.Context, s *session) {
 		a.mu.Lock()
 		id, hist := s.id, append([]llm.Message(nil), s.hist...)
 		a.mu.Unlock()
+		if isPrivate(id) {
+			a.afterTurn(s, started) // no title, learning or journal for a private chat
+			return
+		}
 		a.maybeRetitle(id, hist)  // background, never blocks the turn
 		a.maybeReflect(id, hist)  // end-of-turn learning check (learn_app.go)
 		a.mindAfterTurn(id, hist) // journal + save-as-you-go (mind_app.go)
@@ -672,11 +679,19 @@ func (a *App) run(ctx context.Context, s *session) {
 		conv := "chat:" + s.id
 		q := recentQuery(hist)
 		sys := promptOrder(a.systemStable(q), agents.Delegation+agents.Orchestration+longChatLine, a.systemLive(q), tools.ExtraLine(conv), longExtra, note)
+		private := isPrivate(s.id)
+		if private {
+			sys += privateLine
+		}
 		msgs := append([]llm.Message{{Role: "system", Content: sys}}, hist...)
 		// Connector tools join only when connected and enabled, and a group's tools
 		// only after the model loads it, so the list stays small.
 		// Blaze's own tools: the core set plus what find_tools turned on in this chat.
 		all := append(append(append(tools.Select(conv), a.conn.Tools()...), agents.MainTools()...), updateBlazeTool())
+		if private {
+			// No specialists (they keep files) and nothing that saves memories or skills.
+			all = privateTools(append(tools.Select(conv), a.conn.Tools()...))
+		}
 		known := append(append(append(tools.Names(), a.conn.Known()...), agents.MainToolNames...), "update_blaze")
 		a.temit(s, "thinking", step)
 		var partial strings.Builder // what streamed, kept if the reply breaks off
@@ -756,6 +771,8 @@ func (a *App) run(ctx context.Context, s *session) {
 				switch {
 				case blocked[i] != "":
 					return blocked[i]
+				case private && (privateBlocked[tc.Function.Name] || agents.IsMainTool(tc.Function.Name)):
+					return privateRefusal
 				case agents.IsMainTool(tc.Function.Name):
 					a.mu.Lock()
 					conv := s.id

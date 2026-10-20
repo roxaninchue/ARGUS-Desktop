@@ -42,7 +42,7 @@ func (a *App) contextWindow() int {
 // summary). Any failure falls back to the old 60-message window.
 func (a *App) longContext(ctx context.Context, s *session, hist []llm.Message) ([]llm.Message, string) {
 	d, err := longchat.Default()
-	if err != nil || s.id == "" {
+	if err != nil || s.id == "" || isPrivate(s.id) { // a private chat is never indexed
 		return trim(hist), ""
 	}
 	n := d.Indexed(s.id)
