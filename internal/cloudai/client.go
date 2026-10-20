@@ -70,8 +70,12 @@ func NewGateway(base string, token func() string) *Gateway {
 		DialContext:           (&net.Dialer{Timeout: 15 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
 		TLSHandshakeTimeout:   15 * time.Second,
 		ResponseHeaderTimeout: 110 * time.Second,
-		IdleConnTimeout:       90 * time.Second,
-		MaxIdleConnsPerHost:   4,
+		// v0.19.7 (first word faster): HTTP/2, so every request of a turn (and the warm-up) shares
+		// one warm connection instead of opening new TLS sessions, and idle connections are kept
+		// for 5 minutes; the keep-warm ping refreshes them while the window is in use.
+		ForceAttemptHTTP2:   true,
+		IdleConnTimeout:     5 * time.Minute,
+		MaxIdleConnsPerHost: 4,
 	}}}
 }
 
@@ -279,7 +283,25 @@ func (g *Gateway) drive(ctx context.Context, token string, msgs []llm.Message, t
 }
 
 // call is one HTTP request to the gateway.
-func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, tools []llm.Tool, onText func(string), task string, avoid []string) (*llm.Result, error) {
+func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, tools []llm.Tool, onText func(string), task string, avoid []string) (res *llm.Result, rerr error) {
+	// v0.19.7: every attempt goes into the turn's "What happened" log (TurnFrom(ctx).Steps).
+	st := Step{Started: time.Now()}
+	defer func() {
+		st.Seconds = time.Since(st.Started).Seconds()
+		if rerr != nil {
+			st.Error = rerr.Error()
+			var he *llm.HTTPError
+			if errors.As(rerr, &he) && st.Status == 0 {
+				st.Status = he.Code
+			}
+		} else if res != nil {
+			st.Finish = res.Finish
+			if res.Usage != nil {
+				st.TokensIn, st.TokensOut = res.Usage.Prompt, res.Usage.Completion
+			}
+		}
+		TurnFrom(ctx).Record(st)
+	}()
 	body := map[string]any{"messages": json.RawMessage(llm.Wire(msgs, true, false))}
 	Tag(body, task)
 	if onText != nil {
@@ -304,6 +326,9 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 	req.Header.Set("User-Agent", "Blaze-Desktop")
 	if onText != nil {
 		req.Header.Set("Accept", "text/event-stream")
+		// No compression on the stream: a gzip layer can hold back the first words until a
+		// block fills (v0.19.7).
+		req.Header.Set("Accept-Encoding", "identity")
 	}
 	turn := TurnFrom(ctx)
 	turn.Apply(req.Header) // v0.19.1: X-Blaze-Turn / X-Blaze-Prefer
@@ -323,6 +348,10 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 	}
 	defer resp.Body.Close()
 	prov, model := resp.Header.Get("X-Blaze-Provider"), resp.Header.Get("X-Blaze-Model")
+	st.Provider, st.Model, st.Status = prov, model, resp.StatusCode
+	st.TTFBms, _ = strconv.Atoi(resp.Header.Get("X-Blaze-TTFB-Ms"))
+	st.Hedged = resp.Header.Get("X-Blaze-Hedged") != ""
+	st.Replay = resp.Header.Get("X-Blaze-Replay") != ""
 	if prov != "" && model != "" {
 		g.mu.Lock()
 		g.lastRoute = prov + "/" + model

@@ -131,12 +131,18 @@ function initComposer(p) {
 }
 
 // v0.19.1: open the connection to Blaze Cloud before Send. Throttled here too, so typing never floods the bridge.
-let lastPrewarm = 0;
+// v0.19.7: every 25 s at most (was a minute), also when the window becomes visible, and a
+// keep-warm ping every 45 s while the window has focus and was used in the last 5 minutes.
+let lastPrewarm = 0, lastUse = Date.now();
 function prewarmCloud() {
-  const now = Date.now(); if (now - lastPrewarm < 60000) return; lastPrewarm = now;
+  lastUse = Date.now();
+  const now = Date.now(); if (now - lastPrewarm < 25000) return; lastPrewarm = now;
   try { const f = window.go && window.go.main && window.go.main.App && window.go.main.App.CloudPrewarm; if (typeof f === "function") f().catch(() => {}); } catch (e) {}
 }
 addEventListener("focus", prewarmCloud);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) prewarmCloud(); });
+["keydown", "pointerdown"].forEach(ev => addEventListener(ev, () => { lastUse = Date.now(); }, { passive: true, capture: true }));
+setInterval(() => { if (!document.hidden && document.hasFocus() && Date.now() - lastUse < 300000) { const u = lastUse; prewarmCloud(); lastUse = u; } }, 45000);
 
 // ---------- modes ----------
 function drawModes(p = pane) {

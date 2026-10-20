@@ -993,13 +993,13 @@ on("done", d => {
   thinking(false);
   if (current) { renderAnswer(current, true); finishWork(current, d && d.seconds); routeMeta(current, d); if (d && d.cut) cutRow(current.el, "The reply was cut off"); }
   if (d && d.route) setModel(d.route);
-  current = null; setBusy(false); scrollDown(); refreshSide();
+  window.__lastReply = current && current.el; current = null; setBusy(false); scrollDown(); refreshSide();
 });
 on("error", e => {
   thinking(false);
   if (current) { if (current.text) renderAnswer(current, true); finishWork(current); }
   errorCard(current ? current.el : $("#log .col", pane), e);
-  current = null; setBusy(false); scrollDown(true); refreshSide();
+  window.__lastReply = current && current.el; current = null; setBusy(false); scrollDown(true); refreshSide();
 });
 on("stopped", d => {
   thinking(false);
@@ -1009,7 +1009,7 @@ on("stopped", d => {
     if ((d && d.resumable) || current.text) m.append(continueBtn("ghost xs"));
     current.el.append(m);
   }
-  current = null; setBusy(false); refreshSide();
+  window.__lastReply = current && current.el; current = null; setBusy(false); refreshSide();
 });
 on("design", d => {
   if (view === "design") { drawDesign(); return; }
