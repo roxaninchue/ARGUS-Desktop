@@ -58,8 +58,9 @@ type Gateway struct {
 	Stall time.Duration
 
 	mu        sync.Mutex
-	lastRoute string // "groq/llama-3.3-70b-versatile" of the last call (blaze_avoid names it)
-	lastError string // raw text of the last failure (diagnostics only)
+	lastRoute string    // "groq/llama-3.3-70b-versatile" of the last call (blaze_avoid names it)
+	lastError string    // raw text of the last failure (diagnostics only)
+	lastWarm  time.Time // v0.19.1: the last Prewarm
 }
 
 // NewGateway uses base with a shared keep-alive client.
@@ -304,6 +305,8 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 	if onText != nil {
 		req.Header.Set("Accept", "text/event-stream")
 	}
+	turn := TurnFrom(ctx)
+	turn.Apply(req.Header) // v0.19.1: X-Blaze-Turn / X-Blaze-Prefer
 	g.mu.Lock()
 	g.lastRoute = ""
 	g.mu.Unlock()
@@ -388,6 +391,9 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 		return nil, &llm.HTTPError{Code: 0, Body: err.Error()}
 	}
 	r.Headers = llm.RateHeaders(resp.Header)
+	if prov != "" && model != "" {
+		turn.Served(prov + "/" + model)
+	}
 	r.Provider = ProviderID
 	r.Model = Model
 	r.Route = Name

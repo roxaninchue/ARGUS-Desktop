@@ -23,6 +23,7 @@ import (
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
 	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
 	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
 	"github.com/lacksonkapapahue/blaze-desktop/internal/connect"
 	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
@@ -609,6 +610,9 @@ func (a *App) Stop() {
 
 func (a *App) run(ctx context.Context, s *session) {
 	started := time.Now()
+	// v0.19.1: every gateway request of this turn carries X-Blaze-Turn / X-Blaze-Prefer.
+	ctx = cloudai.WithTurn(ctx, cloudai.NewTurn())
+	var toolOrder []string // v0.19.1: tools keep their place across the turn's steps
 	setTrayStatus("Working…")
 	defer setTrayStatus("Idle")
 	var changed, urls []string
@@ -666,10 +670,8 @@ func (a *App) run(ctx context.Context, s *session) {
 		a.mu.Unlock()
 		hist, longExtra := a.longContext(ctx, s, full) // brief + rolling summary + recent turns (longchat_app.go)
 		conv := "chat:" + s.id
-		sys := a.system(recentQuery(hist)) + tools.ExtraLine(conv) + agents.Delegation + agents.Orchestration + longChatLine + longExtra
-		if note != "" {
-			sys += "\nABOUT YOUR LAST REPLY\n" + note + "\n"
-		}
+		q := recentQuery(hist)
+		sys := promptOrder(a.systemStable(q), agents.Delegation+agents.Orchestration+longChatLine, a.systemLive(q), tools.ExtraLine(conv), longExtra, note)
 		msgs := append([]llm.Message{{Role: "system", Content: sys}}, hist...)
 		// Connector tools join only when connected and enabled, and a group's tools
 		// only after the model loads it, so the list stays small.
@@ -678,7 +680,9 @@ func (a *App) run(ctx context.Context, s *session) {
 		known := append(append(append(tools.Names(), a.conn.Known()...), agents.MainToolNames...), "update_blaze")
 		a.temit(s, "thinking", step)
 		var partial strings.Builder // what streamed, kept if the reply breaks off
-		r, err := llm.CompleteWith(ctx, a.cfg, msgs, a.modeTools(all), llm.Opts{
+		var sent []llm.Tool
+		sent, toolOrder = keepToolOrder(toolOrder, a.modeTools(all))
+		r, err := llm.CompleteWith(ctx, a.cfg, msgs, sent, llm.Opts{
 			OnText:   func(t string) { partial.WriteString(t); a.temit(s, "delta", t) },
 			OnStatus: func(t string) { a.temit(s, "status", t) },
 			// Keyless may answer plain chat in Work when nothing that can use tools is set up.
@@ -952,7 +956,14 @@ func recentQuery(h []llm.Message) string {
 
 // system is the system prompt for a turn whose conversation is about query: it
 // carries only the memories and skills that match (v0.5.1), not all of them.
-func (a *App) system(query string) string {
+// system is the whole system prompt: the stable part, then the live part (v0.19.1 keeps every
+// part's wording; only the order changed, stable first, so prompt caching reuses the longest start).
+func (a *App) system(query string) string { return a.systemStable(query) + a.systemLive(query) }
+
+// systemStable is the part that stays the same across the steps of a turn and across turns:
+// rules, about Blaze, personality, design and studio rules, project, PC profile, connected
+// accounts, the skills picked for this request and the learning rules.
+func (a *App) systemStable(query string) string {
 	var b strings.Builder
 	b.WriteString(`You are Blaze, a capable assistant in a desktop app on the user's own computer. You act, not just advise: use your tools to run commands, read and edit files, write and run code, use git, search the web and install what's missing.
 
@@ -1003,18 +1014,26 @@ DESIGN TAB
 		}
 	}
 	b.WriteString("\nPC PROFILE\n" + a.info.Summary() + "\n")
-	b.WriteString("\nProject folder: " + a.env.Root + "\nCurrent folder: " + a.env.Shell.Cwd() + "\n")
+	b.WriteString("\nProject folder: " + a.env.Root + "\n")
 	if _, err := os.Stat(filepath.Join(a.env.Root, ".git")); err == nil {
 		b.WriteString("The project folder is a git repository.\n")
 	}
+	b.WriteString(a.conn.PromptBlock())
+	b.WriteString(tools.SkillsFor(query))
+	b.WriteString(a.learnRules())
+	return b.String()
+}
+
+// systemLive is the part that changes while the user works: the current folder, the memory
+// block (it changes when Blaze saves a memory) and the clock. It goes last.
+func (a *App) systemLive(query string) string {
+	var b strings.Builder
+	b.WriteString("\nCurrent folder: " + a.env.Shell.Cwd() + "\n")
 	if mb := a.mindBlock(); mb != "" {
 		b.WriteString(mb) // pinned core + memory index; the rest is looked up (mind_app.go)
 	} else {
 		b.WriteString(tools.MemoryFor(query))
 	}
-	b.WriteString(a.conn.PromptBlock())
-	b.WriteString(tools.SkillsFor(query))
-	b.WriteString(a.learnRules())
 	b.WriteString("\nNow: " + time.Now().Format("Mon 2 Jan 2006 15:04 MST") + "\n")
 	return b.String()
 }

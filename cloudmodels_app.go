@@ -26,6 +26,17 @@ func (a *App) startCloudModels() {
 	gw := cloudai.NewGateway(cloudai.BaseFrom(choice.GatewayURL), a.blazeToken)
 	cloudModels = cloudai.NewRouter(choice, gw)
 	llm.SetBackend(cloudModels)
+	go a.CloudPrewarm() // v0.19.1: the first message doesn't wait for DNS + TLS
+}
+
+// CloudPrewarm opens the connection to Blaze Cloud ahead of Send (v0.19.1): called at start-up,
+// on the first key press in the composer and when the window comes back to the front. At most
+// once a minute; a GET of the gateway's public /health, no account token, no model call.
+func (a *App) CloudPrewarm() bool {
+	if cloudModels == nil || cloudModels.GW == nil || !cloudModelsOn() {
+		return false
+	}
+	return cloudModels.GW.Prewarm(context.Background())
 }
 
 // blazeToken is the signed-in Blaze account's session token ("" when signed out).

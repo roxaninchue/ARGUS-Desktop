@@ -114,6 +114,8 @@ function initComposer(p) {
   $(".rcancel", p).onclick = () => stopRec(true);
   const input = $("#input", p);
   input.addEventListener("paste", onPaste);
+  // v0.19.1: warm the connection to Blaze Cloud on the first key press (the app limits it to once a minute).
+  input.addEventListener("keydown", prewarmCloud);
   // Files dropped anywhere on the window attach to the message (Wails resolves real paths).
   if (window.runtime && typeof window.runtime.OnFileDrop === "function") {
     try { window.runtime.OnFileDrop((x, y, paths) => attachPaths(paths), false); } catch (e) {}
@@ -127,6 +129,14 @@ function initComposer(p) {
   drawModes(p);
   setTimeout(() => Hints.start(), 0);
 }
+
+// v0.19.1: open the connection to Blaze Cloud before Send. Throttled here too, so typing never floods the bridge.
+let lastPrewarm = 0;
+function prewarmCloud() {
+  const now = Date.now(); if (now - lastPrewarm < 60000) return; lastPrewarm = now;
+  try { const f = window.go && window.go.main && window.go.main.App && window.go.main.App.CloudPrewarm; if (typeof f === "function") f().catch(() => {}); } catch (e) {}
+}
+addEventListener("focus", prewarmCloud);
 
 // ---------- modes ----------
 function drawModes(p = pane) {

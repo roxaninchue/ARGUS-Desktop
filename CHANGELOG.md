@@ -2,6 +2,14 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## v0.19.1 (faster first word, from Blaze Mobile 0.45.1)
+Speed only; nothing else changes. Not yet measured against Blaze Cloud from a real desktop.
+- **System prompt ordered for prompt caching** (`speed.go`, `app.go` `systemStable` / `systemLive`): AI services reuse their work for the longest identical start of a request. The stable parts (rules, about Blaze, personality, design rules, project, PC profile, connected accounts, skills for the request, learning rules) now come first, then the constant delegation, orchestration and long-chat blocks (they used to come after the per-step MORE TOOLS line), then the live part (current folder, memory, clock), then MORE TOOLS, the long-chat summary and the note about the last reply. No wording changed; only the order.
+- **Tools keep their place across a turn's steps** (`keepToolOrder`): a tool that joins mid-turn goes after the ones already sent instead of in the middle. The same tools are sent, nothing added or dropped.
+- **One route per turn** (`internal/cloudai/turn.go`): every Blaze Cloud request of a chat turn carries `X-Blaze-Turn`, and from the second step on `X-Blaze-Prefer: provider/model` with the route that answered the first step. Blaze Gateway 0.6.1 reads it and keeps the turn on that route while it is healthy, which also keeps that service's prompt cache warm. A gateway that doesn't read the headers ignores them.
+- **Connection opened early** (`internal/cloudai/prewarm.go`, `CloudPrewarm`): at start-up, on the first key press in the composer and when the window comes back to the front, at most once a minute, Blaze does a GET of the gateway's public `/health` (no account token, no model call, no quota) on the same keep-alive client, so DNS and TLS are done before Send.
+- Tests: `TestTurnHeadersAcrossSteps`, `TestHeaderSafe`, `TestPrewarm` (the chat request reuses the warmed connection), `TestKeepToolOrder`, `TestPromptOrderSharesLongerStart`.
+
 ## v0.19.0 (one chat, Home, Blaze Cloud, Music and Video)
 - **One endless chat**: the chats sidebar is gone. Chat is one conversation that loads older messages as you scroll up; your earlier chats sit further back under "Earlier chat" dividers, and Ctrl K searches all of it. Nothing in `~/.blaze` was moved or deleted.
 - **Topic-aware memory**: Blaze follows which topic you're on. Going back to an earlier topic brings back that topic's notes and messages and leaves unrelated ones out, while deadlines, decisions, preferences and anything you call important carry across. A quiet topic chip above the composer shows where you are. Every message stays searchable.
