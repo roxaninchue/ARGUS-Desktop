@@ -14,10 +14,11 @@ import {
 import { getKeys, putKeys } from "./keys";
 import { getSkills, putSkills } from "./skills";
 import { comments } from "./comments";
+import { putAvatar, deleteAvatar, getAvatar } from "./avatar";
 import { deviceStart, deviceInfo, deviceApprove, deviceDeny, devicePoll } from "./device";
 import { forgot, reset, setPassword, mfaSetup, mfaEnable, mfaDisable, mfaVerify, signInOrMfa, mailerConfigured, mfaEmailLogin, mfaEmailSend, mfaEmailEnable, mfaEmailDisable } from "./password";
 
-export const VERSION = "0.9.2";
+export const VERSION = "0.9.3";
 const STATE_TTL = 600; // the user has 10 minutes to finish at the provider
 const CODE_TTL = 120; // the desktop redeems within seconds of the loopback redirect; 2 minutes is slack, and the KV minimum is 60
 
@@ -163,6 +164,17 @@ async function route(req: Request, env: Env): Promise<Response> {
     softLimit(`skills:${user.id}`, 60, 600);
     return putSkills(env, user, req);
   }
+  if (path === "/v1/me/avatar" && m === "POST") {
+    const { user } = await requireUser(env, req);
+    softLimit(`avatar:${user.id}`, 20, 600);
+    return putAvatar(req, env, user);
+  }
+  if (path === "/v1/me/avatar/delete" && m === "POST") {
+    const { user } = await requireUser(env, req);
+    softLimit(`avatar:${user.id}`, 20, 600);
+    return deleteAvatar(env, user);
+  }
+  if ((r = /^\/v1\/avatar\/([A-Za-z0-9_-]{1,64})$/.exec(path)) && (m === "GET" || m === "HEAD")) return getAvatar(env, r[1] as string);
   if (path === "/v1/account/delete" && m === "POST") {
     const { user } = await requireUser(env, req);
     const b = await readJSON(req);

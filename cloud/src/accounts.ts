@@ -37,6 +37,7 @@ export interface User {
   totp_pending?: string; // set up but not yet confirmed
   totp_recovery?: string[]; // sha256 of unused recovery codes
   totp_last?: number; // last accepted TOTP time step
+  avatar_off?: boolean; // 0.9.3: user removed their picture; don't refill it from Google/GitHub
   mfa_email?: boolean; // 0.9.1: emailed sign-in codes are this account's second factor
   email_code?: { h: string; exp: number; tries: number; purpose: string }; // 0.9.1: pending emailed code for an account action
   created_at: number;
@@ -148,6 +149,7 @@ export async function deleteAccount(env: Env, u: User): Promise<void> {
   await env.KV.delete(`user:${u.id}`);
   await deleteKeys(env, u.id);
   await deleteSkills(env, u.id);
+  await env.KV.delete(`avatar:${u.id}`);
 }
 
 // ---------------- sign-in with Google / GitHub ----------------
@@ -165,7 +167,7 @@ export async function userForIdentity(env: Env, provider: ProviderId, p: Profile
     const u = await getUser(env, linked);
     if (u) {
       let dirty = false;
-      if (!u.avatar_url && p.avatar) (u.avatar_url = p.avatar), (dirty = true);
+      if (!u.avatar_url && !u.avatar_off && p.avatar) (u.avatar_url = p.avatar), (dirty = true);
       if (!u.name && p.name) (u.name = p.name), (dirty = true);
       if (dirty) await putUser(env, u);
       return u;
@@ -187,7 +189,7 @@ export async function userForIdentity(env: Env, provider: ProviderId, p: Profile
     }
     u.email_verified = true;
     if (!u.name) u.name = p.name;
-    if (!u.avatar_url) u.avatar_url = p.avatar;
+    if (!u.avatar_url && !u.avatar_off) u.avatar_url = p.avatar;
   } else {
     // No verified email: give the account a private placeholder so it can't collide.
     const addr = email || `${provider}-${p.subject}@users.blaze.invalid`;

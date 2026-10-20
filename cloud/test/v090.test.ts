@@ -89,9 +89,9 @@ afterEach(() => {
 
 describe("0.9.0 discovery", () => {
   it("reports 0.9.0, web_login, two_factor and password_reset only with the mailer", async () => {
-    expect(await j(await call("GET", "/health"))).toEqual({ ok: true, service: "blaze-auth", version: "0.9.2" });
+    expect(await j(await call("GET", "/health"))).toEqual({ ok: true, service: "blaze-auth", version: "0.9.3" });
     let d = await j(await call("GET", "/v1/providers"));
-    expect(d).toMatchObject({ version: "0.9.2", web_login: true, two_factor: true, password_reset: false });
+    expect(d).toMatchObject({ version: "0.9.3", web_login: true, two_factor: true, password_reset: false });
     env.GATEWAY = gateway();
     expect((await j(await call("GET", "/v1/providers"))).password_reset).toBe(false); // token still missing
     env.INTERNAL_TOKEN = TOKEN;
