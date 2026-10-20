@@ -24,7 +24,7 @@ func updateBlazeTool() llm.Tool {
 	var t llm.Tool
 	t.Type = "function"
 	t.Function.Name = "update_blaze"
-	t.Function.Description = "Update Blaze (this app) to the newest release. Use when the user asks you to update Blaze or yourself. It checks GitHub, and if there's a new version Blaze downloads and installs it in the chat and restarts by itself. Never use a shell command to update Blaze."
+	t.Function.Description = "Update Blaze (this app) to the newest release. Use when the user asks you to update Blaze or yourself. It checks the Blaze downloads site, and if there's a new version Blaze downloads and installs it in the chat and restarts by itself. Never use a shell command to update Blaze."
 	t.Function.Parameters = map[string]any{"type": "object", "properties": map[string]any{}}
 	return t
 }
