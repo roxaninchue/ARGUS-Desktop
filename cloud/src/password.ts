@@ -5,7 +5,12 @@
 //   POST /v1/auth/2fa/setup        Bearer -> {secret, otpauth_uri}
 //   POST /v1/auth/2fa/enable       Bearer {code} -> {recovery_codes}
 //   POST /v1/auth/2fa/disable      Bearer {code}  (TOTP or recovery code)
-//   POST /v1/auth/2fa/verify       {mfa_token, code} -> {token, user}
+//   POST /v1/auth/2fa/verify       {mfa_token, code} -> {token, user}   (code: app, emailed or recovery)
+// 0.9.1 emailed codes (need the mailer):
+//   POST /v1/auth/2fa/email          {mfa_token} -> {ok, sent_to}   emails a sign-in code (10 min, 3 sends)
+//   POST /v1/auth/2fa/email/send     Bearer {purpose:"enable"|"disable"} -> {ok, sent_to}
+//   POST /v1/auth/2fa/email/enable   Bearer {code} -> {user}        emailed codes become the second factor
+//   POST /v1/auth/2fa/email/disable  Bearer {code} (emailed or app code) -> {user}
 // Reset mail goes through blaze-gateway (service binding GATEWAY, POST https://gateway/internal/mail with
 // X-Internal-Token = INTERNAL_TOKEN); without both, password_reset is off and /forgot answers 503.
 
@@ -14,7 +19,7 @@ import {
   normEmail, validPassword, cleanName, softLimit, webReturn, CODE_RE,
 } from "./util";
 import { User, getUser, putUser, userByEmail, requireUser, createSession, revokeAllSessions, publicUser, checkLimit, hit } from "./accounts";
-import { MfaRecord, MFA_TRIES, consumeSecondFactor, matchTotp, newRecoveryCodes, newTotpSecret, otpauthURI, requireSecondFactor } from "./mfa";
+import { ECODE_SENDS, ECODE_TTL, hashEmailCode, maskEmail, newEmailCode, MfaRecord, MFA_TRIES, consumeSecondFactor, matchTotp, newRecoveryCodes, newTotpSecret, otpauthURI, requireSecondFactor } from "./mfa";
 
 export const RESET_TTL = 3600;
 export const DEFAULT_SITE = "https://blazeinchue.pages.dev";
@@ -178,12 +183,15 @@ export async function mfaVerify(req: Request, env: Env): Promise<Response> {
     await env.KV.delete(key);
     throw new HttpError(401, "invalid_mfa_token");
   }
-  if (!u.totp_secret) {
+  if (!u.totp_secret && !u.mfa_email) {
     // 2FA was turned off meanwhile: the first factor already passed.
     await env.KV.delete(key);
     return json({ token: await createSession(env, u, rec.client), user: publicUser(u) });
   }
-  if (!(await consumeSecondFactor(u, b.code))) {
+  const raw = typeof b.code === "string" ? b.code.replace(/\s/g, "") : "";
+  let okEmail = false;
+  if (rec.ecode && (rec.ecode_exp || 0) >= now() && /^\d{6}$/.test(raw)) okEmail = (await hashEmailCode(u.id, raw)) === rec.ecode;
+  if (!okEmail && !(await consumeSecondFactor(u, b.code))) {
     rec.tries++;
     if (rec.tries >= MFA_TRIES) {
       await env.KV.delete(key);
@@ -200,6 +208,84 @@ export async function mfaVerify(req: Request, env: Env): Promise<Response> {
 /** Ends a first-factor sign-in: a session, or 401 mfa_required when 2FA is on. */
 export async function signInOrMfa(env: Env, u: User, client: unknown, fallback = "Blaze"): Promise<string> {
   const c = cleanName(client) || fallback;
-  if (u.totp_secret) await requireSecondFactor(env, u, c);
+  if (u.totp_secret || u.mfa_email) await requireSecondFactor(env, u, c);
   return createSession(env, u, c);
+}
+
+// ---------------- emailed codes (0.9.1) ----------------
+
+function codeMail(code: string, what: string): string {
+  return `Your Blaze code is ${code}\n\nUse it to ${what}. It expires in 10 minutes.\nIf this wasn't you, change your password; nobody can sign in without this code.\n\nBlaze`;
+}
+
+/** Emails a sign-in code for a parked 2FA sign-in. */
+export async function mfaEmailLogin(req: Request, env: Env): Promise<Response> {
+  if (!mailerConfigured(env)) throw new HttpError(503, "not_configured");
+  softLimit(`2fa:email:${clientIP(req)}`, 10, 600);
+  const b = await readJSON(req);
+  const tok = typeof b.mfa_token === "string" ? b.mfa_token : "";
+  if (!/^mfa_[A-Za-z0-9_-]{20,100}$/.test(tok)) throw new HttpError(401, "invalid_mfa_token");
+  const key = `mfa:${await sha256(tok)}`;
+  const rec = await env.KV.get<MfaRecord>(key, "json");
+  if (!rec || rec.exp < now()) throw new HttpError(401, "invalid_mfa_token");
+  const u = await getUser(env, rec.uid);
+  if (!u) throw new HttpError(401, "invalid_mfa_token");
+  if ((rec.sends || 0) >= ECODE_SENDS) throw new HttpError(429, "too_many_codes");
+  const code = newEmailCode();
+  rec.ecode = await hashEmailCode(u.id, code);
+  rec.ecode_exp = Math.min(rec.exp, now() + ECODE_TTL);
+  rec.sends = (rec.sends || 0) + 1;
+  await env.KV.put(key, JSON.stringify(rec), { expirationTtl: Math.max(60, rec.exp - now()) });
+  if (!(await sendMail(env, u.email, "Your Blaze sign-in code: " + code, codeMail(code, "finish signing in to Blaze")))) throw new HttpError(502, "mail_failed");
+  return json({ ok: true, sent_to: maskEmail(u.email), sends_left: ECODE_SENDS - rec.sends });
+}
+
+/** Emails a code that confirms turning emailed codes on or off. */
+export async function mfaEmailSend(req: Request, env: Env): Promise<Response> {
+  if (!mailerConfigured(env)) throw new HttpError(503, "not_configured");
+  const { user: u } = await requireUser(env, req);
+  softLimit(`2fa:email:send:${u.id}`, 5, 600);
+  const b = await readJSON(req);
+  const purpose = b.purpose === "disable" ? "disable" : "enable";
+  const code = newEmailCode();
+  u.email_code = { h: await hashEmailCode(u.id, code), exp: now() + ECODE_TTL, tries: 0, purpose };
+  await putUser(env, u);
+  const what = purpose === "enable" ? "turn on emailed sign-in codes" : "turn off emailed sign-in codes";
+  if (!(await sendMail(env, u.email, "Your Blaze code: " + code, codeMail(code, what)))) throw new HttpError(502, "mail_failed");
+  return json({ ok: true, sent_to: maskEmail(u.email) });
+}
+
+async function takeAccountCode(env: Env, u: User, raw: unknown, purpose: string): Promise<boolean> {
+  const c = u.email_code;
+  const code = typeof raw === "string" ? raw.replace(/\s/g, "") : "";
+  if (!c || c.purpose !== purpose || c.exp < now() || !/^\d{6}$/.test(code)) return false;
+  if ((await hashEmailCode(u.id, code)) === c.h) { delete u.email_code; return true; }
+  c.tries++;
+  if (c.tries >= MFA_TRIES) delete u.email_code;
+  await putUser(env, u);
+  return false;
+}
+
+export async function mfaEmailEnable(req: Request, env: Env): Promise<Response> {
+  const { user: u } = await requireUser(env, req);
+  if (u.mfa_email) throw new HttpError(409, "already_enabled");
+  softLimit(`2fa:code:${u.id}`, 10, 600);
+  const b = await readJSON(req);
+  if (!(await takeAccountCode(env, u, b.code, "enable"))) throw new HttpError(400, "invalid_code");
+  u.mfa_email = true;
+  u.email_verified = true; // they just proved they read this inbox
+  await putUser(env, u);
+  return json({ ok: true, user: publicUser(u) });
+}
+
+export async function mfaEmailDisable(req: Request, env: Env): Promise<Response> {
+  const { user: u } = await requireUser(env, req);
+  if (!u.mfa_email) throw new HttpError(400, "not_enabled");
+  softLimit(`2fa:code:${u.id}`, 10, 600);
+  const b = await readJSON(req);
+  const ok = (await takeAccountCode(env, u, b.code, "disable")) || (u.totp_secret ? await consumeSecondFactor(u, b.code) : false);
+  if (!ok) throw new HttpError(400, "invalid_code");
+  delete u.mfa_email;
+  await putUser(env, u);
+  return json({ ok: true, user: publicUser(u) });
 }
