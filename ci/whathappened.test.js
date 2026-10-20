@@ -45,7 +45,7 @@ const ok = (cond, msg) => { n++; if (!cond) { fails++; console.log("FAIL " + msg
   await w.eval('sendText("hi", [], [])'); await tick(40);
   w.fire("delta", "Hello"); w.fire("done", { route: "Blaze Cloud", seconds: 1.4 }); await tick(30);
   w.fire("trace", { turn: "t0123abcd", seconds: 1.4, ttft_ms: 640, steps: [{ n: 1, route: "Blaze Cloud", seconds: 1.4, ttft_ms: 640, tokens_in: 900, tokens_out: 12, finish: "stop", tools_offered: 30, messages: 3 }],
-    attempts: [{ provider: "groq", model: "llama-3.3-70b", status: 200, ttfb_ms: 310, seconds: 1.3, hedged: true }, { provider: "gemini", status: 429, seconds: 0.2, error: "rate limited" }],
+    attempts: [{ provider: "groq", model: "llama-3.3-70b", status: 200, ttfb_ms: 310, seconds: 1.3, hedged: true, request_id: "req_9f2", server_ttft_ms: 420, client_ttft_ms: 610, lane: "fast", tools_dropped: true, server_timing: "gateway;dur=12, upstream;dur=300" }, { provider: "gemini", status: 429, seconds: 0.2, error: "rate limited" }],
     tools: [{ step: 1, name: "read_file", seconds: 0.05 }, { step: 1, name: "run", seconds: 2.1, error: "Error: exit 1" }] });
   await tick(30);
   const btn = d.querySelector(".wh-btn");
@@ -56,6 +56,8 @@ const ok = (cond, msg) => { n++; if (!cond) { fails++; console.log("FAIL " + msg
   ok(/t0123abcd/.test(t) && /640 ms/.test(t), "request ID and first-word time shown");
   ok(/groq · llama-3\.3-70b/.test(t) && /429/.test(t) && /hedged/.test(t) && /rate limited/.test(t), "every Blaze Cloud attempt with status and notes");
   ok(/read_file/.test(t) && /Error: exit 1/.test(t), "tools with timings and errors");
+  ok(/req_9f2/.test(t) && /gateway TTFT 420 ms/.test(t) && /fast lane/.test(t) && /tools dropped/.test(t) && /upstream;dur=300/.test(t), "gateway 0.6.9 timings: request ID, TTFT, lane, tools dropped, Server-Timing");
+  ok(/p50 640 ms/.test(t), "session p50/p95 of time to first word");
   btn.click(); ok(pan.hidden, "panel closes");
   ok(!errs.length, "no page errors" + (errs.length ? ": " + errs.slice(0, 3).join(" | ") : ""));
   console.log(`\n${n - fails}/${n} passed`);

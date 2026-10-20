@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/persona"
 	"net/http"
 	"os"
 	"os/exec"
@@ -687,7 +688,10 @@ func (a *App) run(ctx context.Context, s *session) {
 		if private {
 			sys += privateLine
 		}
-		msgs := append([]llm.Message{{Role: "system", Content: sys}}, hist...)
+		// v0.19.8: the shared Blaze persona is the FIRST system message, byte-identical every turn
+		// (same voice in every Blaze app, and provider prompt caches hit); Desktop's own
+		// instructions, the user's first name and the local time follow in a second one.
+		msgs := append([]llm.Message{{Role: "system", Content: persona.System()}, {Role: "system", Content: sys + a.firstNameLine()}}, hist...)
 		// Connector tools join only when connected and enabled, and a group's tools
 		// only after the model loads it, so the list stays small.
 		// Blaze's own tools: the core set plus what find_tools turned on in this chat.
@@ -1068,7 +1072,7 @@ func (a *App) systemLive(query string) string {
 	} else {
 		b.WriteString(tools.MemoryFor(query))
 	}
-	b.WriteString("\nNow: " + time.Now().Format("Mon 2 Jan 2006 15:04 MST") + "\n")
+	b.WriteString("\nNow (local time): " + time.Now().Format("Monday, 2 January 2006, 3:04 PM") + "\n")
 	return b.String()
 }
 
