@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/hidecmd"
 	"io"
 	"net/http"
 	"net/url"
@@ -545,7 +546,7 @@ func dialSSE(ctx context.Context, hc *http.Client, rawURL string, hdr map[string
 
 // dialStdio starts a local server: newline-delimited JSON on stdin/stdout.
 func dialStdio(command string, argv []string, dir string, env map[string]string) (*streamPeer, *ringBuf, error) {
-	cmd := exec.Command(command, argv...)
+	cmd := hidecmd.Hide(exec.Command(command, argv...))
 	cmd.Dir = dir
 	if len(env) > 0 {
 		cmd.Env = os.Environ()
