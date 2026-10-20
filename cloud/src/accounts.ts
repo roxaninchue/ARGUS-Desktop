@@ -103,17 +103,33 @@ export async function createSession(env: Env, u: User, client: string): Promise<
   const t = now();
   const s: Session = { uid: u.id, created: t, exp: t + SESSION_TTL, client: client.slice(0, 80) };
   await env.KV.put(`sess:${h}`, JSON.stringify(s), { expirationTtl: SESSION_TTL });
+  // 0.9.6: per-session index key (independent of the user record) so "sign out everywhere" finds every session.
+  await env.KV.put(`usess:${u.id}:${h}`, "1", { expirationTtl: SESSION_TTL });
   u.sessions.push(h);
   while (u.sessions.length > MAX_SESSIONS) {
     const old = u.sessions.shift();
-    if (old) await env.KV.delete(`sess:${old}`);
+    if (old) { await env.KV.delete(`sess:${old}`); await env.KV.delete(`usess:${u.id}:${old}`); }
   }
   await putUser(env, u);
   return token;
 }
 
+/** 0.9.6: every session hash of an account: the user record's list plus the usess:<uid>:<hash> index keys. */
+export async function sessionHashes(env: Env, u: User): Promise<Set<string>> {
+  const all = new Set(u.sessions);
+  const kv = env.KV as KVNamespace & { list?: KVNamespace["list"] };
+  if (typeof kv.list !== "function") return all;
+  let cursor: string | undefined;
+  do {
+    const r = await kv.list({ prefix: `usess:${u.id}:`, cursor });
+    for (const k of r.keys) all.add(k.name.slice(`usess:${u.id}:`.length));
+    cursor = r.list_complete ? undefined : (r as { cursor?: string }).cursor;
+  } while (cursor);
+  return all;
+}
+
 export async function revokeAllSessions(env: Env, u: User): Promise<void> {
-  for (const h of u.sessions) await env.KV.delete(`sess:${h}`);
+  for (const h of await sessionHashes(env, u)) { await env.KV.delete(`sess:${h}`); await env.KV.delete(`usess:${u.id}:${h}`); }
   u.sessions = [];
 }
 
@@ -131,12 +147,16 @@ export async function requireUser(env: Env, req: Request): Promise<{ user: User;
   const s = await env.KV.get<Session>(`sess:${h}`, "json");
   if (!s || s.exp < now()) throw new HttpError(401, "unauthorized");
   const u = await getUser(env, s.uid);
-  if (!u || !u.sessions.includes(h)) throw new HttpError(401, "unauthorized");
+  // 0.9.6: a session is valid while its sess:<hash> key exists. The user's sessions[] list is read-modify-written
+  // on eventually consistent KV, so a stale write elsewhere could drop a fresh hash and sign a client out.
+  // Every revocation path deletes sess:<hash>, so the key alone is the truth.
+  if (!u || u.id !== s.uid) throw new HttpError(401, "unauthorized");
   return { user: u, hash: h };
 }
 
 export async function endSession(env: Env, u: User, hash: string): Promise<void> {
   await env.KV.delete(`sess:${hash}`);
+  await env.KV.delete(`usess:${u.id}:${hash}`);
   u.sessions = u.sessions.filter(x => x !== hash);
   await putUser(env, u);
 }

@@ -18,7 +18,7 @@ import {
   Env, HttpError, json, readJSON, clientIP, randomToken, sha256, hashPassword, verifyPassword, iterations,
   normEmail, validPassword, cleanName, softLimit, webReturn, CODE_RE,
 } from "./util";
-import { User, getUser, putUser, userByEmail, requireUser, createSession, revokeAllSessions, publicUser, checkLimit, hit } from "./accounts";
+import { User, getUser, putUser, userByEmail, requireUser, createSession, revokeAllSessions, sessionHashes, publicUser, checkLimit, hit } from "./accounts";
 import { ECODE_SENDS, ECODE_TTL, hashEmailCode, maskEmail, newEmailCode, MfaRecord, MFA_TRIES, consumeSecondFactor, matchTotp, newRecoveryCodes, newTotpSecret, otpauthURI, requireSecondFactor } from "./mfa";
 
 export const RESET_TTL = 3600;
@@ -119,7 +119,7 @@ export async function setPassword(req: Request, env: Env): Promise<Response> {
       throw new HttpError(401, "invalid_credentials");
     }
     // Changing a password signs out every other device; this one stays.
-    for (const h of u.sessions) if (h !== hash) await env.KV.delete(`sess:${h}`);
+    for (const h of await sessionHashes(env, u)) if (h !== hash) { await env.KV.delete(`sess:${h}`); await env.KV.delete(`usess:${u.id}:${h}`); }
     u.sessions = u.sessions.filter(h => h === hash);
   }
   u.password_hash = await hashPassword(b.password, iterations(env));
