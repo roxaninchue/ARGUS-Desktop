@@ -394,13 +394,12 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 	if prov != "" && model != "" {
 		turn.Served(prov + "/" + model)
 	}
+	// Blaze Cloud is one product, like on Blaze Mobile: the person never sees which provider
+	// or model answered (v0.19.1). The served route stays in the turn log (turn.Served) and in
+	// lastRoute, so blaze_avoid and diagnostics still work.
 	r.Provider = ProviderID
 	r.Model = Model
 	r.Route = Name
-	if prov != "" && model != "" {
-		r.Model = model
-		r.Route = Name + " · " + prov + " · " + model
-	}
 	return r, nil
 }
 

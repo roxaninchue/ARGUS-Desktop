@@ -123,6 +123,7 @@ function setFolder(path) {
 // The chip shows the model that answered last, or the default before any answer.
 function setModel(label, sel) {
   if (sel) S.selection = sel;
+  if (label && window.CloudModels && CloudModels.on()) label = "Blaze Cloud"; // never a provider or model (v0.19.1)
   const t = $("#routeText"); if (!t) return;
   t.textContent = label || (S.selection && S.selection.auto ? "Auto · add a model" : "No model");
   $("#routeDot").className = "dot" + (label ? "" : " off");
@@ -851,6 +852,8 @@ function routeMeta(turn, d) {
   if (!turn || $(".meta", turn.el)) return;
   const m = h("div", "meta");
   const secs = d && d.seconds ? ` · ${d.seconds.toFixed(1)}s` : "";
+  // Blaze Cloud: just "Blaze Cloud", no provider, model or "X didn't answer, so Y did" (v0.19.1, as on mobile).
+  if (d && window.CloudModels && CloudModels.on()) d = Object.assign({}, d, { route: "Blaze Cloud", note: "" });
   m.innerHTML = `<span class="route"><span class="dot${d && d.keyless ? " off" : ""}"></span>${esc((d && d.route) || "")}${secs}</span>${d && d.note ? `<span class="note">${esc(d.note)}</span>` : ""}<span class="grow"></span><span class="acts"><button class="btn ghost xs cp" title="Copy answer">${icon("copy", "i sm")}</button><button class="btn ghost xs rt" title="Ask again">${icon("retry", "i sm")}</button></span>`;
   const text = turn.text;
   $(".cp", m).onclick = () => navigator.clipboard.writeText(text);

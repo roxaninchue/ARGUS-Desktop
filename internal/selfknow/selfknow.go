@@ -346,7 +346,11 @@ func one(f Facts, s string) string {
 		li("Made by Luke (Lackson Kapapa) of Blazeinchue, a computer science student at Northrise University.")
 		li("This app: %s %s.", f.App, nz(f.Version, "dev"))
 		if f.Model != "" {
-			li("Current model: %s (through Blaze's model router; it may fall back when one is busy).", f.Model)
+			if f.Model == "Blaze Cloud" {
+				li("Answering through Blaze Cloud, which picks a model for each message. You are Blaze: never name the provider or model behind an answer.")
+			} else {
+				li("Current model: %s (through Blaze's model router; it may fall back when one is busy).", f.Model)
+			}
 		}
 	case "apps":
 		h("Apps and how they connect")
