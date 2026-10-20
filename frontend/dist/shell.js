@@ -122,7 +122,8 @@ const Shell = (() => {
     const dark = document.documentElement.dataset.theme === "dark";
     openPop(anchor, p => {
       p.dataset.kind = "avatar"; p.classList.add("shmenu");
-      const who = acct && acct.signed_in ? esc(acct.email || acct.login && acct.login.email || "Signed in") : "Not signed in";
+      const u = acct && acct.signed_in && acct.user;
+      const who = u ? esc(u.email || "Signed in") : "Not signed in";
       p.innerHTML = `<div class="phd"><span class="label">Account</span><span class="grow"></span><span class="shwho">${who}</span></div><div class="pbody"></div>`;
       const body = $(".pbody", p);
       const row = (ic, name, desc, fn, extra) => {
@@ -130,6 +131,17 @@ const Shell = (() => {
         b.onclick = e => { e.stopPropagation(); fn(b); };
         body.append(b); return b;
       };
+      if (u) {
+        // Who you are, your plan, and your picture (blaze-auth 0.9.3), like the website's menu.
+        const plan = typeof PLAN_NAMES !== "undefined" && PLAN_NAMES[PLAN] ? PLAN : "";
+        const hd = h("div", "avhead");
+        if (typeof avatar === "function") hd.append(avatar(u, true));
+        hd.append(h("div", "avwho", `<div class="avname">${esc(u.name || u.email.split("@")[0])}</div><div class="sub small mono">${esc(u.email)}</div>${plan ? `<span class="avplan inline" data-plan="${plan}">${PLAN_NAMES[plan]}</span>` : ""}`));
+        body.append(hd);
+        if (plan !== "pro") row(icon("route", "i sm"), plan ? "Upgrade" : "Plans", plan === "standard" ? "Go Pro" : "Standard and Pro plans", () => { closePop(); API().OpenURL("https://blazeinchue.pages.dev/#pro"); });
+        if (typeof pickAvatar === "function") row(AV, u.avatar_url ? "Change picture" : "Add picture", "PNG, JPEG or WebP", () => { closePop(); pickAvatar(); });
+        if (u.avatar_url) row(icon("x", "i sm"), "Remove picture", "Back to your initial", async () => { closePop(); const r = await API().AccountAvatar(""); if (!r || r.error) { toast((r && r.error) || "Couldn't remove the picture.", "bad"); return; } await loadAccount(); });
+      }
       row(AV, "Account", acct && acct.signed_in ? "Your Blaze account" : "Sign in to sync keys", () => { closePop(); show(acct && acct.signed_in ? "settings" : "signin", acct && acct.signed_in ? "account" : undefined); });
       row(icon("sliders", "i sm"), "Settings", "Behaviour, appearance, memory, skills", () => { closePop(); show("settings"); });
       if (window.Router && Router.view && Router.view.enabled) row(icon("layers", "i sm"), "BlazeRouter dashboard", (window.Router && Router.view && Router.view.note) || "Models, keys and usage", () => { closePop(); show("router"); });

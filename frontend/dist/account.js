@@ -23,7 +23,8 @@ function topAvatar() {
   const b = $("#avatar"); if (!b) return;
   if (!b.dataset.icon) b.dataset.icon = b.innerHTML;
   const u = ACCT && ACCT.signed_in && ACCT.user;
-  if (!u) { b.innerHTML = b.dataset.icon; b.classList.remove("hasav"); b.style.background = ""; return; }
+  planBadge(u);
+  if (!u) { b.innerHTML = b.dataset.icon; b.classList.remove("hasav"); b.style.background = ""; delete b.dataset.key; return; }
   const key = (u.avatar_url || "") + "|" + avLetter(u);
   if (b.dataset.key === key) return;
   b.dataset.key = key; b.classList.add("hasav");
@@ -33,6 +34,26 @@ function topAvatar() {
     img.onload = () => { if (b.dataset.key === key) { b.textContent = ""; b.append(img); } };
     img.src = u.avatar_url;
   }
+}
+
+// The plan badge (Basic / Standard / Pro) sits centred on the avatar's bottom edge, like the
+// website's. The plan comes from Blaze Cloud's /v1/billing/me (AccountPlan, cached 10 minutes).
+const PLAN_NAMES = { basic: "Basic", standard: "Standard", pro: "Pro" };
+let PLAN = "", planFor = "";
+async function planBadge(u, force) {
+  const b = $("#avatar"); if (!b) return;
+  let wrap = b.parentElement;
+  if (!wrap.classList.contains("avwrap")) { wrap = h("span", "avwrap"); b.before(wrap); wrap.append(b); }
+  let pill = $(".avplan", wrap);
+  const who = u ? u.id || u.email : "";
+  if (!u) { PLAN = ""; planFor = ""; if (pill) pill.remove(); return; }
+  if (force || who !== planFor) {
+    planFor = who;
+    try { PLAN = (API().AccountPlan ? await API().AccountPlan(!!force) : "") || ""; } catch (e) { PLAN = ""; }
+  }
+  if (!PLAN_NAMES[PLAN]) { if (pill) pill.remove(); return; }
+  if (!pill) { pill = h("span", "avplan"); wrap.append(pill); }
+  pill.textContent = PLAN_NAMES[PLAN]; pill.dataset.plan = PLAN;
 }
 
 // Picks a picture, centre-crops it to a 256 px square and compresses it under 256 KB

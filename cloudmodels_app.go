@@ -11,6 +11,7 @@ package main
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
@@ -20,6 +21,9 @@ import (
 
 // cloudModels routes every llm.CompleteWith / llm.Quick in this app (nil until startup).
 var cloudModels *cloudai.Router
+
+// cloudGateway is Blaze Cloud's gateway (the plan badge asks it for the account's plan).
+var cloudGateway *cloudai.Gateway
 
 func (a *App) startCloudModels() {
 	// A fixed model keeps Custom, except BlazeRouter's own presets: those move to Blaze Cloud
@@ -31,6 +35,7 @@ func (a *App) startCloudModels() {
 		_ = choice.Save()
 	}
 	gw := cloudai.NewGateway(cloudai.BaseFrom(choice.GatewayURL), a.blazeToken)
+	cloudGateway = gw
 	cloudModels = cloudai.NewRouter(choice, gw)
 	llm.SetBackend(cloudModels)
 	go a.CloudPrewarm() // v0.19.1: the first message doesn't wait for DNS + TLS
@@ -180,4 +185,28 @@ func (a *App) CloudStatus() cloudai.Status {
 	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
 	defer cancel()
 	return cloudModels.GW.Check(ctx)
+}
+
+var planMu sync.Mutex
+var planVal string
+var planAt time.Time
+
+// AccountPlan is the signed-in account's plan for the badge under the avatar: basic, standard
+// or pro, "" when signed out or Blaze Cloud can't be reached. Cached for 10 minutes; force
+// asks again (after an upgrade).
+func (a *App) AccountPlan(force bool) string {
+	planMu.Lock()
+	if !force && !planAt.IsZero() && time.Since(planAt) < 10*time.Minute {
+		defer planMu.Unlock()
+		return planVal
+	}
+	planMu.Unlock()
+	p := ""
+	if cloudGateway != nil {
+		p, _ = cloudGateway.Plan(context.Background())
+	}
+	planMu.Lock()
+	planVal, planAt = p, time.Now()
+	planMu.Unlock()
+	return p
 }
