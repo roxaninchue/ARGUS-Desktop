@@ -5,6 +5,9 @@
 //   sess:<sha256(token)>        a session, expires by TTL (90 days)
 //   rl:<kind>:<key>             rate-limit counters, expire by TTL
 //   keys:<id>, keykey:<id>      synced model keys (encrypted blob) and its key, see keys.ts
+//   reset:<sha256(token)>       password-reset link {uid}, 1 h, single use (0.9.0)
+//   mfa:<sha256(token)>         sign-in waiting for its second factor, 5 min (0.9.0, mfa.ts)
+//   webcode:<sha256(code)>      one-time code from a web sign-in redirect, 2 min (0.9.0)
 // Session tokens are opaque random strings; only their SHA-256 is stored.
 
 import { Env, HttpError, randomToken, sha256 } from "./util";
@@ -30,6 +33,10 @@ export interface User {
   email_verified: boolean;
   identities: Identity[];
   sessions: string[]; // session hashes, oldest first
+  totp_secret?: string; // 0.9.0: active TOTP secret (base32); see mfa.ts
+  totp_pending?: string; // set up but not yet confirmed
+  totp_recovery?: string[]; // sha256 of unused recovery codes
+  totp_last?: number; // last accepted TOTP time step
   created_at: number;
   updated_at: number;
 }
@@ -49,6 +56,7 @@ export function publicUser(u: User) {
     avatar_url: u.avatar_url,
     email_verified: u.email_verified,
     has_password: !!u.password_hash,
+    two_factor: !!u.totp_secret,
     providers: u.identities.map(i => i.provider),
     created_at: u.created_at,
   };
@@ -165,6 +173,11 @@ export async function userForIdentity(env: Env, provider: ProviderId, p: Profile
   if (u) {
     if (!u.email_verified && u.password_hash) {
       delete u.password_hash;
+      // 0.9.0: a squatter's two-factor goes too, or it would lock the real owner out.
+      delete u.totp_secret;
+      delete u.totp_pending;
+      delete u.totp_recovery;
+      delete u.totp_last;
       await revokeAllSessions(env, u);
     }
     u.email_verified = true;

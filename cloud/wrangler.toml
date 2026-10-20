@@ -7,9 +7,9 @@ workers_dev = true
 
 [vars]
 BASE_URL = "https://blaze-auth.blaze-app.workers.dev"
-# Comma-separated browser origins allowed to call the API (the desktop app calls from Go,
-# which sends no Origin, so this can stay empty).
-ALLOWED_ORIGINS = ""
+# Comma-separated browser origins allowed to call the API (the desktop app calls from Go and
+# sends no Origin). The website signs in from these; web sign-in and reset links only return here.
+ALLOWED_ORIGINS = "https://blazeinchue.netlify.app,https://blazeinchue.pages.dev"
 # WebCrypto in Workers caps PBKDF2 at 100000 iterations. Lower it (e.g. 60000) only if
 # free-tier sign-ins hit "exceeded CPU time"; each user's hash keeps its own count.
 PBKDF2_ITERATIONS = "100000"
@@ -18,10 +18,20 @@ PBKDF2_ITERATIONS = "100000"
 binding = "KV"
 id = "03a2047f64234d28946816100f97e46a"
 
+# blaze-gateway (0.9.0): password-reset mail goes out through its POST /internal/mail (Brevo).
+# Workers on one account can't fetch each other's *.workers.dev URL, so this is a service binding.
+# (blaze-gateway binds back to blaze-auth as AUTH; Cloudflare allows the two-way binding.)
+[[services]]
+binding = "GATEWAY"
+service = "blaze-gateway"
+
 # Secrets (never in this file): wrangler secret put <NAME>
 #   GOOGLE_CLIENT_ID   GOOGLE_CLIENT_SECRET    sign-in with Google + Google connector
 #   GITHUB_CLIENT_ID   GITHUB_CLIENT_SECRET    sign-in with GitHub + GitHub connector
 #   SPOTIFY_CLIENT_ID  SPOTIFY_CLIENT_SECRET
 #   NOTION_CLIENT_ID   NOTION_CLIENT_SECRET
 #   SLACK_CLIENT_ID    SLACK_CLIENT_SECRET
+#   INTERNAL_TOKEN     32+ random characters, the SAME value as blaze-gateway's INTERNAL_TOKEN (0.9.0):
+#                      sent as X-Internal-Token to https://gateway/internal/mail. Without it (or without the
+#                      GATEWAY binding) /v1/providers says password_reset:false and /forgot answers 503.
 # A provider without both secrets answers 503 {"error":"not_configured"}.

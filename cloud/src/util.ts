@@ -15,6 +15,10 @@ export interface Env {
   NOTION_CLIENT_SECRET?: string;
   SLACK_CLIENT_ID?: string;
   SLACK_CLIENT_SECRET?: string;
+  /** Service binding to blaze-gateway (0.9.0): mail goes out through POST https://gateway/internal/mail. */
+  GATEWAY?: Fetcher;
+  /** Secret (0.9.0), the same value as on blaze-gateway: sent as X-Internal-Token on /internal/mail. */
+  INTERNAL_TOKEN?: string;
 }
 
 const enc = new TextEncoder();
@@ -179,6 +183,36 @@ export async function readJSON(req: Request, max = 16384): Promise<Record<string
     /* fallthrough */
   }
   throw new HttpError(400, "invalid_json");
+}
+
+// Best-effort per-isolate limiter for unauthenticated endpoints that would otherwise
+// spend scarce KV writes (free tier: 1,000 writes a day).
+const buckets = new Map<string, { n: number; reset: number }>();
+export function softLimit(key: string, max: number, windowSec: number): void {
+  const t = Date.now();
+  if (buckets.size > 5000) buckets.clear();
+  const b = buckets.get(key);
+  if (!b || b.reset < t) {
+    buckets.set(key, { n: 1, reset: t + windowSec * 1000 });
+    return;
+  }
+  if (++b.n > max) throw new HttpError(429, "rate_limited", { retry_after: Math.ceil((b.reset - t) / 1000) });
+}
+
+/** An https URL whose origin is in ALLOWED_ORIGINS (web sign-in and reset links come back there), else null. */
+export function webReturn(env: Env, v: string | null | undefined): URL | null {
+  if (!v || typeof v !== "string" || v.length > 500) return null;
+  let u: URL;
+  try {
+    u = new URL(v);
+  } catch {
+    return null;
+  }
+  if (u.protocol !== "https:" || u.username || u.password) return null;
+  const allowed = (env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
+  if (!allowed.includes(u.origin)) return null;
+  u.hash = "";
+  return u;
 }
 
 export function clientIP(req: Request): string {
