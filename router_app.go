@@ -44,7 +44,9 @@ func (a *App) startRouter() {
 		},
 	})
 	s := a.router.Settings()
-	if s.On() && s.AutoStart() {
+	// v0.19.1: Blaze Cloud answers by default, like Blaze Mobile. BlazeRouter only starts when
+	// the user turned it on, or their Custom models still go through it.
+	if (s.On() && s.AutoStart()) || a.routerInUse() {
 		_ = a.router.Start()
 	}
 	go func() {
@@ -52,6 +54,11 @@ func (a *App) startRouter() {
 			a.emitRouter()
 		}
 	}()
+}
+
+// routerInUse is true when Custom models answer through BlazeRouter.
+func (a *App) routerInUse() bool {
+	return !cloudModelsOn() && a.cfg != nil && a.cfg.Default != nil && a.cfg.Default.Provider == config.RouterID
 }
 
 func (a *App) stopRouter() {
@@ -75,7 +82,7 @@ func (a *App) routerView() RouterView {
 		return RouterView{Status: router.Status{Level: "red", Note: "BlazeRouter is starting"}}
 	}
 	s := a.router.Settings()
-	v := RouterView{Status: a.router.Status(), Key: s.APIKey, Dashboard: a.router.DashboardURL(""), Enabled: s.On(), Autostart: s.AutoStart()}
+	v := RouterView{Status: a.router.Status(), Key: s.APIKey, Dashboard: a.router.DashboardURL(""), Enabled: s.On() || a.routerInUse(), Autostart: s.AutoStart()}
 	v.InUse = a.cfg != nil && a.cfg.Default != nil && a.cfg.Default.Provider == config.RouterID
 	return v
 }

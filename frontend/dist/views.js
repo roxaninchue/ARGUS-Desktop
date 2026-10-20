@@ -11,7 +11,7 @@ const BlazeViews = (() => {
     { id: "doctor", name: "Doctor", icon: "chart", desc: "Check this PC, models and tools", open: () => show("doctor") },
     { id: "settings", name: "Settings", icon: "sliders", desc: "Behaviour, appearance, memory, skills", open: () => show("settings"), badge: badge("#updCount") },
     { id: "design", name: "Design", icon: "palette", desc: "Live preview, artboards, 3D", open: () => show("design") },
-    { id: "router", name: "BlazeRouter", icon: "layers", desc: "Models, keys, combos and usage", open: () => show("router") },
+    { id: "router", name: "BlazeRouter", icon: "layers", desc: "Advanced: a local gateway for your own keys and other apps", open: () => show("router") },
     { id: "archive", name: "Archive", icon: "book", desc: "Chats from before one mind (read-only)", open: () => show("archive") },
     { id: "learn", name: "Learn", icon: "book", desc: "Flashcards with spaced repetition (tutor skill)", open: () => show("learn") },
     { id: "phone", name: "Phone", icon: "phone", desc: "Blaze Link: pair Blaze for Android with this PC", open: () => show("phone") },

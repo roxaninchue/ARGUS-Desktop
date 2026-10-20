@@ -218,6 +218,9 @@ const capPills = m => {
   return `<span class="caps">${out.join("")}</span>`;
 };
 
+// "Add a model": BlazeRouter when it is on, else Settings › Models (v0.19.1).
+function addModels() { if (window.Router && Router.addModels) Router.addModels(); else show("settings", "models"); }
+
 // The model switcher: Auto, or any ready provider and any of its models.
 async function modelPopover(anchor) {
   if (popEl && popEl.dataset.kind === "model") { closePop(); return; }
@@ -225,8 +228,8 @@ async function modelPopover(anchor) {
   const rpicks = window.Router ? await Router.picks() : [];
   openPop(anchor, p => {
     p.dataset.kind = "model";
-    p.innerHTML = `<div class="phd"><span class="label">Model</span><span class="grow"></span><button class="btn ghost xs mg">Manage in BlazeRouter</button></div><div class="pbody"></div>`;
-    $(".mg", p).onclick = () => { closePop(); show("router", "providers"); };
+    p.innerHTML = `<div class="phd"><span class="label">Model</span><span class="grow"></span><button class="btn ghost xs mg">Settings</button></div><div class="pbody"></div>`;
+    $(".mg", p).onclick = () => { closePop(); addModels(); };
     const body = $(".pbody", p);
     const sel = st.selection || { auto: true };
     if (window.Router) Router.pickerTop(body, closePop, rpicks); // BlazeRouter presets first (router.js)
@@ -249,7 +252,7 @@ async function modelPopover(anchor) {
       body.append(row, list);
     });
     const add = h("button", "opt", `<span class="on-mark">${icon("plus", "i sm")}</span><span class="col2"><span class="ot">Add a provider…</span><span class="od">Free keys: Gemini, Groq, Cerebras, OpenRouter, NVIDIA, Mistral</span></span>`);
-    add.onclick = () => { closePop(); show("router", "providers"); };
+    add.onclick = () => { closePop(); addModels(); };
     body.append(add);
   }, { width: 380 });
 }
@@ -460,7 +463,7 @@ function hero() {
   box.append(sug); col.append(box);
   const noModel = () => { if (S.setup_done && !(S.providers || []).some(p => p.ready && p.id !== "pollinations")) {
     const c = h("div", "callout acc", `${icon("key")}<div><b>No model yet.</b> Blaze needs one AI model that can use tools. A free Gemini or Groq key takes a minute. <a data-go="providers" style="color:var(--accent);cursor:pointer">Add one</a></div>`);
-    c.style.marginTop = "18px"; $("a", c).onclick = () => show("router", "providers");
+    c.style.marginTop = "18px"; $("a", c).onclick = () => addModels();
     box.append(c);
   } };
   if (window.CloudModels) CloudModels.heroCallout(box, noModel); else noModel(); // v0.19: Blaze Cloud needs only a sign-in
@@ -890,7 +893,7 @@ function errorCard(target, e) {
     <div class="actions"></div><pre></pre>`;
   const acts = $(".actions", card);
   const btn = (cls, html, fn) => { const b = h("button", "btn sm " + cls, html); b.onclick = fn; acts.append(b); return b; };
-  if (setup) btn("accent", `${icon("key", "i sm")}Add a model`, () => show("router", "providers"));
+  if (setup) btn("accent", `${icon("key", "i sm")}Add a model`, () => addModels());
   else if (e.kind !== "steps") btn("accent", `${icon("retry", "i sm")}Retry`, () => retry());
   if (e.kind !== "steps") { const sw = btn("line", `${icon("layers", "i sm")}Switch model`, ev => { ev.stopPropagation(); modelPopover(sw); }); sw.dataset.pop = "1"; }
   if (e.kind === "steps" || e.partial) acts.prepend(continueBtn(e.kind === "steps" ? "accent" : "line"));
@@ -1090,7 +1093,7 @@ async function modelMenuItems() {
         const ml = await API().ModelOptions(m.provider, false);
         return (ml.models || []).filter(x => x.tools !== "no").map(x => ({ name: x.id, desc: [x.tools === "yes" ? "tools" : x.tools === "no" ? "no tools" : "", x.vision ? "vision" : "", x.id === m.model ? "current" : ""].filter(Boolean).join(" · "), run: async () => setModel(await API().SelectModel(m.provider, x.id)) }));
       } });
-  return items.concat([{ name: "Manage models…", desc: "BlazeRouter › Providers", run: () => show("router", "providers") }]);
+  return items.concat([{ name: "Manage models…", desc: "Settings › Models", run: () => addModels() }]);
 }
 
 const COMMANDS = [
@@ -1778,7 +1781,7 @@ const SECTIONS = [
 let settingsSection = "models";
 
 function settingsView(el, focus) {
-  if (focus === "providers") { show("router", "providers"); return; } // moved into BlazeRouter
+  if (focus === "providers") { addModels(); return; } // moved into BlazeRouter
   if (focus) settingsSection = focus;
   if (!SECTIONS.some(x => x[0] === settingsSection)) settingsSection = "models";
   const wrap = h("div", "settings");
@@ -1834,7 +1837,7 @@ async function setModels(col, redraw) {
   msel.onclick = () => { box.style.display = box.style.display ? "" : "none"; };
   ps.onchange = () => { fill(); box.style.display = ""; };
   const use = h("button", "btn accent", "Use this model");
-  use.onclick = async () => { if (!ps.value) { show("router", "providers"); return; } const m = msel.textContent.trim(); setModel(await API().SelectModel(ps.value, /\s/.test(m) ? "" : m)); redraw(); };
+  use.onclick = async () => { if (!ps.value) { addModels(); return; } const m = msel.textContent.trim(); setModel(await API().SelectModel(ps.value, /\s/.test(m) ? "" : m)); redraw(); };
   pk.append(ps, msel, use);
   const fixedArea = h("div"); fixedArea.append(pk, box);
   fixedArea.style.display = sel.auto ? "none" : "";

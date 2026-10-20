@@ -22,7 +22,14 @@ import (
 var cloudModels *cloudai.Router
 
 func (a *App) startCloudModels() {
-	choice := cloudai.LoadChoice(config.Dir(), !a.cfg.IsAuto())
+	// A fixed model keeps Custom, except BlazeRouter's own presets: those move to Blaze Cloud
+	// (v0.19.1), the way Blaze Mobile answers.
+	viaRouter := a.cfg.Default != nil && a.cfg.Default.Provider == config.RouterID
+	choice := cloudai.LoadChoice(config.Dir(), !a.cfg.IsAuto() && !viaRouter)
+	if choice.Mode == cloudai.ModeCustom && viaRouter && len(choice.Overrides) == 0 && !choice.RouterMoved {
+		choice.Mode, choice.RouterMoved = cloudai.ModeCloud, true
+		_ = choice.Save()
+	}
 	gw := cloudai.NewGateway(cloudai.BaseFrom(choice.GatewayURL), a.blazeToken)
 	cloudModels = cloudai.NewRouter(choice, gw)
 	llm.SetBackend(cloudModels)
