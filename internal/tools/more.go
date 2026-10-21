@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"context"
 	"fmt"
 	"html"
 	"io"
@@ -45,8 +46,11 @@ func htmlText(s string) string {
 	return t + strings.TrimSpace(s)
 }
 
-func get(u string) (int, string, error) {
-	req, err := http.NewRequest("GET", u, nil)
+func get(u string) (int, string, error) { return getCtx(context.Background(), u) }
+
+// getCtx is get that gives up when ctx ends (Stop, or a read's per-call deadline).
+func getCtx(ctx context.Context, u string) (int, string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
 	if err != nil {
 		return 0, "", err
 	}
@@ -67,7 +71,7 @@ func init() {
 		[]prop{p("query", "string", "Search words"), p("count", "integer", "Results, default 8")}, []string{"query"},
 		func(e *Env, a args) string {
 			e.status("Searching: " + a.s("query"))
-			code, body, err := get("https://html.duckduckgo.com/html/?q=" + url.QueryEscape(a.s("query")))
+			code, body, err := getCtx(e.ctx(), "https://html.duckduckgo.com/html/?q="+url.QueryEscape(a.s("query")))
 			if err != nil {
 				return "Error: search failed: " + err.Error() + "\n[hint: no internet?]"
 			}
@@ -97,7 +101,7 @@ func init() {
 				u = "https://" + u
 			}
 			e.status("Reading " + u)
-			code, body, err := get(u)
+			code, body, err := getCtx(e.ctx(), u)
 			if err != nil {
 				return "Error: " + err.Error()
 			}

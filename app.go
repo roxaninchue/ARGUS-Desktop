@@ -774,7 +774,7 @@ func (a *App) run(ctx context.Context, s *session) {
 		calls := n.Calls
 		blocked := make([]string, len(calls))
 		t0 := make([]time.Time, len(calls))
-		completed := llm.RunBatch(len(calls),
+		completed := llm.RunBatch(ctx, len(calls),
 			func(i int) bool {
 				tc := calls[i]
 				return tools.ParallelSafe(tc.Function.Name) && a.modeBlock(tc.Function.Name, tc.Function.Arguments) == ""
@@ -790,7 +790,7 @@ func (a *App) run(ctx context.Context, s *session) {
 				blocked[i] = a.modeBlock(tc.Function.Name, tc.Function.Arguments) // Plan mode refuses what can change things
 				return true
 			},
-			func(i int) string {
+			func(ctx context.Context, i int) string { // ctx: the turn's, with a per-call deadline for reads
 				tc := calls[i]
 				switch {
 				case blocked[i] != "":
