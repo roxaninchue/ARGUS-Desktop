@@ -386,7 +386,7 @@ func (m *Manager) run(ctx context.Context, a *Agent, gen int) {
 		calls := n.Calls
 		steps := make([]Step, len(calls))
 		idxs := make([]int, len(calls))
-		completed := llm.RunBatch(len(calls),
+		completed := llm.RunBatch(ctx, len(calls),
 			func(i int) bool { return m.rt.Parallel != nil && m.rt.Parallel(calls[i].Function.Name) },
 			func(i int) bool {
 				if ctx.Err() != nil {
@@ -410,7 +410,7 @@ func (m *Manager) run(ctx context.Context, a *Agent, gen int) {
 				m.emit(v)
 				return true
 			},
-			func(i int) string { return m.rt.Exec(ctx, a, steps[i].Name, steps[i].Args) },
+			func(ctx context.Context, i int) string { return m.rt.Exec(ctx, a, steps[i].Name, steps[i].Args) },
 			func(i int, res string) {
 				s, tc := steps[i], calls[i]
 				s.Result, s.Done, s.Bad = res, true, isBad(res)
