@@ -299,6 +299,24 @@ if (/\/internal\/router\/web\//.test(location.href)) {
   Object.assign(A, {
     AccountState: async () => ({ ...window.__acct }),
     WritingMenu: async () => ({ tones: ["Clearer", "Shorter", "Friendlier", "More formal"], languages: ["English", "French", "Swahili"] }),
+    // v0.19.11 Post kit (postkit.js): a valid blaze.postkit/1 kit for an idea or a photo.
+    PostKitOptions: async () => ({ platforms: [{ id: "x", name: "X", limit: 280 }, { id: "instagram", name: "Instagram", limit: 2200 }, { id: "tiktok", name: "TikTok", limit: 4000 }, { id: "linkedin", name: "LinkedIn", limit: 3000 }, { id: "threads", name: "Threads", limit: 500 }, { id: "youtube_shorts", name: "YouTube Shorts", limit: 100 }, { id: "reddit", name: "Reddit", limit: 40000, title: 300 }], languages: [{ tag: "en", name: "English" }, { tag: "fr", name: "French" }, { tag: "sw", name: "Swahili" }], ratios: ["1:1", "4:5", "9:16", "16:9"], default_platforms: ["instagram", "tiktok", "x"] }),
+    PostKitPickPhoto: async () => (window.__pkPhoto || { path: "/home/luke/Pictures/market.jpg", name: "market.jpg", thumb: "data:image/gif;base64,R0lGODlhAQABAAAAACw=", width: 1200, height: 800 }),
+    PostKitPhotoPasted: async name => ({ path: "/home/luke/.blaze/desktop/pasted/" + name, name, thumb: "", width: 1080, height: 1080 }),
+    PostKitMake: async req => {
+      window.__pkReq = req; await new Promise(r => setTimeout(r, 20));
+      if (window.__pkResult) return window.__pkResult;
+      const photo = !!req.photo, w = photo ? 1200 : 1080, hh = photo ? 800 : 1920;
+      const platforms = {};
+      for (const id of req.platforms) platforms[id] = id === "reddit" ? { title: "A week without my phone", caption: "More sleep, more books." } : { caption: "I gave my phone a week off\n\nSeven days, no feeds.\n\n#digitaldetox #SlowLiving #Lusaka" };
+      const kit = { schema: "blaze.postkit/1", language: req.language, ...(req.idea ? { idea: req.idea } : {}), hook: "I gave my phone a week off", hashtags: ["#digitaldetox", "#SlowLiving", "#Lusaka"], alt_text: photo ? "Market stalls of bright fabric under a blue sky" : "A phone face down next to a cup of tea", platforms,
+        crops: photo ? [{ ratio: "1:1", x: 400, y: 0, w: 800, h: 800 }, { ratio: "4:5", x: 560, y: 0, w: 640, h: 800 }, { ratio: "9:16", x: 735, y: 0, w: 450, h: 800 }, { ratio: "16:9", x: 0, y: 63, w: 1200, h: 675 }] : [{ ratio: "1:1", x: 0, y: 420, w: 1080, h: 1080 }, { ratio: "4:5", x: 0, y: 285, w: 1080, h: 1350 }, { ratio: "9:16", x: 0, y: 0, w: 1080, h: 1920 }, { ratio: "16:9", x: 0, y: 656, w: 1080, h: 607 }],
+        source: { width: w, height: hh, focus: { x: photo ? 0.8 : 0.5, y: photo ? 0.4 : 0.5 } } };
+      return { kit, json: JSON.stringify(kit, null, 2), text: "Hook: " + kit.hook, photo: req.photo || "" };
+    },
+    PostKitExport: async (json, photo) => { window.__pkExport = { json, photo }; return { dir: "/home/luke/Posts", files: ["a-1x1.jpg", "a-4x5.jpg", "a-9x16.jpg", "a-16x9.jpg", "a-kit.json", "a-captions.txt"].slice(photo ? 0 : 4) }; },
+    PostKitOpen: async () => (window.__pkOpen || {}),
+    PostKitCheck: async json => ({ kit: JSON.parse(json), json, text: "" }),
     WriteAssist: async (text, mode, arg) => { window.__wa = { text, mode, arg }; await new Promise(r => setTimeout(r, 20)); return window.__waResult || { text: (mode === "translate" ? "[" + arg + "] " : "[" + arg + "] ") + text.trim() }; },
     CloudUsage: async () => (window.__usage || { cloud: true, signed_in: !!(window.__acct && window.__acct.signed_in), cap: 0, quota: null }),
     SetCloudDailyCap: async n => { window.__usage = { ...(window.__usage || {}), cap: n }; return window.__usage; },
