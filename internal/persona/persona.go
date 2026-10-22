@@ -25,15 +25,14 @@ var bundled []byte
 // URL is the latest persona.
 var URL = "https://blazeinchue.pages.dev/persona.json"
 
-// Eval is one of the persona's checks.
+// Eval is one of the persona's checks. Context and Expect are kept raw: persona 1.0.2 uses both a
+// list of prior messages and a plain description under "context" (v0.19.13; 1.0.2 failed to
+// parse before, so the live persona never replaced the bundled one).
 type Eval struct {
-	ID      string `json:"id"`
-	Context []struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
-	} `json:"context"`
-	User   string   `json:"user"`
-	Expect []string `json:"expect"`
+	ID      string          `json:"id"`
+	Context json.RawMessage `json:"context,omitempty"`
+	User    string          `json:"user"`
+	Expect  json.RawMessage `json:"expect,omitempty"`
 }
 
 // Persona is persona.json.

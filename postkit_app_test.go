@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"image"
 	"image/color"
@@ -131,5 +132,44 @@ func TestPostKitErrorsArePlain(t *testing.T) {
 	}
 	if r := a.PostKitMake(PostKitRequest{Photo: "/nope.jpg", Platforms: []string{"x"}}); r.Error == "" {
 		t.Fatal("missing photo accepted")
+	}
+}
+
+// tinyWebP is a 120x80 lossy WebP (left half red, right half blue).
+const tinyWebP = "UklGRpIAAABXRUJQVlA4IIYAAADQBwCdASp4AFAAPm02mEikIyKhJNK4AIANiWcAlAD8QNNL+KtGA/ACu/9wAAC0eEMkeYzsmJmb7gHTSbxnYvGw87JiZm+wgAD+694vQX20ICNgr8Ej+Wh+Wh+3ufVtDF54r+VSy/qZK2G+3NnAP9JbycuV1XG4A6iZeLiMK9rnY1zsa4AAAA=="
+
+// v0.19.13 regression: a WebP photo (what most images saved from the web are) was refused with
+// "Use a JPG, PNG or GIF photo." although the drop zone and paste accept any image.
+func TestPostKitWebPPhoto(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("USERPROFILE", os.Getenv("HOME"))
+	b, _ := base64.StdEncoding.DecodeString(tinyWebP)
+	photo := filepath.Join(t.TempDir(), "saved-from-web.webp")
+	if err := os.WriteFile(photo, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	seen := stubPostKitModel(t, `{"hook":"Two colours, one frame","hashtags":["#colour","#minimal","#design"],
+"alt_text":"A rectangle split down the middle, red on the left and blue on the right","focus":{"x":0.5,"y":0.5},
+"posts":{"instagram":{"body":"Sometimes two colours say enough."}}}`, nil)
+	a := &App{cfg: &config.Config{}}
+	ph := a.PostKitPhotoPath(photo)
+	if ph.Error != "" || ph.Width != 120 || ph.Height != 80 {
+		t.Fatalf("webp photo refused: %+v", ph)
+	}
+	r := a.PostKitMake(PostKitRequest{Photo: photo, Language: "en", Platforms: []string{"instagram"}})
+	if r.Error != "" || r.Kit == nil {
+		t.Fatalf("no kit from a webp photo: %+v", r)
+	}
+	if um := (*seen)[0][1]; len(um.Attach) != 1 || um.Attach[0].Kind != "image" {
+		t.Fatalf("webp photo not attached: %+v", um.Attach)
+	}
+	ex := postKitExportTo(t.TempDir(), r.JSON, photo)
+	if ex.Error != "" || len(ex.Files) != 6 {
+		t.Fatalf("export from webp: %+v", ex)
+	}
+	// pasted as a data URL, the way the Post kit view sends a pasted or dropped file
+	pp := a.PostKitPhotoPasted("pasted.webp", "data:image/webp;base64,"+tinyWebP)
+	if pp.Error != "" || pp.Width != 120 {
+		t.Fatalf("pasted webp refused: %+v", pp)
 	}
 }

@@ -586,9 +586,17 @@ func (a *App) RecStart() string {
 	if stt.rec != nil {
 		return ""
 	}
-	wav := filepath.Join(os.TempDir(), fmt.Sprintf("blaze-voice-%d.wav", time.Now().UnixNano()))
+	// CreateTemp: a 0600 file with an unguessable name in the shared temp dir; the
+	// recorder truncates it in place and keeps the mode, so the voice stays private.
+	tf, err := os.CreateTemp("", "blaze-voice-*.wav")
+	if err != nil {
+		return "Couldn't start the microphone: " + err.Error()
+	}
+	wav := tf.Name()
+	tf.Close()
 	c := quiet(exec.Command(lookCmd(prog), recordArgs(prog, wav)...))
 	if err := c.Start(); err != nil {
+		_ = os.Remove(wav)
 		return "Couldn't start the microphone: " + err.Error()
 	}
 	stt.rec, stt.wav = c, wav

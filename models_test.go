@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
 	"os"
 	"path/filepath"
 	"strings"
@@ -89,9 +90,9 @@ func TestModelsMenuNeverOffersKeyless(t *testing.T) {
 	t.Setenv("GROQ_API_KEY", "gsk_test")
 	a.cfg.NoKeyless = false
 	items := a.Models()
-	// BlazeRouter leads (v0.10.0), then the classic Auto chain.
-	if len(items) < 3 || items[0].Provider != config.RouterID || items[1].Provider != config.Auto {
-		t.Fatalf("BlazeRouter then auto must lead: %+v", items)
+	// v0.19.13: the Blaze Cloud row (blaze-auto) leads, then BlazeRouter and the Auto chain (Custom mode).
+	if len(items) < 4 || items[0].Provider != cloudai.ProviderID || items[0].Model != cloudai.Model || items[1].Provider != config.RouterID || items[2].Provider != config.Auto {
+		t.Fatalf("Blaze Cloud, BlazeRouter, then auto must lead: %+v", items)
 	}
 	for _, it := range items {
 		if it.Provider == config.KeylessID {
@@ -123,5 +124,37 @@ func TestTurnErrorIsPlain(t *testing.T) {
 	}
 	if e := turnError(&llm.RouteError{NoModels: true}); e["kind"] != "setup" {
 		t.Fatal("no-model errors should offer setup")
+	}
+}
+
+// v0.19.13: in Cloud mode the menu offers Blaze Cloud as blaze-auto only, plus the user's own keyed
+// providers; no BlazeRouter/Auto rows and no keyless/unkeyed Blaze-side providers.
+func TestModelsMenuCloudModeBlazeAutoOnly(t *testing.T) {
+	a := testApp(t)
+	t.Setenv("GROQ_API_KEY", "gsk_test")
+	old := cloudModels
+	t.Cleanup(func() { cloudModels = old })
+	ch := cloudai.LoadChoice(t.TempDir(), false)
+	ch.Mode = cloudai.ModeCloud
+	cloudModels = cloudai.NewRouter(ch, cloudai.NewGateway(cloudai.BaseFrom(""), func() string { return "" }))
+	items := a.Models()
+	if len(items) == 0 || items[0].Provider != cloudai.ProviderID || items[0].Model != cloudai.Model || !items[0].Current {
+		t.Fatalf("Blaze Cloud (blaze-auto, current) must lead: %+v", items)
+	}
+	for _, it := range items[1:] {
+		if it.Provider == config.RouterID || it.Provider == config.Auto || it.Provider == config.KeylessID || it.Current {
+			t.Fatalf("Cloud mode offers %+v", it)
+		}
+		if it.Provider != "groq" && it.Provider != "ollama" && it.Provider != config.Custom {
+			t.Fatalf("Cloud mode offers a provider the user has no key for: %+v", it)
+		}
+	}
+	a.SelectModel("groq", "")
+	if cloudModelsOn() {
+		t.Fatal("picking an own provider must switch to Custom")
+	}
+	a.SelectModel(cloudai.ProviderID, "")
+	if !cloudModelsOn() {
+		t.Fatal("picking the Blaze Cloud row must return to Cloud")
 	}
 }

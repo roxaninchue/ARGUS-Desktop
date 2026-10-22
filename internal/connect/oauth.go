@@ -223,6 +223,19 @@ type TokenError struct {
 	Unreachable bool
 }
 
+// Temporary is whether the refusal is a passing failure (the network, a 5xx, a rate
+// limit, an answer that isn't a token response) rather than the provider saying no.
+// A temporary failure keeps the connection; Blaze tries again on the next call.
+func (e *TokenError) Temporary() bool {
+	if e.Unreachable {
+		return true
+	}
+	if e.Code != "" {
+		return e.Code == "temporarily_unavailable" || e.Code == "server_error"
+	}
+	return e.Status >= 500 || e.Status == 408 || e.Status == 429 || e.Status < 400
+}
+
 func (e *TokenError) Error() string {
 	if e.Code != "" {
 		s := e.Code

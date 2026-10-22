@@ -15,6 +15,8 @@ import (
 
 	_ "image/gif" // photos the picker accepts
 	_ "image/png"
+
+	_ "golang.org/x/image/webp" // v0.19.13: WebP photos (saved from the web, pasted, dropped)
 )
 
 // Asker sends one request to the chat model and returns its text. photo is a path on this

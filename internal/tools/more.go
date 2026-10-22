@@ -6,7 +6,6 @@ import (
 	"html"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -67,30 +66,11 @@ func getCtx(ctx context.Context, u string) (int, string, error) {
 var reDDG = regexp.MustCompile(`(?is)<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>.*?<a[^>]+class="result__snippet"[^>]*>(.*?)</a>`)
 
 func init() {
-	register("web_search", "Search the web (free, no key). Returns titles, links and snippets. Then fetch_page the best links.",
+	register("web_search", "Search the web (free, no key) for anything current or outside what you know: news and headlines, \"latest\"/\"today\" anything, prices, releases, facts. Search again each time news or other changing facts are asked, even if this chat answered before. Returns titles, links, dates and snippets; then fetch_page the best links. Not for weather (get_weather).",
 		[]prop{p("query", "string", "Search words"), p("count", "integer", "Results, default 8")}, []string{"query"},
 		func(e *Env, a args) string {
 			e.status("Searching: " + a.s("query"))
-			code, body, err := getCtx(e.ctx(), "https://html.duckduckgo.com/html/?q="+url.QueryEscape(a.s("query")))
-			if err != nil {
-				return "Error: search failed: " + err.Error() + "\n[hint: no internet?]"
-			}
-			if code >= 300 {
-				return fmt.Sprintf("Error: search returned HTTP %d. Try again with different words.", code)
-			}
-			n := a.i("count", 8)
-			var b strings.Builder
-			for i, m := range reDDG.FindAllStringSubmatch(body, n) {
-				link := html.UnescapeString(m[1])
-				if u, err := url.Parse(link); err == nil && u.Query().Get("uddg") != "" {
-					link = u.Query().Get("uddg")
-				}
-				fmt.Fprintf(&b, "%d. %s\n   %s\n   %s\n", i+1, htmlText(m[2]), link, htmlText(m[3]))
-			}
-			if b.Len() == 0 {
-				return "No results."
-			}
-			return b.String()
+			return webSearch(e.ctx(), a.s("query"), a.i("count", 8))
 		})
 
 	register("fetch_page", "Read a web page as plain text. Not for JSON APIs or POST (http_request).",
@@ -229,9 +209,6 @@ func init() {
 				return "git isn't installed. " + installHint(e, "git")
 			}
 			cmd := "git " + a.s("args")
-			if risky(cmd) && !e.ask("Run a risky git command?", cmd) {
-				return "The user did NOT approve this git command."
-			}
 			if pth := a.s("path"); pth != "" {
 				q := expand(e, pth)
 				if e.Shell.IsPowerShell() {
@@ -239,6 +216,14 @@ func init() {
 				} else {
 					cmd = "git -C \"" + q + "\" " + a.s("args")
 				}
+			}
+			// The guard sees the whole line the shell runs, path included: a path with
+			// quotes or $(…) must not slip past it.
+			if why := blocked(cmd); why != "" {
+				return shellRefusal(why)
+			}
+			if risky(cmd) && !e.ask("Run a risky git command?", cmd) {
+				return "The user did NOT approve this git command."
 			}
 			e.status("git " + a.s("args"))
 			return e.Shell.RunCtx(e.ctx(), cmd, 10*time.Minute)
@@ -312,14 +297,26 @@ func installHint(e *Env, tool string) string {
 func runCode(e *Env, a args) string {
 	lang := strings.ToLower(a.s("language"))
 	code := a.s("code")
-	to := time.Duration(a.i("timeout_s", 120)) * time.Second
-	tmp := dataDir("tmp")
 	var pkgs []string
 	if arr, ok := a["packages"].([]any); ok {
 		for _, x := range arr {
 			pkgs = append(pkgs, fmt.Sprint(x))
 		}
 	}
+	// v0.19.13: snippets go through the same guard as run_shell. The package names are
+	// pasted unquoted into a pip/npm shell line, so they are guarded too.
+	guarded := code
+	if len(pkgs) > 0 {
+		guarded += "\n" + strings.Join(pkgs, " ")
+	}
+	if why := blocked(guarded); why != "" {
+		return shellRefusal(why)
+	}
+	if risky(guarded) && !e.ask("Run risky code?", guarded) {
+		return "The user did NOT approve this code. Don't run it; suggest a safer way or ask them."
+	}
+	to := time.Duration(a.i("timeout_s", 120)) * time.Second
+	tmp := dataDir("tmp")
 	q := func(s string) string {
 		if e.Shell.IsPowerShell() {
 			return "'" + s + "'"

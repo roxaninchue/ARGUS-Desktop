@@ -117,7 +117,26 @@ func clip(s string, n int) string {
 func (a *App) emitTrace(s *session, t *turnTrace, turn *cloudai.Turn, started time.Time) {
 	t.mu.Lock()
 	t.Seconds = time.Since(started).Seconds()
-	t.Attempts = turn.Steps()
+	raw := turn.Steps()
+	t.Attempts = scrubAttempts(raw)
 	t.mu.Unlock()
+	if traceHook != nil {
+		traceHook(t.Turn, raw)
+	}
 	a.temit(s, "trace", t)
+}
+
+// traceHook, when set (tests only), sees each turn's unscrubbed gateway attempts. Nil in the app.
+var traceHook func(turn string, raw []cloudai.Step)
+
+// scrubAttempts (v0.19.13): Blaze Cloud is one model to the user. The gateway's X-Blaze-Provider /
+// X-Blaze-Model headers name the upstream that answered; they stay in the gateway's own logs
+// (matched by request id) and never reach the "What happened" view.
+func scrubAttempts(in []cloudai.Step) []cloudai.Step {
+	out := make([]cloudai.Step, len(in))
+	for i, st := range in {
+		st.Provider, st.Model = cloudai.Name, cloudai.Model
+		out[i] = st
+	}
+	return out
 }

@@ -27,7 +27,7 @@
 
   // Follow-ups (mobile ReplyParts): "<<follow-ups: a | b | c>>" at the end of a reply becomes
   // pills; a half-typed marker is hidden while it streams. Tolerant of one or two brackets.
-  const FU = /<{1,2}\s*\/?\s*follow[\s_-]?ups?\s*:([\s\S]*?)(>{1,2}|$)/i;
+  const FU = /<{1,2}[\s\/(\[]*follow[\s_-]?ups?\s*:([\s\S]*?)([)\]]?\s*>{1,3}|$)/i;
   function splitFollowups(src, final) {
     let text = String(src || ""), list = [];
     const m = FU.exec(text);

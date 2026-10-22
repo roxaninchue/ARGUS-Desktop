@@ -68,6 +68,10 @@ var ErrNotConfigured = errors.New("not_configured")
 // ErrCancelled: the sign-in was cancelled or timed out before the browser came back.
 var ErrCancelled = errors.New("cancelled")
 
+// ErrBadAnswer: the service answered 2xx with a body that isn't the JSON Blaze expects
+// (a captive portal, a proxy page, a half-deployed Worker).
+var ErrBadAnswer = errors.New("bad_answer")
+
 // APIError is a refusal from the Worker ({"error": "..."}).
 type APIError struct {
 	Status int
@@ -103,6 +107,8 @@ func Message(err error) string {
 		return "Sign-in was cancelled."
 	case errors.As(err, &un):
 		return "Couldn't reach Blaze's sign-in service. Check your internet connection."
+	case errors.Is(err, ErrBadAnswer):
+		return "Blaze's sign-in service sent an answer Blaze couldn't read. Try again in a moment."
 	case errors.As(err, &ae):
 		switch ae.Code {
 		case "too_large":
@@ -136,6 +142,9 @@ func Message(err error) string {
 			return "That's the most codes for one sign-in. Start again in a few minutes."
 		case "mail_failed":
 			return "Blaze couldn't send the email. Try again in a moment."
+		}
+		if ae.Status >= 500 && strings.HasPrefix(ae.Code, "http_") {
+			return "Blaze's sign-in service is having trouble right now. Try again in a moment."
 		}
 		return "Sign-in failed (" + ae.Code + ")."
 	}
@@ -216,7 +225,9 @@ func (c *Client) do(ctx context.Context, method, path, bearer string, body, out 
 	}
 	resp, err := c.HC.Do(req)
 	if err != nil {
-		if ctx.Err() != nil {
+		// Only a real cancel (Cancel pressed, window closed) is "cancelled"; a context
+		// deadline is a slow or dead network and reads as unreachable.
+		if errors.Is(ctx.Err(), context.Canceled) {
 			return ErrCancelled
 		}
 		return &Unreachable{err}
@@ -243,7 +254,7 @@ func (c *Client) do(ctx context.Context, method, path, bearer string, body, out 
 	}
 	if out != nil {
 		if err := json.Unmarshal(raw, out); err != nil {
-			return fmt.Errorf("unexpected answer from the sign-in service: %v", err)
+			return fmt.Errorf("%w: unexpected answer from the sign-in service: %v", ErrBadAnswer, err)
 		}
 	}
 	return nil

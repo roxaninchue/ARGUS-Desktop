@@ -905,6 +905,21 @@ func (m *Manager) markExpired(id string) {
 	m.changed()
 }
 
+// renew is access after the API answered 401 to stale: if another call already
+// refreshed while this one waited (the stored token changed and isn't due), it
+// returns that token instead of refreshing a second time.
+func (m *Manager) renew(ctx context.Context, id, stale string) (string, error) {
+	m.refreshMu.Lock()
+	tok := m.store.Token(id)
+	if tok != nil && stale != "" && tok.AccessToken != stale && !m.store.Conn(id).Expired &&
+		(tok.ExpiresAt == 0 || time.Now().Add(60*time.Second).UnixMilli() < tok.ExpiresAt) {
+		m.refreshMu.Unlock()
+		return tok.AccessToken, nil
+	}
+	m.refreshMu.Unlock()
+	return m.access(ctx, id, true)
+}
+
 // access returns a usable access token, refreshing it when it's (about to be)
 // expired or when force is set (after a 401). ErrReauth means: Reconnect.
 func (m *Manager) access(ctx context.Context, id string, force bool) (string, error) {
@@ -940,6 +955,11 @@ func (m *Manager) access(ctx context.Context, id string, force bool) (string, er
 		if errors.As(err, &te) && te.Unreachable {
 			return "", fmt.Errorf("couldn't reach %s to refresh the sign-in: %s", c.Name, te.Desc)
 		}
+		if errors.As(err, &te) && te.Temporary() {
+			// A 5xx / rate limit / garbled answer isn't the provider revoking access:
+			// keep the connection and its tokens so the next call tries again.
+			return "", fmt.Errorf("%s couldn't refresh the sign-in right now (%s). Try again in a moment", c.Name, te.Error())
+		}
 		m.markExpired(id)
 		return "", ErrReauth
 	}
@@ -972,6 +992,9 @@ func (m *Manager) brokerRefresh(ctx context.Context, c *Connector, tok *Token) (
 	if err != nil {
 		if errors.Is(err, ErrBrokerUnreachable) {
 			return "", fmt.Errorf("couldn't reach Blaze's sign-in service to refresh %s. Check your internet connection", c.Name)
+		}
+		if errors.Is(err, ErrBrokerTemporary) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return "", fmt.Errorf("Blaze's sign-in service couldn't refresh %s right now. Try again in a moment", c.Name)
 		}
 		m.markExpired(c.ID)
 		return "", ErrReauth
@@ -1013,6 +1036,9 @@ func missingScopes(need, granted []string) []string {
 // group readiness: a connected, enabled, unexpired connector (or an enabled MCP server with tools).
 func (m *Manager) readyGroups() []string {
 	var out []string
+	if m == nil {
+		return out
+	}
 	for _, c := range m.conns {
 		st := m.store.Conn(c.ID)
 		if st.Disabled || !m.store.HasToken(c.ID) {
@@ -1090,6 +1116,9 @@ const metaLoad, metaSuggest = "connector_tools", "suggest_connector"
 // Tools is what the model sees this step: the two meta tools, plus the tools of
 // the groups this conversation loaded (only connected, enabled ones, never "off").
 func (m *Manager) Tools() []llm.Tool {
+	if m == nil {
+		return nil
+	}
 	ready := m.readyGroups()
 	var out []llm.Tool
 	if len(ready) > 0 {
@@ -1163,6 +1192,9 @@ func (m *Manager) Known() []string {
 func (m *Manager) Handles(name string) bool {
 	if name == metaLoad || name == metaSuggest || strings.HasPrefix(name, "mcp_") {
 		return true
+	}
+	if m == nil {
+		return false
 	}
 	_, ok := m.tools[name]
 	return ok

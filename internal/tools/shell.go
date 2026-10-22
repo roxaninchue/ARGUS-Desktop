@@ -149,7 +149,7 @@ func tail(s string, n int) string {
 
 var danger = regexp.MustCompile(`(?i)(\brm\s+-[a-z]*r[a-z]*f?\s+(/|~|\*|\$HOME|\.\s*$)|\bmkfs|\bdd\s+if=|\bshutdown\b|\breboot\b|\bformat\s+[a-z]:|Remove-Item.+-Recurse.+([A-Z]:\\|~|\$HOME|\*)|\breg\s+(delete|add)\b|Set-ExecutionPolicy|\bdiskpart\b|\bchmod\s+-R\s+777\s+/|:\(\)\s*\{|>\s*/dev/sd|\bsudo\b|\bgit\s+push\s+.*--force|\bgit\s+reset\s+--hard|\bgit\s+clean\s+-[a-z]*f)`)
 
-func risky(cmd string) bool { return danger.MatchString(cmd) }
+// risky (guard.go, v0.19.13) is the full ask-first check; danger is one part of it.
 
 // ---------- background jobs ----------
 
@@ -261,6 +261,9 @@ func init() {
 			cmd := strings.TrimSpace(a.s("command"))
 			if cmd == "" {
 				return "Error: empty command."
+			}
+			if why := blocked(cmd); why != "" {
+				return shellRefusal(why)
 			}
 			if risky(cmd) && !e.ask("Run a risky command?", cmd) {
 				return "The user did NOT approve this command. Don't run it; suggest a safer way or ask them."

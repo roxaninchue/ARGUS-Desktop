@@ -151,6 +151,9 @@ func (a *App) Live() []string {
 // temit sends a turn's event to the chat view only when that chat is on screen. A
 // chat in the background still saves everything; the user sees it when they open it.
 func (a *App) temit(s *session, ev string, d any) {
+	if eventTap != nil {
+		eventTap(ev, d) // tests: App.run's events port (run_script_test.go)
+	}
 	if a.ctx == nil {
 		return
 	}

@@ -232,7 +232,7 @@ func Friendly(code int, text string) string {
 
 var (
 	thinkTags  = regexp.MustCompile(`(?is)<(think|thought|thinking)>.*?(</(think|thought|thinking)>|$)`)
-	followTags = regexp.MustCompile(`(?i)<{1,2}/?follow[- ]?ups?:[^>]*>{0,2}`)
+	followTags = regexp.MustCompile(`(?i)<{1,2}[\s/(\[]*follow[\s_-]?ups?\s*:[^>]*>{0,3}`)
 )
 
 // Visible is what a person would see of a reply's text.

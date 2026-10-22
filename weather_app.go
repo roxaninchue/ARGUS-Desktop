@@ -18,13 +18,20 @@ import (
 	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
 )
 
-const weatherLine = "\nWEATHER: for any weather question call get_weather and quote the source and time it returns. Never use web search, memory or a guess for weather. If it says weather is unavailable, say so.\n"
+// weatherLine goes at the end of every system prompt. v0.19.13: it also routes news and other
+// time-sensitive asks to web_search and says to look them up again every time. Strict e2e
+// (2026-10-21): a bare "latest AI news" got get_weather(London), and in the one continuous chat
+// a repeated "latest AI news" got the earlier answer copied word for word with no search.
+const weatherLine = "\nWEATHER: only a weather question (temperature, rain, wind, forecast) calls get_weather; quote the source and time it returns. Never use web search, memory or a guess for weather. If it says weather is unavailable, say so.\n" + freshLine
+
+// freshLine: news and other things that change are looked up again each time they are asked.
+const freshLine = "FRESH INFO: news, headlines, \"latest\"/\"today\"/\"recent\" anything, prices, scores and releases need web_search (then fetch_page) every time they are asked, even if an earlier turn of this chat answered the same question; never repeat or reuse an earlier answer for them. get_weather is never for news.\n"
 
 func weatherTool() llm.Tool {
 	var t llm.Tool
 	t.Type = "function"
 	t.Function.Name = "get_weather"
-	t.Function.Description = "Current weather for a place. ALWAYS use this for any weather question; never answer weather from web search or memory. Report temperature, condition, and the source + observed time it returns. Give lat/lon, or a place name, or nothing for the user's own location."
+	t.Function.Description = "Current weather (temperature, rain, wind, conditions) for a place. Use it ONLY when the user asks about the weather, and always for those; never answer weather from web search or memory. Not for news, headlines or anything else (web_search). Report temperature, condition, and the source + observed time it returns. Give lat/lon, or a place name, or nothing for the user's own location."
 	t.Function.Parameters = map[string]any{"type": "object", "properties": map[string]any{
 		"lat":   map[string]any{"type": "number"},
 		"lon":   map[string]any{"type": "number"},
