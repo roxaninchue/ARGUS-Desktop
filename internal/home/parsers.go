@@ -329,10 +329,10 @@ func SafeURL(u string) string {
 
 // Place is a geocoded city.
 type Place struct {
-	Name     string  `json:"name"`
-	Lat      float64 `json:"latitude"`
-	Lon      float64 `json:"longitude"`
-	Country  string  `json:"country"`
+	Name    string  `json:"name"`
+	Lat     float64 `json:"latitude"`
+	Lon     float64 `json:"longitude"`
+	Country string  `json:"country"`
 }
 
 func ForecastURL(lat, lon float64, fahrenheit bool) string {
@@ -854,7 +854,9 @@ func Repo(s string) string {
 	return ""
 }
 
-func RepoEventsURL(repo string) string { return "https://api.github.com/repos/" + repo + "/events?per_page=15" }
+func RepoEventsURL(repo string) string {
+	return "https://api.github.com/repos/" + repo + "/events?per_page=15"
+}
 
 func ParseRepoEvents(js, repo string, now int64) (Data, error) {
 	var a []struct {

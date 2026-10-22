@@ -322,7 +322,7 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 	}
 	if len(tools) > 0 {
 		body["tools"] = llm.AdaptTools(tools, "")
-		body["tool_choice"] = "auto"
+		body["tool_choice"] = llm.ToolChoice(ctx)
 		body["blaze_tools"] = "auto" // gateway 0.6.9 drops them on turns with no action intent
 	}
 	b, _ := json.Marshal(body)

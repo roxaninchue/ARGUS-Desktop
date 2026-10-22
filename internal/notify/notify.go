@@ -218,6 +218,10 @@ func psXML(s string) string {
 	return strings.ReplaceAll(html.EscapeString(s), "'", "''")
 }
 
+// endsOptions lists the exec methods whose {title} and {body} are positional
+// arguments, so a "--" goes before them.
+var endsOptions = map[string]bool{"osascript": true, "notify-send": true, "dunstify": true}
+
 // RunExec sends n with an exec method.
 func RunExec(m Method, n Note) error {
 	if m.Kind != "exec" || len(m.Argv) == 0 {
@@ -225,9 +229,15 @@ func RunExec(m Method, n Note) error {
 	}
 	n.Clean()
 	id := func(s string) string { return s }
-	argv := make([]string, len(m.Argv))
+	argv := make([]string, 0, len(m.Argv)+1)
 	for i, a := range m.Argv {
-		argv[i] = fill(a, n, id)
+		// End option parsing before the first positional text: a title such as "-e …"
+		// would otherwise be read as an option (osascript -e runs it as AppleScript).
+		// Done here, not in ExecCandidates, so methods cached by older builds get it too.
+		if a == "{title}" && endsOptions[m.Name] && i > 0 && m.Argv[i-1] != "--" {
+			argv = append(argv, "--")
+		}
+		argv = append(argv, fill(a, n, id))
 	}
 	if m.Name == "notify-send" || m.Name == "dunstify" {
 		if _, err := os.Stat(IconPath()); err != nil {

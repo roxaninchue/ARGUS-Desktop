@@ -122,7 +122,7 @@ func Chat(ctx context.Context, p config.Provider, key, model string, msgs []Mess
 	body := map[string]any{"model": model, "messages": wire(KeepRecentImages(msgs, 3), Info(p.ID, model).Vision, IsLocal(p)), "stream": true}
 	if len(tools) > 0 {
 		body["tools"] = AdaptTools(tools, p.ID)
-		body["tool_choice"] = "auto"
+		body["tool_choice"] = ToolChoice(ctx)
 	}
 	b, _ := json.Marshal(body)
 	ctx, cancel := context.WithCancel(ctx)

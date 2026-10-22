@@ -21,6 +21,7 @@ import (
 	_ "image/png"
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
+	_ "golang.org/x/image/webp" // v0.19.13: WebP photos too
 
 	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
 	"github.com/lacksonkapapahue/blaze-desktop/internal/postkit"
@@ -67,7 +68,7 @@ func (a *App) PostKitOptions() map[string]any {
 // PostKitPickPhoto opens the picker for one photo.
 func (a *App) PostKitPickPhoto() PostKitPhoto {
 	p, err := wr.OpenFileDialog(a.ctx, wr.OpenDialogOptions{Title: "Choose a photo for the post", DefaultDirectory: a.prefs.Folder,
-		Filters: []wr.FileFilter{{DisplayName: "Photos (jpg, png, gif)", Pattern: "*.jpg;*.jpeg;*.png;*.gif"}}})
+		Filters: []wr.FileFilter{{DisplayName: "Photos (jpg, png, gif, webp)", Pattern: "*.jpg;*.jpeg;*.png;*.gif;*.webp"}}})
 	if err != nil || p == "" {
 		return PostKitPhoto{}
 	}
@@ -97,7 +98,7 @@ func postKitPhoto(p string) PostKitPhoto {
 	cfg, _, err := image.DecodeConfig(f)
 	f.Close()
 	if err != nil {
-		ph.Error = "Use a JPG, PNG or GIF photo."
+		ph.Error = "Use a JPG, PNG, GIF or WebP photo."
 		return ph
 	}
 	ph.Width, ph.Height = cfg.Width, cfg.Height

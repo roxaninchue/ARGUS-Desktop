@@ -50,6 +50,7 @@ func Default() (*DB, error) {
 		_ = defDB.sql.Close()
 	}
 	_ = os.MkdirAll(filepath.Dir(p), 0o700)
+	ownerOnly(p) // conversations/memory: 0600 even when ~/.blaze predates 0700
 	d, err := Open(p)
 	if err != nil {
 		return nil, err
@@ -219,4 +220,16 @@ func (d *DB) SetBrief(project, brief string) (string, error) {
 	defer d.mu.Unlock()
 	_, err := d.sql.Exec(`INSERT INTO project_brief(project_id, brief, updated) VALUES (?,?,?) ON CONFLICT(project_id) DO UPDATE SET brief=excluded.brief, updated=excluded.updated`, project, brief, time.Now().Unix())
 	return brief, err
+}
+
+// ownerOnly makes the database file (and any WAL/SHM beside it) readable by the user
+// only. SQLite creates files 0644 and copies the db's mode to its journals, so
+// pre-creating the db as 0600 keeps every file it writes private.
+func ownerOnly(p string) {
+	if f, err := os.OpenFile(p, os.O_CREATE|os.O_RDWR, 0o600); err == nil {
+		f.Close()
+	}
+	for _, s := range []string{"", "-wal", "-shm"} {
+		_ = os.Chmod(p+s, 0o600)
+	}
 }

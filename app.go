@@ -614,6 +614,9 @@ func (a *App) Stop() {
 	}
 }
 
+// panicTap lets tests see a recovered run panic with its stack.
+var panicTap func(any)
+
 func (a *App) run(ctx context.Context, s *session) {
 	started := time.Now()
 	// v0.19.1: every gateway request of this turn carries X-Blaze-Turn / X-Blaze-Prefer.
@@ -625,14 +628,18 @@ func (a *App) run(ctx context.Context, s *session) {
 	setTrayStatus("Working…")
 	defer setTrayStatus("Idle")
 	var changed, urls []string
-	prompt := ""
+	prompt, lastUser := "", ""
 	a.mu.Lock()
 	for _, m := range s.hist {
 		if m.Role == "user" && !isAgentResult(m) && !strings.HasPrefix(m.Content, continueTag) {
 			prompt = strings.TrimPrefix(firstLine(stripAttached(m.Content)), "[Design edit] ")
+			lastUser = m.Content
 		}
 	}
 	a.mu.Unlock()
+	// v0.19.13: an action request must be done with tools (intent.go).
+	intent := actionIntent(lastUser)
+	forceTool, toolsRan, textRetries, proofRetries := intent, 0, 0, 0
 	defer func() {
 		if ok, st := a.pv.noteTurn(changed, urls, prompt); ok {
 			a.temit(s, "design", map[string]any{"target": st.Target, "versions": len(st.Versions), "three": a.pv.threeD(st)})
@@ -640,6 +647,9 @@ func (a *App) run(ctx context.Context, s *session) {
 	}()
 	defer func() {
 		if r := recover(); r != nil {
+			if panicTap != nil {
+				panicTap(r)
+			}
 			a.temit(s, "error", fmt.Sprint("Blaze hit an internal error: ", r))
 		}
 		a.endSession(s)
@@ -707,25 +717,68 @@ func (a *App) run(ctx context.Context, s *session) {
 			all = privateTools(append(append(tools.Select(conv), a.conn.Tools()...), weatherTool()))
 		}
 		known := append(append(append(tools.Names(), a.conn.Known()...), agents.MainToolNames...), "update_blaze", "get_weather")
+		llm.PrimaryArg = primaryArgs(all)
 		a.temit(s, "thinking", step)
 		var partial strings.Builder // what streamed, kept if the reply breaks off
 		var sent []llm.Tool
 		sent, toolOrder = keepToolOrder(toolOrder, a.modeTools(all))
+		sentNames := make([]string, 0, len(sent))
+		for _, t := range sent {
+			sentNames = append(sentNames, t.Function.Name)
+		}
+		// v0.19.13: tool syntax a model writes as text is held back, never shown (CLI TextGuard).
+		tg := &llm.TextGuard{Known: sentNames, Out: func(t string) {
+			partial.WriteString(t)
+			a.temit(s, "delta", t)
+		}}
+		cctx := ctx
+		if step == 0 && forceTool && len(sent) > 0 {
+			cctx = llm.WithRequireTool(ctx) // tool_choice "required" for a plain action request
+		}
 		stepStart, ttft := time.Now(), time.Duration(0)
-		r, err := llm.CompleteWith(ctx, a.cfg, msgs, sent, llm.Opts{
+		r, err := completeTurn(cctx, a.cfg, msgs, sent, llm.Opts{
 			OnText: func(t string) {
 				if ttft == 0 {
 					ttft = time.Since(stepStart)
 				}
-				partial.WriteString(t)
-				a.temit(s, "delta", t)
+				tg.Write(t)
 			},
 			OnStatus: func(t string) { a.temit(s, "status", t) },
 			// Keyless may answer plain chat in Work when nothing that can use tools is set up.
-			// Never in Design: a design turn without tools can't change anything.
-			PlainFallback: !design,
+			// Never in Design (a design turn without tools can't change anything), and never
+			// for an action request, which it could only answer with a made-up "Done" (v0.19.13).
+			PlainFallback: !design && !intent,
 		})
 		tr.step(step+1, r, err, time.Since(stepStart), ttft, len(sent), len(msgs))
+		if err != nil && cctx != ctx && ctx.Err() == nil && partial.Len() == 0 {
+			// A route that refuses tool_choice "required": ask again without it, once.
+			forceTool = false
+			step--
+			continue
+		}
+		if err == nil {
+			held := tg.Held()
+			r2, recovered, junk := recoverTextCalls(r, sentNames)
+			switch {
+			case recovered:
+				r = r2
+				a.temit(s, "repair", map[string]any{"text_calls": len(r.ToolCalls)})
+			case junk && textRetries < 1 && ctx.Err() == nil:
+				textRetries++
+				note = "Your last reply wrote a tool call as plain text, so nothing ran. Call the tool through the tools interface with its exact name and a JSON object for the arguments."
+				a.temit(s, "status", "Retrying a tool call the model wrote as text")
+				continue
+			case junk:
+				a.keepPartial(s, partial.String())
+				a.temit(s, "error", map[string]any{"message": errTextCalls, "kind": "model", "partial": step > 0})
+				return
+			default:
+				if held != "" {
+					partial.WriteString(held)
+					a.temit(s, "delta", held) // it was prose after all
+				}
+			}
+		}
 		if err != nil {
 			// Keep what the user already saw, so Continue picks up from there.
 			kept := a.keepPartial(s, partial.String())
@@ -758,12 +811,37 @@ func (a *App) run(ctx context.Context, s *session) {
 				retries++
 				continue
 			}
+			unverified := false
+			if strings.TrimSpace(r.Text) == "" && !r.Truncated() {
+				// v0.19.13: an empty reply is an error with Retry, never an empty "done" bubble.
+				a.temit(s, "error", map[string]any{"message": "The model sent back an empty reply.", "kind": "model", "empty": true, "partial": step > 0})
+				return
+			}
+			if intent && toolsRan == 0 && claimsDone(r.Text) {
+				// v0.19.13: it says the work is done, but no tool ran this turn.
+				if proofRetries < 1 && ctx.Err() == nil {
+					proofRetries++
+					note = noProofNote
+					a.temit(s, "status", "Checking the work was really done")
+					continue
+				}
+				unverified = true
+				a.temit(s, "delta", noProofLine)
+				a.mu.Lock()
+				if k := len(s.hist) - 1; k >= 0 && s.hist[k].Role == "assistant" {
+					s.hist[k].Content += noProofLine
+				}
+				a.mu.Unlock()
+			}
 			if a.autoReply(s, &ap, r.Text) {
 				continue // Autopilot: the user is away, so the agent decides and keeps going
 			}
 			done := map[string]any{"route": r.Route, "note": r.Note, "keyless": r.Keyless, "seconds": time.Since(started).Seconds()}
 			if r.Truncated() {
 				done["cut"] = true // ran out of output tokens or the stream broke: offer Continue
+			}
+			if unverified {
+				done["unverified"] = true
 			}
 			a.temit(s, "done", done)
 			return
@@ -772,6 +850,7 @@ func (a *App) run(ctx context.Context, s *session) {
 		// Reads from one reply (files, searches, fetches, skills) run at the same time;
 		// anything that changes things runs one by one, in the order the model asked.
 		calls := n.Calls
+		toolsRan += len(calls)
 		blocked := make([]string, len(calls))
 		t0 := make([]time.Time, len(calls))
 		completed := llm.RunBatch(ctx, len(calls),

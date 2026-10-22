@@ -27,6 +27,11 @@ type Broker interface {
 // (the connection stays; Blaze tries again later).
 var ErrBrokerUnreachable = errors.New("broker_unreachable")
 
+// ErrBrokerTemporary is returned by a Broker's Refresh when the service answered but
+// failed for a passing reason (5xx, rate limit, an unreadable answer). Like
+// ErrBrokerUnreachable it keeps the connection: only a real refusal means Reconnect.
+var ErrBrokerTemporary = errors.New("broker_temporary")
+
 // SetBroker plugs in the one-click sign-in service (nil turns it off).
 func (m *Manager) SetBroker(b Broker) {
 	m.mu.Lock()

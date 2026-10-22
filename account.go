@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -534,8 +535,15 @@ func (b *broker) Refresh(ctx context.Context, id, rt string) (*connect.Token, er
 	t, err := b.cs.client.Refresh(ctx, id, rt)
 	if err != nil {
 		var un *cloud.Unreachable
-		if errors.As(err, &un) {
+		var ae *cloud.APIError
+		switch {
+		case errors.As(err, &un), errors.Is(err, cloud.ErrCancelled):
 			return nil, connect.ErrBrokerUnreachable
+		case errors.Is(err, cloud.ErrBadAnswer),
+			errors.As(err, &ae) && (ae.Status >= 500 || ae.Status == 408 || ae.Status == 429):
+			// The service is up but hiccuped (5xx, rate limit, a proxy page): keep the
+			// connection; only a real refusal (invalid_grant, revoked) means Reconnect.
+			return nil, fmt.Errorf("%w: %v", connect.ErrBrokerTemporary, err)
 		}
 		return nil, err
 	}

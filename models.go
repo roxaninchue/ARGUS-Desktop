@@ -159,6 +159,10 @@ func (a *App) DetectModels(provider string) llm.ModelList {
 // An empty model uses the provider's current model. Returns the chip label.
 func (a *App) SelectModel(provider, model string) string {
 	a.waitReady()
+	if provider == cloudai.ProviderID { // v0.19.13: the Blaze Cloud row (blaze-auto) of the model menu
+		a.SetModelsMode(cloudai.ModeCloud)
+		return a.modelName()
+	}
 	useCustomModels() // picking a model of your own means Custom (cloudmodels_app.go)
 	if provider == "" || provider == config.Auto {
 		a.cfg.Default = nil
@@ -230,18 +234,29 @@ type ModelItem struct {
 	Ready    bool   `json:"ready"`
 }
 
-// Models lists what the /model menu offers: Auto first, then every provider that is
-// ready, each with the model it uses. Keyless is never offered.
+// Models lists what the /model menu offers (v0.19.13). Blaze Cloud is always the first row and
+// shows only blaze-auto: in Cloud mode it is the one default and nothing else from Blaze is
+// offered (no provider or model names). Other models come only from the user's own providers
+// (a saved key, or a local server they set up); picking one switches to Custom. In Custom mode
+// Auto and BlazeRouter, which route over those same providers, are offered as before.
+// Keyless is never offered.
 func (a *App) Models() []ModelItem {
 	a.waitReady()
+	cloud := cloudModelsOn()
 	sel := a.selection()
-	out := []ModelItem{{Provider: config.RouterID, Name: "BlazeRouter", Model: "auto/best-free and every auto/* preset", Tools: true, Current: !sel.Auto && sel.Provider == config.RouterID, Ready: true},
-		{Provider: config.Auto, Name: "Auto (free routing)", Model: "fastest healthy model in your chain", Tools: true, Current: sel.Auto, Ready: true}}
+	out := []ModelItem{{Provider: cloudai.ProviderID, Name: cloudai.Name, Model: cloudai.Model, Tools: true, Current: cloud, Ready: true}}
+	if !cloud {
+		out = append(out, ModelItem{Provider: config.RouterID, Name: "BlazeRouter", Model: "auto/best-free and every auto/* preset", Tools: true, Current: !sel.Auto && sel.Provider == config.RouterID, Ready: true},
+			ModelItem{Provider: config.Auto, Name: "Auto (free routing)", Model: "fastest healthy model in your chain", Tools: true, Current: sel.Auto, Ready: true})
+	}
 	for _, p := range a.providerViews() {
 		if p.ID == config.KeylessID || p.ID == config.RouterID || !p.Ready {
 			continue
 		}
-		out = append(out, ModelItem{Provider: p.ID, Name: p.Short, Model: p.Model, Tools: llm.CanUseTools(p.ID, p.Model), Current: !sel.Auto && sel.Provider == p.ID, Ready: true})
+		if cloud && !p.HasKey && p.ID != "ollama" && p.ID != config.Custom {
+			continue // only the user's own providers (a saved key, or their local/custom server)
+		}
+		out = append(out, ModelItem{Provider: p.ID, Name: p.Short, Model: p.Model, Tools: llm.CanUseTools(p.ID, p.Model), Current: !cloud && !sel.Auto && sel.Provider == p.ID, Ready: true})
 	}
 	return out
 }

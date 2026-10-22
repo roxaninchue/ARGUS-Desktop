@@ -73,10 +73,16 @@ func RunBatch(ctx context.Context, n int, safe func(i int) bool, start func(i in
 	return true
 }
 
+// PanicTap lets tests see a recovered tool panic.
+var PanicTap func(any)
+
 // guard runs one call and turns a panic into an error result.
 func guard(ctx context.Context, i int, run func(ctx context.Context, i int) string) (out string) {
 	defer func() {
 		if r := recover(); r != nil {
+			if PanicTap != nil {
+				PanicTap(r)
+			}
 			out = fmt.Sprintf("Error: the tool crashed (%v). Try again or take a different approach.", r)
 		}
 	}()

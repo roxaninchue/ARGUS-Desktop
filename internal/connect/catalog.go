@@ -306,7 +306,7 @@ func (c *call) do(method, u string, body any, hdr map[string]string) (int, []byt
 		data, _ := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 		resp.Body.Close()
 		if resp.StatusCode == 401 && attempt == 0 {
-			t, err := c.m.access(c.ctx, c.conn, true)
+			t, err := c.m.renew(c.ctx, c.conn, c.token)
 			if err != nil {
 				return 401, data, err
 			}

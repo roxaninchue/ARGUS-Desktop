@@ -2,6 +2,7 @@ package postkit
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"image"
@@ -445,5 +446,23 @@ func TestCaptionLimitsEveryPlatform(t *testing.T) {
 		if !strings.Contains(k.Platforms[id].Caption, "{product}") || !strings.Contains(k.Platforms[id].Caption, "https://blaze.test/l") {
 			t.Fatalf("%s lost a token", id)
 		}
+	}
+}
+
+// v0.19.13 regression: Export cuts crops from a WebP photo too.
+func TestExportWebP(t *testing.T) {
+	b, _ := base64.StdEncoding.DecodeString("UklGRpIAAABXRUJQVlA4IIYAAADQBwCdASp4AFAAPm02mEikIyKhJNK4AIANiWcAlAD8QNNL+KtGA/ACu/9wAAC0eEMkeYzsmJmb7gHTSbxnYvGw87JiZm+wgAD+694vQX20ICNgr8Ej+Wh+Wh+3ufVtDF54r+VSy/qZK2G+3NnAP9JbycuV1XG4A6iZeLiMK9rnY1zsa4AAAA==")
+	photo := filepath.Join(t.TempDir(), "web.webp")
+	if err := os.WriteFile(photo, b, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := &stub{replies: []string{`{"hook":"Red meets blue","hashtags":["#red","#blue","#colour"],"alt_text":"Half red, half blue rectangle","focus":{"x":0.5,"y":0.5},"posts":{"instagram":{"body":"Two colours."}}}`}}
+	k, _, err := Make(context.Background(), Request{Photo: photo, Width: 120, Height: 80, Language: "en", Platforms: []string{"instagram"}}, s.ask)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, _, err := Export(t.TempDir(), "web", k, photo)
+	if err != nil || len(files) != 6 {
+		t.Fatalf("export from webp: %v %v", err, files)
 	}
 }

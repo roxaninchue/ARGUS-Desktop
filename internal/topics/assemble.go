@@ -149,7 +149,9 @@ func (s *State) Text(hist []llm.Message, o Opts) string {
 	act := s.Get(s.Active)
 	if act != nil {
 		fmt.Fprintf(&b, "\nACTIVE TOPIC: %s (#%d, %d turns)\n", act.Title, act.ID, act.Turns)
-		if act.Note != "" {
+		// /clear: a note that only covers turns before the fresh window belongs to the old window
+		// (longchat drops its pre-clear summary the same way). v0.19.13.
+		if act.Note != "" && (o.From == 0 || act.Upto > o.From) {
 			fmt.Fprintf(&b, "STATE NOTE of this topic (its turns before message %d; search_chat for exact words)\n%s\n", act.Upto, act.Note)
 		}
 	}

@@ -50,6 +50,7 @@ func Default() (*DB, error) {
 		_ = defDB.Close()
 	}
 	_ = os.MkdirAll(config.Dir(), 0o700)
+	ownerOnly(p) // conversations/memory: 0600 even when ~/.blaze predates 0700
 	defDB, defErr = Open(p)
 	if defErr == nil {
 		_, _ = defDB.ImportMarkdown(filepath.Join(config.Dir(), "memory.md"))
@@ -287,4 +288,16 @@ func retryBusy(f func() error) error {
 func isBusy(err error) bool {
 	m := err.Error()
 	return strings.Contains(m, "SQLITE_BUSY") || strings.Contains(m, "database is locked") || strings.Contains(m, "SQLITE_LOCKED")
+}
+
+// ownerOnly makes the database file (and any WAL/SHM beside it) readable by the user
+// only. SQLite creates files 0644 and copies the db's mode to its journals, so
+// pre-creating the db as 0600 keeps every file it writes private.
+func ownerOnly(p string) {
+	if f, err := os.OpenFile(p, os.O_CREATE|os.O_RDWR, 0o600); err == nil {
+		f.Close()
+	}
+	for _, s := range []string{"", "-wal", "-shm"} {
+		_ = os.Chmod(p+s, 0o600)
+	}
 }

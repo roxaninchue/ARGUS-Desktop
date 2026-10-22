@@ -165,7 +165,7 @@ func (a *App) CheckUpdate() UpdateInfo {
 		}
 	}
 	// A release with nothing for this system (e.g. a Windows-only patch) isn't an update here.
-	if info.Available && !hasOSAsset(rel.Assets, runtime.GOOS) {
+	if info.Available && !hasOSAsset(rel.Assets, updateGOOS) {
 		info.Available, info.Skipped = false, false
 	}
 	if version == "dev" {
@@ -308,7 +308,15 @@ func (a *App) download(as ghAsset) (string, error) {
 
 // ---------------- choosing and installing the right file ----------------
 
-func selfPath() string {
+// updateGOOS / updateGOARCH / selfPath are variables so the update flow can be exercised end to
+// end for another platform in tests (a Windows portable update on a Linux CI machine).
+var (
+	updateGOOS   = runtime.GOOS
+	updateGOARCH = runtime.GOARCH
+	selfPath     = selfPathOS
+)
+
+func selfPathOS() string {
 	p, err := os.Executable()
 	if err != nil {
 		return ""
@@ -322,7 +330,7 @@ func selfPath() string {
 // installKind says how this copy of Blaze was installed.
 func installKind() string {
 	exe := selfPath()
-	switch runtime.GOOS {
+	switch updateGOOS {
 	case "windows":
 		dir := filepath.Dir(exe)
 		if _, err := os.Stat(filepath.Join(dir, "uninstall.exe")); err == nil {
@@ -348,7 +356,7 @@ func installKind() string {
 }
 
 func pickAsset(assets []ghAsset) (ghAsset, string, bool) {
-	if runtime.GOOS != "darwin" && runtime.GOARCH != "amd64" {
+	if updateGOOS != "darwin" && updateGOARCH != "amd64" {
 		return ghAsset{}, "", false // releases are amd64-only for Windows and Linux
 	}
 	var want func(string) bool

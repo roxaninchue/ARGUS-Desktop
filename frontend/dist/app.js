@@ -1105,7 +1105,9 @@ function setupFrame() {
 // ---------- command menu ----------
 // /model is two levels: Auto or a provider, then that provider's models.
 async function modelMenuItems() {
-  const items = (await API().Models() || []).map(m => m.provider === "blazerouter" && window.Router
+  const items = (await API().Models() || []).map(m => m.provider === "blaze-cloud"
+    ? { name: m.name, desc: (m.current ? "in use · " : "") + m.model, run: async () => setModel(await API().SelectModel("blaze-cloud", "")) }
+    : m.provider === "blazerouter" && window.Router
     ? { name: "BlazeRouter", desc: (m.current ? "in use · " : "") + m.model, sub: () => Router.menuItems() }
     : m.provider === "auto"
     ? { name: "Auto (free routing)", desc: (m.current ? "in use · " : "") + "fastest healthy model in your chain", run: async () => setModel(await API().SelectModel("auto", "")) }
