@@ -1,0 +1,21 @@
+# Security scans (HQ 22 Oct 2026): Secret Detection, SAST and Dependency Scanning, on merge requests and main only.
+# Secret Detection and SAST run on every GitLab tier. Dependency Scanning needs Ultimate: after the trial ends
+# (~21 Nov 2026) its jobs simply stop being created; nothing else depends on it. Pipelines run only for MRs and main.
+include:
+  - template: Jobs/Secret-Detection.gitlab-ci.yml
+  - template: Jobs/SAST.gitlab-ci.yml
+  - template: Jobs/Dependency-Scanning.gitlab-ci.yml
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+stages:
+  - test
+
+secret_detection:
+  allow_failure: true
