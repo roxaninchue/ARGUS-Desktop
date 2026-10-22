@@ -1,0 +1,59 @@
+# Security scans (HQ 2026-10-22), free tier only: nothing here depends on GitLab Ultimate.
+# Secret Detection + SAST (GitLab templates, every tier) and open-source dependency checks
+# (osv-scanner for Go/npm/Gradle lockfiles, govulncheck for Go). They run on merge requests and main only.
+# .latest templates: the stable ones create no jobs in merge request pipelines.
+include:
+  - template: Jobs/Secret-Detection.latest.gitlab-ci.yml
+  - template: Jobs/SAST.latest.gitlab-ci.yml
+
+.free-scan-rules:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+secret_detection:
+  allow_failure: true
+
+osv-scanner:
+  stage: test
+  image:
+    name: ghcr.io/google/osv-scanner:latest
+    entrypoint: [""]
+  extends: .free-scan-rules
+  allow_failure: true
+  script:
+    - /osv-scanner scan source -r --format table . | tee osv.txt || true
+    - /osv-scanner scan source -r --format json . > osv.json || true
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths: [osv.txt, osv.json]
+
+govulncheck:
+  stage: test
+  image: golang:1.26
+  extends: .free-scan-rules
+  allow_failure: true
+  script:
+    - go install golang.org/x/vuln/cmd/govulncheck@latest
+    - |
+      : > govulncheck.txt
+      for m in $(find . -name go.mod -not -path "*/node_modules/*" -not -path "*/vendor/*"); do
+        d=$(dirname "$m"); echo "== $d" | tee -a govulncheck.txt
+        (cd "$d" && govulncheck ./... 2>&1 | tee -a "$CI_PROJECT_DIR/govulncheck.txt") || true
+      done
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths: [govulncheck.txt]
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+stages:
+  - test
