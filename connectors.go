@@ -160,6 +160,10 @@ func (a *App) ask(title, detail string, allowAlways bool) int {
 	if allowAlways {
 		payload["always"] = true
 	}
+	if why := permReason(title, detail); why != "" { // v0.19.14: one line on why Blaze asks
+		payload["why"] = why
+		payload["declined"] = permDeclined(title)
+	}
 	emit(a.ctx, "confirm", payload)
 	defer func() { a.mu.Lock(); delete(a.pending, id); a.mu.Unlock() }()
 	select {

@@ -475,6 +475,35 @@ func (d *DB) Save(m Memory) (Saved, error) {
 	return Saved{ID: id, Action: "added"}, nil
 }
 
+// Insert stores one memory exactly as given (no dedupe), keeping its times (unix seconds; 0 =
+// now). Cloud sync uses it: a line that arrives from another device was already deduplicated
+// there, and merging it into a similar line here would change that line's sync id and delete
+// it on the other devices.
+func (d *DB) Insert(m Memory) (int64, error) {
+	m.Kind, m.Subject, m.Text, m.Related = NormKind(m.Kind), clean(m.Subject), clean(m.Text), clean(m.Related)
+	if m.Text == "" {
+		return 0, fmt.Errorf("empty memory")
+	}
+	if m.Subject == "" {
+		m.Subject = "general"
+	}
+	now := Now().Unix()
+	if m.Updated <= 0 {
+		m.Updated = now
+	}
+	if m.Created <= 0 {
+		m.Created = m.Updated
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	r, err := d.sql.Exec(`INSERT INTO memories(kind, subject, text, related, source_turn, created, updated, mirror) VALUES (?,?,?,?,?,?,?,?)`,
+		m.Kind, m.Subject, m.Text, m.Related, m.SourceTurn, m.Created, m.Updated, m.Mirror)
+	if err != nil {
+		return 0, err
+	}
+	return r.LastInsertId()
+}
+
 // Update rewrites one memory's line (and optionally its kind/subject).
 func (d *DB) Update(id int64, text, kind, subject string) error {
 	m, ok := d.Get(id)

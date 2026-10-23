@@ -104,8 +104,8 @@ func (a *App) startNotify() {
 		c := notify.Load()
 		nt.cache = c
 		nt.mu.Unlock()
-		if c == nil {
-			a.probeNotify() // first run: work out the method once and cache it
+		if c == nil && probeAtStartup(runtime.GOOS) {
+			a.probeNotify() // first run: work out the method once and cache it (macOS waits: its probe prompts)
 		}
 	}()
 	a.startVision()
@@ -220,6 +220,9 @@ func (a *App) send(n notify.Note) (notify.Entry, error) {
 	e := notify.Entry{At: time.Now()}
 	if a.prefs.Notify.Off {
 		return e, errors.New("notifications are off in Settings › Notifications")
+	}
+	if notifyDenied(a.prefs, n.Kind) {
+		return e, errors.New("you chose no desktop notifications; it's waiting in Chat")
 	}
 	n.ID = newID()
 	n.Clean()

@@ -13,27 +13,42 @@ import (
 	"github.com/lacksonkapapahue/blaze-desktop/internal/notify"
 )
 
-// First-run onboarding: a full-screen step flow (Welcome, model, apps, permissions,
-// tour, done). The step is saved so a restart picks up where the user left off.
+// First-run onboarding (v0.19.14): two steps, sign in and an optional folder, then a chat
+// that answers. Permissions (notifications, shortcut, start at login) are no longer asked up
+// front: they're asked when a task first needs them (permissions.go) or live in Settings.
+// The step is saved so a restart picks up where the user left off.
+
+// onboardSteps are the steps in order; the frontend draws the same list (onboard.js).
+var onboardSteps = []string{"signin", "folder"}
 
 // OnboardState is what the onboarding screen needs beyond State().
 type OnboardState struct {
-	Step    int  `json:"step"`    // last step the user reached
-	Skipped bool `json:"skipped"` // the user chose Skip (don't open it by itself again)
-	Done    bool `json:"done"`
+	Step    int      `json:"step"`    // last step the user reached
+	Steps   []string `json:"steps"`   // the steps, in order
+	Skipped bool     `json:"skipped"` // the user chose Skip (don't open it by itself again)
+	Done    bool     `json:"done"`
+}
+
+// clampStep keeps a saved step inside the flow (a step saved by the old six-step flow resumes
+// at the last step instead of past the end).
+func clampStep(n int) int {
+	if n < 0 {
+		return 0
+	}
+	if n >= len(onboardSteps) {
+		return len(onboardSteps) - 1
+	}
+	return n
 }
 
 func (a *App) Onboarding() OnboardState {
 	a.waitReady()
-	return OnboardState{Step: a.prefs.OnboardStep, Skipped: a.prefs.OnboardSkipped, Done: a.cfg.SetupDone}
+	return OnboardState{Step: clampStep(a.prefs.OnboardStep), Steps: append([]string(nil), onboardSteps...), Skipped: a.prefs.OnboardSkipped, Done: a.cfg.SetupDone}
 }
 
 // SetOnboardStep remembers the step so onboarding resumes there.
 func (a *App) SetOnboardStep(n int) {
-	if n < 0 {
-		n = 0
-	}
-	a.prefs.OnboardStep = n
+	a.prefs.OnboardStep = clampStep(n)
 	a.savePrefs()
 }
 
@@ -51,7 +66,8 @@ func (a *App) FinishOnboarding() {
 }
 
 // OnboardNotifyTest sends one native notification so the OS asks for (or shows)
-// its permission. "" means it was handed to the OS.
+// its permission. "" means it was handed to the OS. Since v0.19.14 it runs when the user
+// says yes to notifications at their first real need (PermAnswer), not during setup.
 // It probes and caches the working method (~/.blaze/notify.json) first, so the
 // onboarding test and every later notification use the same one.
 func (a *App) OnboardNotifyTest() string {

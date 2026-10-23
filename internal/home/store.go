@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -112,8 +113,12 @@ func (s *Store) DataOf(id string) (Data, bool) {
 	return d, ok
 }
 
+// idSeq keeps ids made in the same millisecond apart (a random suffix alone collided now and
+// then when several widgets were added at once, e.g. seeding the starters).
+var idSeq atomic.Uint32
+
 func newID(now time.Time) string {
-	return "w" + strconv.FormatInt(now.UnixMilli(), 36) + fmt.Sprintf("%03d", rand.Intn(1000))
+	return "w" + strconv.FormatInt(now.UnixMilli(), 36) + fmt.Sprintf("%03d", rand.Intn(1000)) + strconv.FormatUint(uint64(idSeq.Add(1)), 36)
 }
 
 func sameCfg(a, b map[string]string) bool {

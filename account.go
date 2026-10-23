@@ -54,6 +54,7 @@ func (a *App) startCloud() {
 		a.conn.SetBroker(&broker{cs: a.cloud}) // redraw with what the service offers
 		a.checkSession()
 		a.startKeySync()
+		a.startCloudSync() // Settings › Account › Sync across devices (cloudsync_app.go)
 	}()
 }
 

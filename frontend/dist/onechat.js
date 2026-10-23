@@ -157,7 +157,7 @@ const OneChat = (() => {
   // Launch: Home on first run, then the tab the user last left (Home or Chat); the Chat tab is always
   // the one conversation, so a project the backend reopened is left.
   async function boot() {
-    const last = localStorage.getItem("blaze-shell-mode");
+    const last = window.Shell ? Shell.launch : localStorage.getItem("blaze-shell-mode");
     if (S && S.project) {
       const p = await API().OpenProject(""); S.project = null;
       if (p && p.folder) { S.prefs.folder = p.folder; setFolder(p.folder); }

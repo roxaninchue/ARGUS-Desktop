@@ -78,3 +78,33 @@ func TestTopicContextScenario(t *testing.T) {
 		t.Error("off: no chip")
 	}
 }
+
+// A background run's request makes no topic-judge call: the ack waits on it.
+func TestRunRequestSkipsTopicJudge(t *testing.T) {
+	a := testApp(t)
+	t.Cleanup(longchat.CloseDefault)
+	a.prefs.Learn.Off = true
+	judged := 0
+	old := llmQuick
+	llmQuick = func(ctx context.Context, a *App, msgs []llm.Message) (string, error) {
+		judged++
+		return `{"topic":"new","title":"Model rocket"}`, nil
+	}
+	t.Cleanup(func() { llmQuick = old })
+	s := &session{id: "main"}
+	a.cur = s
+	for _, tr := range [][2]string{
+		{"I want to make a pizza at home tonight. What dough recipe should I use?", "Neapolitan pizza dough: 500g flour, 325g water, 10g salt, 3g yeast."},
+		{"Should I bake the pizza on a stone or a steel?", "A pizza steel gives a crisper base."},
+	} {
+		s.hist = append(s.hist, llm.Message{Role: "user", Content: tr[0]})
+		a.longContext(context.Background(), s, s.hist)
+		s.hist = append(s.hist, llm.Message{Role: "assistant", Content: tr[1]})
+	}
+	judged = 0
+	s.hist = append(s.hist, llm.Message{Role: "user", Content: "Now can you help me build a model rocket for the science fair?"})
+	a.longContext(withSkipFold(context.Background()), s, s.hist)
+	if judged != 0 {
+		t.Errorf("run request called the topic judge %d times", judged)
+	}
+}

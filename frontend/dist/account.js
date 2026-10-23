@@ -282,7 +282,7 @@ window.SETTINGS_FNS.account = async (col, redraw) => {
   }
   col.append(accountCard(false, redraw));
   const g = group("What your account does", "");
-  g.append(h("div", "box pad note2 acctnote", "Your Blaze account is who you are across Blaze apps. One-click connectors work with or without it, and your chats, memory and connectors never leave this computer. Your model keys follow your account to Blaze on your phone and other computers."));
+  g.append(h("div", "box pad note2 acctnote", "Your Blaze account is who you are across Blaze apps. One-click connectors work with or without it, and your connectors never leave this computer. Your chats and memory stay here too unless you switch on Sync across devices below, which keeps an encrypted copy only your passphrase opens. Your model keys follow your account to Blaze on your phone and other computers."));
   col.append(g);
   const ks = group("Model keys", "Shared with Blaze CLI on this computer. While you're signed in, they also sync, encrypted, with Blaze on your phone and your other computers.");
   const kb = h("div", "box pad keyrow");
@@ -349,11 +349,12 @@ function securityGroup(redraw) {
 }
 
 // A Google/GitHub sign-in that needs a second factor comes back here.
-on("account_mfa", m => { MFA = m; show("signin"); });
+on("account_mfa", m => { MFA = m; if (document.body.classList.contains("onboarding") && window.Onboard) Onboard.redraw(); else show("signin"); }); // v0.19.14: setup signs in in place
 
 on("account", async st => {
   ACCT = st || await loadAccount();
   topAvatar();
+  if (document.body.classList.contains("onboarding") && window.Onboard) { if (window.CloudModels) await CloudModels.load(); Onboard.redraw(); return; } // setup's sign-in step
   if (view === "signin") { if (ACCT.signed_in) show("settings", "account"); else show("signin"); }
   if (view === "settings" && settingsSection === "account") show("settings", "account");
   if (view === "accounts" && connRedraw) connRedraw();

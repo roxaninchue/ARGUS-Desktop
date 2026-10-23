@@ -229,6 +229,7 @@ function attachChip(a, onRemove) {
   const vis = a.thumb ? `<img src="${a.thumb}" alt="">` : `<span class="ak">${cmIcon(a.kind === "image" ? "image" : a.kind === "folder" ? "folder" : "file")}</span>`;
   const c = h("span", "achip k-" + a.kind, `${vis}<span class="an" title="${esc(a.path)}">${esc(a.name || base(a.path))}</span>${meta ? `<span class="am">${esc(meta)}</span>` : ""}`);
   if (onRemove) { const x = h("button", "ax", icon("x", "i sm")); x.title = "Remove"; x.onclick = onRemove; c.append(x); }
+  if (window.CSVKit) CSVKit.decorate(c, a); // W2: a CSV chip gets a "Table" button (local clean + chart + report)
   return c;
 }
 
@@ -262,6 +263,7 @@ function plusItems() {
     { name: "Image…", icon: "image", desc: "png, jpg, gif, webp · or paste one", run: () => pick("image") },
     { name: "File…", icon: "file", desc: "any file; text goes in the message", run: () => pick("file") },
     { name: "Folder…", icon: "folder", desc: "Blaze gets its file tree", run: () => pick("folder") },
+    { name: "CSV report…", icon: "file", desc: "clean a CSV · table, chart, MD/PDF · on this computer", run: () => window.CSVKit && CSVKit.pick() },
     { name: "Voice", icon: "mic", desc: "speak instead of typing · Ctrl+Shift+M", run: () => micClick() },
     { name: "@ File", icon: "at", desc: "or type @ in the box", run: () => { const i = $("#input"); i.value += (i.value && !i.value.endsWith(" ") ? " @" : "@"); i.focus(); i.dispatchEvent(new Event("input")); } },
     { name: MODES.work_mode === "plan" ? "Build mode" : "Plan mode", icon: "plan", desc: (MODES.work_mode === "plan" ? "switch back to every tool (now Plan)" : "read and scout only, then a plan") + " · Ctrl+Tab", run: () => setWorkMode(MODES.work_mode === "plan" ? "build" : "plan") },

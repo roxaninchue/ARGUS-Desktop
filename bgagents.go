@@ -381,6 +381,9 @@ func (a *App) turn(s *session, in agents.Input) {
 	conv := s.id
 	a.mu.Unlock()
 	a.temit(s, "turn", map[string]any{"kind": in.Kind, "handle": in.Handle, "conv": conv})
+	if a.bgTurn(ctx, s, in) { // v0.19.14: ack now, work in background (runs_app.go)
+		return
+	}
 	a.run(ctx, s)
 }
 

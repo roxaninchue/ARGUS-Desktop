@@ -686,15 +686,8 @@ const BlazeMusic = (() => {
     COMMANDS.push({ name: "music", desc: "Blaze Music: your songs, playlists, the Store", run: () => show("music") });
     COMMANDS.push({ name: "video", desc: "Blaze Video: your videos, series, subtitles", run: () => show("video") });
   }
-  // Top bar: a small round pair (Music | Video), before Search.
-  (function topButtons() {
-    const top = document.getElementById("top"); if (!top || document.getElementById("mediaBtns")) return;
-    const g = h("div", "mzbtns"); g.id = "mediaBtns";
-    g.innerHTML = `<button class="mzround ghost sm" data-v="music" title="Blaze Music" aria-label="Blaze Music">${mi("note", "i sm")}</button><button class="mzround ghost sm" data-v="video" title="Blaze Video" aria-label="Blaze Video">${mi("film", "i sm")}</button>`;
-    $$("button", g).forEach(b => b.onclick = () => show(b.dataset.v));
-    const anchor = document.getElementById("searchBtn") || document.getElementById("routerBtn") || document.getElementById("themeBtn");
-    if (anchor) anchor.before(g); else top.append(g);
-  })();
+  // v0.19.14: the round Music | Video pair left the top bar (less chrome on the chat surface).
+  // Both stay one click away in the account menu (shell.js), in Search and as /music and /video.
 
   return { init, reload, cmd, playList, playKeys, toggle, next, prev, state, cur, track, lib: () => lib, info: () => info, url, fileURL, artURL, cover, mi, menu, dialog, toast, meta, paint,
     pause: () => P.audio && P.audio.pause(), playing: () => !!(P.audio && !P.audio.paused) };

@@ -8,6 +8,7 @@ package tools
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -32,6 +33,8 @@ var groups = map[string]string{
 	"open_url": "web browser screen", "run_code": "code python node script", "install_tool": "install packages setup",
 	"system_info": "pc hardware system", "schedule": "schedule cron timer later recurring", "job_input": "jobs background",
 	"job_stop": "jobs background kill", "write_skill": "skills", "read_screen": "screen vision", "see_screen": "screen vision image",
+	"csv_report":  "csv tsv spreadsheet excel data table clean chart plot graph bar line report pdf markdown",
+	"csv_summary": "csv report written summary pdf markdown",
 }
 
 // IsCore says whether a tool is always sent.
@@ -92,6 +95,35 @@ func Activate(conv string, names ...string) {
 	if d := DB(); d != nil && conv != "" {
 		_ = d.Activate(conv, names...)
 	}
+}
+
+// autoOn turns on-demand tools on before a turn when the user's own words clearly need them.
+// A Cloud run's tool list is fixed when the run starts, so a find_tools call inside the run can't
+// add them (live 0.19.14: every "Make a CSV report of x.csv" run skipped csv_report and wrote
+// pandas scripts; one called find_tools, then couldn't call csv_report).
+var autoOn = []struct {
+	re    *regexp.Regexp
+	names []string
+}{
+	{regexp.MustCompile(`(?i)(\.(csv|tsv)\b|\bcsv\b|\btsv\b)`), []string{"csv_report", "csv_summary"}},
+}
+
+// ActivateFor turns on the tools the user's message needs (see autoOn) and returns their names.
+func ActivateFor(conv, text string) []string {
+	var names []string
+	for _, r := range autoOn {
+		if r.re.MatchString(text) {
+			for _, n := range r.names {
+				if _, ok := registry[n]; ok {
+					names = append(names, n)
+				}
+			}
+		}
+	}
+	if len(names) > 0 {
+		Activate(conv, names...)
+	}
+	return names
 }
 
 // ExtraLine is the one-line hint for the system prompt naming the on-demand tools.
