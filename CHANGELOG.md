@@ -2,6 +2,10 @@
 
 Release notes for Blaze Desktop, newest first. Design notes per release are in `docs/plans/`.
 
+## v0.19.17 (your specialties, in Settings)
+- **Specialties in Settings › Account** (`specialties_app.go`, `internal/specialties`, `frontend/dist/specialties.js`): see what Blaze has learned for the kinds of tasks you ask for often, the steps that work and the rules you gave it. Open one to read its steps and rules, delete a single rule, delete a whole specialty, or clear your general rules. They live on your Blaze account (gateway 0.8.45 `GET/DELETE /v1/specialties`), so a change here holds for Blaze on every device. Ids are checked before anything is sent; a specialty another device already deleted just drops off the list.
+- Tests: `TestListGetDelete`, `TestNeverSendsBadIDsOrWithoutSession`, `TestSpecialtiesBindings`.
+
 ## v0.19.16 (see what Blaze is doing; know your message arrived; privacy)
 - **A small working line under Blaze's reply** (`frontend/dist/pills.js`, `runEvents.js`, `internal/runevents`): when an answer takes more than a couple of seconds, one quiet pill under it says what Blaze is doing right now, in plain words ("Reading sales.csv", "Searching the web"), and changes in place as the work moves. The line always names what is really happening: "Reading cafe-sales-sept.csv", "Searching the web for Lusaka weather", "Charting revenue by store", "Writing your summary". When Blaze gets help from a specialty or a specialist, it says what the help is for in plain words ("Getting help to fix the build error"), never which one; a general line shows only when there is nothing more to say. It never shows commands, raw tool data or what powers the answer, it never sends a notification, and it disappears when the reply arrives. Tasks working in the background keep their pill under their "got it" message until the result lands.
 - **Sending, Sent, Read under your latest message**: small dots show "Sending" until Blaze has your message, "Sent" once Blaze Cloud has stored it, and "Read" when Blaze really picks it up. If you're offline it stays at "Sending" and keeps trying by itself with the same message, so it is never sent twice.

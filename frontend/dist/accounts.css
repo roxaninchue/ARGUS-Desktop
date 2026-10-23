@@ -263,3 +263,11 @@ body.onboarding #app { visibility: hidden; }
   .obsign.signbox { padding: 12px 14px; gap: 7px; }
   .obsign .obtn { height: 34px; }
 }
+
+/* Settings › Account › Specialties (specialties.js) */
+.specbox .speclist { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.specbox .specrow .keyrow { align-items: center; gap: 8px; }
+.specbox .specrow .grow { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; }
+.specbox .specdetail { padding: 8px 4px 4px 12px; display: flex; flex-direction: column; gap: 6px; }
+.specbox .specsteps { margin: 0 0 4px 18px; padding: 0; }
+.specbox .specrule .grow { white-space: normal; }
