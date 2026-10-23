@@ -96,7 +96,7 @@ describe("0.9.2 device sign-in", () => {
     const d = await j(r);
     expect(d.device_code.length).toBeGreaterThanOrEqual(32);
     expect(d.user_code).toMatch(/^[A-HJ-NP-Z2-9]{4}-[A-HJ-NP-Z2-9]{4}$/);
-    expect(d).toMatchObject({ verification_uri: "https://blazeinchue.pages.dev/device", interval: 5, expires_in: 600 });
+    expect(d).toMatchObject({ verification_uri: "https://blazeinchue.pages.dev/device", interval: 1, expires_in: 600 });
     expect(d.verification_uri_complete).toBe(d.verification_uri + "?code=" + d.user_code);
     r = await call("POST", "/v1/auth/device/poll", { device_code: d.device_code });
     expect(r.status).toBe(400); expect((await j(r)).error).toBe("authorization_pending");
@@ -132,5 +132,73 @@ describe("0.9.2 device sign-in", () => {
     expect((await call("POST", "/v1/auth/device/start", {})).status).toBe(429);
     const r = await call("GET", "/device?code=ABCD-EFGH");
     expect(r.headers.get("Location")).toBe("https://blazeinchue.pages.dev/device?code=ABCD-EFGH");
+  });
+});
+
+// 0.9.7: the Durable Object path (the live binding). A fake namespace runs DeviceCore on in-memory storage.
+import { DeviceCore } from "../src/devicecore";
+function fakeDO() {
+  const objs = new Map<string, DeviceCore>();
+  const store = () => { const m = new Map<string, unknown>(); return { get: async (k: string) => m.get(k) as any, put: async (k: string, v: unknown) => { m.set(k, structuredClone(v)); }, deleteAll: async () => { m.clear(); }, setAlarm: async () => {} }; };
+  return { idFromName: (n: string) => n, get: (id: string) => { let o = objs.get(id); if (!o) { o = new DeviceCore(store()); objs.set(id, o); } return o; } } as unknown as DurableObjectNamespace;
+}
+describe("0.9.7 device sign-in on the Durable Object", () => {
+  beforeEach(() => { (env as any).DEVICE = fakeDO(); });
+  it("start -> pending -> approve -> one session at once; 1 s interval; slow_down only under 0.9 s; KV untouched", async () => {
+    const s = await signup("leia@example.com");
+    const d = await j(await call("POST", "/v1/auth/device/start", { client: "Blaze CLI" }));
+    expect(d).toMatchObject({ interval: 1, expires_in: 600, long_poll: 25 });
+    expect(kv.keys("device:").length + kv.keys("devuser:").length).toBe(0);
+    let r = await call("POST", "/v1/auth/device/poll", { device_code: d.device_code });
+    expect((await j(r)).error).toBe("authorization_pending");
+    r = await call("POST", "/v1/auth/device/poll", { device_code: d.device_code });
+    expect((await j(r)).error).toBe("slow_down");
+    vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(Date.now() + 1000);
+    r = await call("POST", "/v1/auth/device/poll", { device_code: d.device_code });
+    expect((await j(r)).error).toBe("authorization_pending");
+    expect(await j(await call("GET", "/v1/auth/device/info?code=" + d.user_code))).toMatchObject({ client: "Blaze CLI" });
+    expect(await j(await call("POST", "/v1/auth/device/approve", { user_code: d.user_code }, auth(s.token)))).toMatchObject({ ok: true });
+    expect((await call("POST", "/v1/auth/device/approve", { user_code: d.user_code }, auth(s.token))).status).toBe(400);
+    vi.setSystemTime(Date.now() + 1000);
+    r = await call("POST", "/v1/auth/device/poll", { device_code: d.device_code, client: "Blaze CLI" });
+    expect(r.status).toBe(200);
+    const ok = await j(r);
+    expect(ok.user.email).toBe("leia@example.com");
+    vi.setSystemTime(Date.now() + 1000);
+    expect((await j(await call("POST", "/v1/auth/device/poll", { device_code: d.device_code }))).error).toBe("expired_token");
+    vi.useRealTimers();
+  });
+  it("long-poll {wait} returns the session the moment it is approved", async () => {
+    const s = await signup("han@example.com");
+    const d = await j(await call("POST", "/v1/auth/device/start", { client: "Blaze CLI" }));
+    const t0 = Date.now();
+    const p = call("POST", "/v1/auth/device/poll", { device_code: d.device_code, wait: 20 });
+    await new Promise(res => setTimeout(res, 150));
+    await call("POST", "/v1/auth/device/approve", { user_code: d.user_code }, auth(s.token));
+    const r = await p;
+    expect(r.status).toBe(200);
+    expect(Date.now() - t0).toBeLessThan(2000);
+    expect((await j(r)).user.email).toBe("han@example.com");
+  });
+  it("long-poll times out to authorization_pending; deny wakes it with access_denied", async () => {
+    let d = await j(await call("POST", "/v1/auth/device/start", {}));
+    const t0 = Date.now();
+    expect((await j(await call("POST", "/v1/auth/device/poll", { device_code: d.device_code, wait: 1 }))).error).toBe("authorization_pending");
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(900);
+    d = await j(await call("POST", "/v1/auth/device/start", {}));
+    const p = call("POST", "/v1/auth/device/poll", { device_code: d.device_code, wait: 20 });
+    await new Promise(res => setTimeout(res, 100));
+    await call("POST", "/v1/auth/device/deny", { user_code: d.user_code });
+    expect((await j(await p)).error).toBe("access_denied");
+  });
+  it("a code started before 0.9.7 (KV only) still works", async () => {
+    delete (env as any).DEVICE;
+    const s = await signup("old@example.com");
+    const d = await j(await call("POST", "/v1/auth/device/start", {}));
+    (env as any).DEVICE = fakeDO();
+    expect(await j(await call("POST", "/v1/auth/device/approve", { user_code: d.user_code }, auth(s.token)))).toMatchObject({ ok: true });
+    vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(Date.now() + 2000);
+    expect((await call("POST", "/v1/auth/device/poll", { device_code: d.device_code })).status).toBe(200);
+    vi.useRealTimers();
   });
 });

@@ -19,6 +19,8 @@ export interface Env {
   GATEWAY?: Fetcher;
   /** Secret (0.9.0), the same value as on blaze-gateway: sent as X-Internal-Token on /internal/mail. */
   INTERNAL_TOKEN?: string;
+  /** 0.9.7: device-code state (Durable Object, SQLite-backed, free plan). Absent in old tests: KV path. */
+  DEVICE?: DurableObjectNamespace;
 }
 
 const enc = new TextEncoder();
