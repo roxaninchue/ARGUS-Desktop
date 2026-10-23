@@ -55,26 +55,109 @@ const Home = (() => {
   }
 
   // ---------- view ----------
+  // v0.19.14: Home is one big chat input (folder chip, three starters, recent chats) with the orb
+  // above it. The card board stays, below, once it has cards ("Add a Home card" otherwise).
   async function homeView(root) {
     el = h("div", "homepage"); root.append(el);
-    const col = h("div", "hcol"); el.append(col);
-    col.append(h("div", "hhead", `<div class="ph"><div class="label hdate"></div><h1 class="hgreet"></h1><div class="hstamp sub"></div></div>
-      <div class="hacts"><button class="btn line sm hrefresh" title="Refresh every card">${icon("retry", "i sm")}<span>Refresh</span></button><button class="btn accent sm hadd" data-pop="1">${icon("plus", "i sm")}<span>Add a card</span></button></div>`));
-    const ask = h("form", "hask", `<span class="hmk"></span><input class="hinput" placeholder="Ask Blaze anything…" aria-label="Ask Blaze"><button class="btn accent sm" type="submit">${icon("send", "i sm")}<span>Ask</span></button>`);
-    ask.onsubmit = e => { e.preventDefault(); const t = $(".hinput", ask).value.trim(); if (t) askBlaze(t); };
-    col.append(ask);
-    const board = h("div", "hboard"); col.append(board);
-    $(".hrefresh", col).onclick = () => refresh(H.widgets.filter(w => !w.hidden).map(w => w.id));
-    $(".hadd", col).onclick = e => { e.stopPropagation(); addPop(e.currentTarget); };
+    const col = h("div", "hcol hhome"); el.append(col);
+    const head = h("div", "hhero", `<div class="horb"></div><div class="ph"><div class="label hdate"></div><h1 class="hgreet"></h1></div>`);
+    $(".horb", head).append(orbEl(56));
+    col.append(head);
+    col.append(askBox());
+    col.append(h("div", "hpermslot"));
+    col.append(startersEl());
+    const recent = h("div", "hrecent"); col.append(recent);
+    const cards = h("div", "hcards"); col.append(cards);
+    cards.append(h("div", "hcardshead", `<span class="label">Your cards</span><span class="hstamp sub"></span><span class="grow"></span>
+      <button class="btn ghost xs hrefresh" title="Refresh every card">${icon("retry", "i sm")}<span>Refresh</span></button><button class="btn line xs hadd" data-pop="1">${icon("plus", "i sm")}<span>Add a card</span></button>`));
+    const board = h("div", "hboard"); cards.append(board);
+    const dk = (S && S.desktop) || {};
+    if (dk.hotkey_ok && dk.hotkey_label) col.append(h("div", "hhint label weak", `Press <span class="kbd">${esc(dk.hotkey_label)}</span> anywhere for quick ask`));
+    $(".hrefresh", cards).onclick = () => refresh(H.widgets.filter(w => !w.hidden).map(w => w.id));
+    $(".hadd", cards).onclick = e => { e.stopPropagation(); addPop(e.currentTarget); };
     const mine = el;
+    setTimeout(() => { const i = $(".hinput", col); if (i && el === mine) i.focus(); }, 0);
+    recents(recent);
     await load();
     if (el !== mine || !el.isConnected) return;
     $(".hdate", col).textContent = H.date;
-    $(".hgreet", col).textContent = H.greeting + (H.name ? ", " + H.name : "") + ".";
+    $(".hgreet", col).textContent = (H.greeting || hello()) + (H.name ? ", " + H.name : "") + ".";
     draw(); stamp();
     refresh(H.widgets.filter(w => !w.hidden && due(w.id)).map(w => w.id));
     clearInterval(timer);
     timer = setInterval(() => { if (view === "home" && el && el.isConnected) { refresh(H.widgets.filter(w => !w.hidden && due(w.id)).map(w => w.id)); stamp(); } }, 10 * 60 * 1000);
+  }
+
+  const hello = () => { const hr = new Date().getHours(); return hr >= 5 && hr < 12 ? "Good morning" : hr >= 12 && hr < 17 ? "Good afternoon" : "Good evening"; };
+
+  // The particle orb (Blaze's mark); a still frame with reduced motion (particleOrb handles it).
+  function orbEl(size) {
+    const cv = h("canvas", "hmorb"), dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = cv.height = Math.round(size * dpr); cv.style.width = cv.style.height = size + "px";
+    if (typeof particleOrb === "function") particleOrb(cv, size);
+    return cv;
+  }
+
+  // A real folder, not the home-folder default.
+  const folderChosen = () => !!(S && S.prefs && S.prefs.folder && S.info && S.prefs.folder !== S.info.home);
+  function folderLabel() {
+    if (S && S.project) return S.project.name;
+    return folderChosen() ? base(S.prefs.folder) : "Choose a folder";
+  }
+
+  // The big input: Enter sends, Shift+Enter is a new line. Sends to the one conversation.
+  function askBox() {
+    const f = h("form", "hask hbig", `<textarea class="hinput" rows="2" placeholder="Ask Blaze to do something…" aria-label="Ask Blaze"></textarea>
+      <div class="hkbar"><button type="button" class="chip hfolder" title="The folder Blaze works in"><svg class="i sm" viewBox="0 0 16 16"><path d="M1.5 3.5h5l1.5 1.5h6.5v8h-13z"/></svg><span></span></button>
+      <span class="grow"></span><span class="hkeys label weak">Enter to send</span><button class="btn accent sm hsend" type="submit" aria-label="Send">${icon("send", "i sm")}<span>Ask</span></button></div>`);
+    const ta = $(".hinput", f), chip = $(".hfolder", f);
+    const paintChip = () => { $("span", chip).textContent = folderLabel(); chip.classList.toggle("unset", !folderChosen() && !(S && S.project)); chip.title = folderChosen() ? S.prefs.folder : "Pick the folder Blaze works in (optional)"; };
+    paintChip();
+    chip.onclick = async () => { const d = await API().PickFolder(); if (d) { S.prefs.folder = d; setFolder(d); } paintChip(); };
+    const fit = () => { ta.style.height = "auto"; ta.style.height = Math.min(220, ta.scrollHeight) + "px"; };
+    ta.addEventListener("input", fit);
+    ta.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); f.requestSubmit(); } });
+    f.onsubmit = async e => {
+      e.preventDefault(); const t = ta.value.trim(); if (!t || f.classList.contains("wait")) return;
+      f.classList.add("wait");
+      try { if (window.Perms) await Perms.gate("folder", t, $(".hpermslot", el)); } finally { f.classList.remove("wait"); }
+      paintChip(); askBlaze(t, false, true);
+    };
+    return f;
+  }
+
+  // Three starters that answer on a fresh install: the web, the folder (when there is one), this PC.
+  function starters() {
+    return [["Weather", "What's the weather here this weekend?"],
+      folderChosen() ? ["Explore", "What's in this folder? Give me a short tour."] : ["News", "What's new in AI this week? Five short bullets."],
+      ["This PC", "How much disk space is left, and what's using the most?"]];
+  }
+  function startersEl() {
+    const g = h("div", "hstarters");
+    starters().forEach(([k, t]) => {
+      const b = h("button", "hstarter", `<span class="label">${esc(k)}</span><span class="t">${esc(t)}</span>`);
+      b.onclick = () => askBlaze(t, false, true);
+      g.append(b);
+    });
+    return g;
+  }
+
+  // Recent chats: the one conversation and project chats, then chats from before one mind.
+  async function recents(box) {
+    let list = [], arch = [];
+    try { list = await API().Conversations("") || []; } catch (e) {}
+    try { arch = API().ArchivedConversations ? await API().ArchivedConversations() || [] : []; } catch (e) {}
+    const rows = [...list.map(c => ({ t: c.id === "main" ? "Chat" : c.title || "Untitled", d: c.id === "main" ? "Your one conversation" : "", w: c.updated || "", go: () => c.id === "main" ? Shell.go("chat") : openChat(c.id) })),
+      ...arch.map(c => ({ t: c.title || "Untitled", d: "Earlier chat", w: c.updated || "", go: () => show("archive", c.id) }))].slice(0, 5);
+    if (!box.isConnected || !rows.length) return;
+    box.append(h("div", "hrhead", `<span class="label">Recent</span><span class="grow"></span><button class="btn ghost xs hall">${icon("chev", "i sm")}<span>All chats</span><span class="kbd">Ctrl K</span></button>`));
+    $(".hall", box).onclick = () => Shell.search();
+    const ul = h("div", "hrecrows");
+    rows.forEach(r => {
+      const b = h("button", "hrecrow", `<span class="t">${esc(r.t)}</span>${r.d ? `<span class="d">${esc(r.d)}</span>` : ""}<span class="grow"></span><span class="w">${esc(r.w)}</span>`);
+      b.onclick = r.go; ul.append(b);
+    });
+    box.append(ul);
   }
 
   function stamp() {
@@ -86,8 +169,13 @@ const Home = (() => {
   function draw() {
     const board = el && $(".hboard", el); if (!board) return;
     board.innerHTML = "";
+    const cards = el && $(".hcards", el);
+    if (cards) cards.classList.toggle("none", !H.stacks.length);
     if (!H.stacks.length) {
-      board.append(h("div", "empty hempty", "<b>Your board is empty</b>Add a card in plain words, like “weather in Lusaka”, “bitcoin price” or “Arsenal scores”."));
+      // No cards yet: keep the feature one click away, without an empty board on Home.
+      const add = h("button", "btn ghost xs haddfirst", `${icon("plus", "i sm")}<span>Add a Home card</span><span class="weak">weather, prices, scores, news</span>`);
+      add.dataset.pop = "1"; add.onclick = e => { e.stopPropagation(); addPop(e.currentTarget); };
+      board.append(add);
       return;
     }
     H.stacks.forEach(s => board.append(stackEl(s)));
@@ -250,11 +338,12 @@ const Home = (() => {
   }
 
   // Questions from Home go to the one conversation, like mobile's "The answer is in Chat".
-  async function askBlaze(text, draft) {
+  async function askBlaze(text, draft, fromHome) {
     await Shell.go("chat");
     const i = $("#input"); if (!i) return;
     i.value = text; grow(); sendLabel();
     if (draft) { i.focus(); i.setSelectionRange(text.length, text.length); return; }
+    if (fromHome && window.Perms) Perms.skipNext(); // the folder ask already happened on Home (set only right before the send, so it can't go stale)
     submit();
   }
 
@@ -265,6 +354,6 @@ const Home = (() => {
 
   window.VIEWS = window.VIEWS || {};
   window.VIEWS.home = homeView;
-  return { load, refresh, reload, state: H };
+  return { load, refresh, reload, starters, state: H };
 })();
 window.Home = Home;

@@ -110,3 +110,21 @@ func TestTokenSavings(t *testing.T) {
 		t.Errorf("tool list too big: %d vs %d", afterTools, beforeTools)
 	}
 }
+
+// A message naming a CSV turns the CSV tools on before the turn (a Cloud run's tools are fixed at start).
+func TestActivateForCSV(t *testing.T) {
+	testHome(t, t.TempDir())
+	for _, n := range []string{"csv_report", "csv_summary"} {
+		if _, ok := registry[n]; !ok {
+			Register(n, "test "+n, nil, nil, func(e *Env, a map[string]any) string { return "ok" })
+		}
+	}
+	SyncIndex()
+	if got := ActivateFor("chat:a", "What's the capital of Zambia?"); len(got) != 0 || names(Select("chat:a"))["csv_report"] {
+		t.Fatalf("turned on without a CSV: %v", got)
+	}
+	ActivateFor("chat:b", "Make a CSV report of sales-4.csv in this folder")
+	if s := names(Select("chat:b")); !s["csv_report"] || !s["csv_summary"] {
+		t.Fatalf("csv tools not on: %v", s)
+	}
+}

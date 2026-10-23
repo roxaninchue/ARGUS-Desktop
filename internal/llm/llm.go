@@ -363,12 +363,10 @@ func ParseStream(r io.Reader, onText func(string), tick func()) (*Result, error)
 	sc := bufio.NewScanner(r)
 	sc.Buffer(make([]byte, 1024*1024), 16*1024*1024)
 	for sc.Scan() {
-		if tick != nil {
-			tick()
-		}
 		line := strings.TrimSpace(sc.Text())
 		if !strings.HasPrefix(line, "data:") {
-			continue
+			continue // keep-alive comments and blank lines are not progress (live 0.19.14: a
+			// stream that only pinged kept a turn waiting for minutes)
 		}
 		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
 		if data == "[DONE]" {
@@ -377,6 +375,9 @@ func ParseStream(r io.Reader, onText func(string), tick func()) (*Result, error)
 		var ch chunk
 		if json.Unmarshal([]byte(data), &ch) != nil {
 			continue
+		}
+		if tick != nil && chunkProgress(ch, data) {
+			tick() // only real output resets the stall watchdog, never an empty heartbeat chunk
 		}
 		if len(ch.Error) > 0 && string(ch.Error) != "null" {
 			msg := cleanErr(`{"error":` + string(ch.Error) + `}`)
@@ -453,6 +454,27 @@ func ParseStream(r io.Reader, onText func(string), tick func()) (*Result, error)
 		res.ToolCalls = keep
 	}
 	return res, nil
+}
+
+// chunkProgress is a stream chunk that carries output: text, a tool call, a finish, usage, an
+// error or reasoning. An empty delta ({"delta":{}}) or a role-only one is a heartbeat.
+func chunkProgress(ch chunk, raw string) bool {
+	if ch.Usage != nil || (len(ch.Error) > 0 && string(ch.Error) != "null") || strings.Contains(raw, `"reasoning`) {
+		return true
+	}
+	for _, c := range ch.Choices {
+		if c.FinishReason != nil && *c.FinishReason != "" {
+			return true
+		}
+		d := c.Delta
+		if d == nil {
+			d = c.Message
+		}
+		if d != nil && ((d.Content != nil && *d.Content != "") || (len(d.ToolCalls) > 0 && string(d.ToolCalls) != "null")) {
+			return true
+		}
+	}
+	return false
 }
 
 func parseWhole(r io.Reader, onText func(string)) (*Result, error) {

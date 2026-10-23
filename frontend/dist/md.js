@@ -16,8 +16,9 @@
   }
 
   // ---------- v0.17.1 rich replies ----------
-  const IMG = /!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)/g;
-  const IMGLINE = /^\s*(!\[[^\]]*\]\(https:\/\/[^\s)]+\)\s*)+$/;
+  // W2: /csvkit/chart/<id>.png is a chart csv_report drew on this computer (asset server).
+  const IMG = /!\[([^\]]*)\]\((https:\/\/[^\s)]+|\/csvkit\/chart\/[0-9a-f]{16}\.(?:png|svg))\)/g;
+  const IMGLINE = /^\s*(!\[[^\]]*\]\((https:\/\/[^\s)]+|\/csvkit\/chart\/[0-9a-f]{16}\.(?:png|svg))\)\s*)+$/;
   const FLOW = /^\*\*([^*]+)\*\*\s*[:.\u2014\u2013-]?\s*(.*)$/;
   // Low-data mode: no pictures or diagrams (they stay as text); MD.opts can switch parts off.
   const opts = { images: true, diagrams: true, flow: true };

@@ -84,3 +84,53 @@
 .hpop .hex .chip { max-width: none; height: 26px; font: 12px var(--sans); }
 .htoast { position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 50; padding: 10px 18px; color: var(--ink); font-size: 13px;
   background: var(--chrome); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: var(--shadow-lg); }
+
+/* v0.19.14 Home: one big chat input under the orb, three starters, recent chats; the card board
+   follows once it has cards. Same glass and theme tokens as the rest of Blaze. */
+.hcol.hhome { max-width: 760px; padding-top: clamp(8px, 5vh, 56px); }
+.hhero { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.hhero .ph { min-width: 0; }
+.hmorb { display: block; flex: none; }
+.hhero .hgreet { font-size: 30px; margin: 4px 0 0; overflow-wrap: anywhere; }
+.hask.hbig { display: block; height: auto; padding: 14px 12px 10px 18px; margin-bottom: 12px; }
+.hask.hbig .hinput { display: block; width: 100%; min-height: 50px; height: auto; resize: none; padding: 2px 0; font: 15.5px/1.5 var(--sans); }
+.hask.hbig.wait { opacity: .75; }
+.hkbar { display: flex; align-items: center; gap: 8px; margin-top: 8px; min-width: 0; }
+.hfolder { max-width: min(300px, 55%); min-width: 0; }
+.hfolder span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hfolder.unset { color: var(--sub); border-style: dashed; }
+.hkeys { font-size: 10px; white-space: nowrap; }
+.hpermslot:empty { display: none; }
+.hstarters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 22px; }
+.hstarter { display: grid; gap: 4px; align-content: start; text-align: left; padding: 11px 14px; min-width: 0; border-radius: var(--r-md); border: 1px solid var(--g-hair);
+  background: linear-gradient(180deg, var(--glass-fill-strong), var(--glass-fill)); box-shadow: inset 0 1px 0 var(--glass-rim-top); color: var(--body); cursor: pointer; transition: border-color .12s, transform .12s; }
+:root:not([data-theme=dark]) .hstarter { background: rgba(255,255,255,.55); }
+.hstarter:hover { border-color: var(--hair2); transform: translateY(-1px); }
+.hstarter:hover .label { color: var(--accent); }
+.hstarter .label { font-size: 9.5px; }
+.hstarter .t { color: var(--ink); font-size: 13px; line-height: 1.38; }
+.hrhead { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.hrhead .kbd { margin-left: 4px; }
+.hrecrows { display: grid; }
+.hrecrow { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; margin: 0 -10px; min-width: 0; border-radius: var(--r-sm); text-align: left; color: var(--body); cursor: pointer; }
+.hrecrow:hover { background: var(--faint2); }
+.hrecrow .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); font-size: 13.5px; }
+.hrecrow .d, .hrecrow .w { flex: none; white-space: nowrap; color: var(--weak); font-size: 12px; }
+.hrecrow .w { font-family: var(--mono); font-size: 11px; }
+.hcards { margin-top: 22px; }
+.hcardshead { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.hcardshead .hstamp { font-size: 11.5px; }
+.hcards.none { margin-top: 14px; }
+.hcards.none .hcardshead { display: none; }
+.hcards.none .hboard { display: block; }
+.haddfirst { margin-left: -8px; }
+.haddfirst .weak { color: var(--weak); margin-left: 4px; }
+.hhint { margin-top: 22px; text-align: center; }
+/* The top bar's folder chip repeats the one in the input on Home. */
+body.mode-home #folder { display: none; }
+@media (max-width: 720px) {
+  .hstarters { grid-template-columns: 1fr; gap: 6px; margin-bottom: 18px; }
+  .hstarter { padding: 9px 12px; }
+  .hkeys, .hrecrow .d, .haddfirst .weak { display: none; }
+  .hhero .hgreet { font-size: 25px; }
+}

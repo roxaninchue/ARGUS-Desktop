@@ -217,3 +217,9 @@ body.shell .inbox:not(.has-text):not(.busy) #mic.rec ~ #send { display: none; }
 body.orb.shell #app, body.orb.shell.mode-chat #app { grid-template-columns: 1fr; }
 /* the hint never sits over what you type */
 .inbox.has-text .phint, .ifield:has(#input:not(:placeholder-shown)) .phint { display: none; }
+
+/* v0.19.14 less clutter: three tries on an empty chat, and no "Earlier chats" bar above it
+   (earlier chats are on Home's Recent list and in Search). */
+.suggest.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18px; }
+@media (max-width: 720px) { .suggest.three { grid-template-columns: 1fr; } }
+#log .col:has(> .hero) > .olderbar { display: none; }

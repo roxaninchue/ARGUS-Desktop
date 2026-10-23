@@ -457,23 +457,17 @@ function hero() {
     col.append(box); particleOrb(cv, 180);
     return;
   }
-  const os = S.info.os_name || "your computer";
-  const where = S.project ? S.project.name : os;
-  // v0.17.1: mobile's greeting (time of day and your name), then the tries as rounded cards.
+  // v0.19.14 less clutter: the greeting, one line, three tries (the same starters as Home). The OS
+  // label, the shortcut hint and the "Try" label are gone; the project name stays inside a project.
   const hr = new Date().getHours();
   const hello = hr >= 5 && hr < 12 ? "Good morning" : hr >= 12 && hr < 17 ? "Good afternoon" : "Good evening";
   const who = (typeof ACCT !== "undefined" && ACCT && ACCT.signed_in && ACCT.user && (ACCT.user.name || "").trim().split(/\s+/)[0]) || "";
   const box = h("div", "hero");
-  box.innerHTML = `<img class="hmark" src="logo.svg" alt=""><div class="label acc">${esc(where)}</div><div class="big">${esc(hello)}${who ? `, ${esc(who)}` : ""}.</div>
-    <p class="lead">What should we get done? Blaze runs commands, edits files here, writes code, uses git and the web. Visual work opens live in Design. Type <span class="kbd">/</span> for commands or <span class="kbd">@</span> to attach a file.</p>`;
-  const dk = S.desktop || {};
-  if (dk.hotkey_ok && dk.hotkey_label) box.append(h("div", "hkhint label weak", `Press <span class="kbd">${esc(dk.hotkey_label)}</span> anywhere for quick ask`));
-  box.append(h("div", "label trylabel", "Try"));
-  const sug = h("div", "suggest");
-  [["Explore", "What's in this folder? Give me a short tour."],
-   ["Fix", "Run the tests here and fix whatever fails."],
-   ["Design", "Suggest 3 directions for a clean landing page for this project."],
-   ["System", "How much disk space is left, and what's using the most?"]].forEach(([k, t]) => {
+  box.innerHTML = `<img class="hmark" src="logo.svg" alt="">${S.project ? `<div class="label acc">${esc(S.project.name)}</div>` : ""}<div class="big">${esc(hello)}${who ? `, ${esc(who)}` : ""}.</div>
+    <p class="lead">What should we get done? Type <span class="kbd">/</span> for commands or <span class="kbd">@</span> to attach a file.</p>`;
+  const sug = h("div", "suggest three");
+  const tries = window.Home && Home.starters ? Home.starters() : [["Explore", "What's in this folder? Give me a short tour."], ["Fix", "Run the tests here and fix whatever fails."], ["System", "How much disk space is left, and what's using the most?"]];
+  tries.forEach(([k, t]) => {
     const b = h("button", "", `<span class="label">${k}</span><span>${esc(t)}</span>`);
     b.onclick = () => { $("#input").value = t; submit(); };
     sug.append(b);
@@ -991,10 +985,42 @@ on("confirm", c => {
 });
 on("done", d => {
   thinking(false);
-  if (current) { renderAnswer(current, true); finishWork(current, d && d.seconds); routeMeta(current, d); if (d && d.cut) cutRow(current.el, "The reply was cut off"); }
+  // v0.19.14: an ack ("Got it, … I'll confirm when it's set.") is a plain Blaze bubble: no meta row.
+  if (current && d && d.ack) { renderAnswer(current, true); finishWork(current); current.el.classList.add("ack"); }
+  else if (current) { renderAnswer(current, true); finishWork(current, d && d.seconds); routeMeta(current, d); if (d && d.cut) cutRow(current.el, "The reply was cut off"); }
   if (d && d.route) setModel(d.route);
   window.__lastReply = current && current.el; current = null; setBusy(false); scrollDown(); refreshSide();
 });
+// v0.19.14: a background run's final (Done ✓ … / Couldn't finish …) lands as its own plain Blaze
+// message in its chat, even while another answer is on its way.
+function bgFinalBubble(text, kind) {
+  const el = h("div", "msg blaze bgfinal" + (kind ? " " + kind : "")); el.dataset.at = stampNow();
+  el.append(h("div", "who", `<span class="mk"></span><span class="label">Blaze</span>`));
+  const workEl = h("button", "work"); workEl.style.display = "none";
+  const stepsEl = h("div", "steps"); stepsEl.style.display = "none";
+  const mdEl = h("div", "md");
+  el.append(workEl, stepsEl, mdEl);
+  const t = { el, workEl, stepsEl, mdEl, text: String(text || ""), steps: {}, order: [], started: Date.now(), open: false, finished: true };
+  el.__turn = t;
+  renderAnswer(t, true);
+  return el;
+}
+on("blaze_msg", m => {
+  if (!m || !m.text) return;
+  if (m.conv && convId && m.conv !== convId) { refreshSide(); return; } // saved in its own chat
+  const col = $("#log .col", pane); if (!col) return;
+  const el = bgFinalBubble(m.text, m.kind);
+  if (current && current.el && current.el.parentNode === col) col.insertBefore(el, current.el); else col.append(el);
+  scrollDown(); refreshSide();
+});
+// Focus decides whether a final also sends a desktop notification (only when Blaze isn't focused).
+(() => {
+  const tell = () => { try { API().SetFocused(document.hasFocus() && !document.hidden); } catch (e) {} };
+  window.addEventListener("focus", tell); window.addEventListener("blur", tell);
+  document.addEventListener("visibilitychange", tell);
+  try { const tz = Intl.DateTimeFormat().resolvedOptions().timeZone; if (tz) API().SetTimeZone(tz); } catch (e) {}
+  setTimeout(tell, 500);
+})();
 on("error", e => {
   thinking(false);
   if (current) { if (current.text) renderAnswer(current, true); finishWork(current); }

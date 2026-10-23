@@ -62,6 +62,8 @@ type Prefs struct {
 	OnboardStep    int  `json:"onboard_step"`    // first-run onboarding: the step to resume at
 	OnboardSkipped bool `json:"onboard_skipped"` // onboarding was skipped or finished; don't open it by itself
 
+	Perms PermPrefs `json:"perms"` // v0.19.14 just-in-time permission answers (permissions.go)
+
 	MemoryAISort *bool `json:"memory_ai_sort,omitempty"` // let a model sort new memories into categories (default on)
 
 	Composer   ComposerPrefs `json:"composer"`              // work mode, approval mode, voice (modes.go)
@@ -149,6 +151,7 @@ func (a *App) startup(ctx context.Context) {
 	a.startConnectors()
 	a.startCloud()
 	a.startCloudModels() // v0.19: Blaze Cloud by default, or Custom (cloudmodels_app.go)
+	a.startBgRuns()      // v0.19.14: ack now, work in background, report when done (runs_app.go)
 	a.startComposer()
 	a.startAgents()
 	a.startShell()
@@ -567,6 +570,9 @@ func (a *App) SendWith(text string, files []string, att []llm.Attach) string {
 	// kept) and is answered at once. Turns in other chats keep running in the background.
 	s := a.screen()
 	if s.main().Busy() {
+		a.mu.Lock()
+		s.detach = true // a Cloud run being waited on moves to the background (runs_app.go)
+		a.mu.Unlock()
 		a.Stop()
 	}
 	if s.main().Submit(agents.Input{Kind: "user", Text: b.String(), Attach: att}) {
@@ -652,6 +658,9 @@ func (a *App) run(ctx context.Context, s *session) {
 			}
 			a.temit(s, "error", fmt.Sprint("Blaze hit an internal error: ", r))
 		}
+		if s.bg != nil {
+			return // a background shadow turn (runs_app.go): its final is delivered by localBg
+		}
 		a.endSession(s)
 		a.saveConv(s)
 		a.mu.Lock()
@@ -696,7 +705,9 @@ func (a *App) run(ctx context.Context, s *session) {
 		full := append([]llm.Message(nil), s.hist...)
 		a.mu.Unlock()
 		hist, longExtra := a.longContext(ctx, s, full) // brief + rolling summary + recent turns (longchat_app.go)
+		hist = dropAcks(hist)                          // ack bubbles are for the user, never the model (runs_app.go)
 		conv := "chat:" + s.id
+		tools.ActivateFor(conv, lastUserText(hist)) // e.g. csv_report for "report on x.csv"
 		q := recentQuery(hist)
 		sys := promptOrder(a.systemStable(q), agents.Delegation+agents.Orchestration+longChatLine, a.systemLive(q), tools.ExtraLine(conv), longExtra, note)
 		private := isPrivate(s.id)
@@ -1052,6 +1063,16 @@ func (a *App) DefaultPersonality() string { return defaultPersonality }
 
 // recentQuery is what the memory and skill search looks for this turn: the last
 // few user messages and the last reply, oldest first (the search favours the newest words).
+// lastUserText is the newest user message's text ("" when there is none).
+func lastUserText(h []llm.Message) string {
+	for i := len(h) - 1; i >= 0; i-- {
+		if h[i].Role == "user" {
+			return h[i].Content
+		}
+	}
+	return ""
+}
+
 func recentQuery(h []llm.Message) string {
 	var parts []string
 	users, replies := 0, 0

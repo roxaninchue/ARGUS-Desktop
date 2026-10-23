@@ -55,7 +55,7 @@ func main() {
 		MinWidth:         760,
 		MinHeight:        520,
 		BackgroundColour: &options.RGBA{R: 252, G: 252, B: 252, A: 255},
-		AssetServer:      &assetserver.Options{Assets: assets, Handler: mediaHandler()}, // /media/*: Music + Video files (media_app.go)
+		AssetServer:      &assetserver.Options{Assets: assets, Handler: csvChartHandler(mediaHandler())}, // /media/*: Music + Video files (media_app.go); /csvkit/chart/*: CSV report charts (csv_app.go)
 		OnStartup:        app.startup,
 		OnShutdown:       app.shutdown,
 		OnBeforeClose:    func(ctx context.Context) bool { return app.beforeClose(ctx) },

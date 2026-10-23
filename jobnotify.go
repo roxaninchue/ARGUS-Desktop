@@ -17,7 +17,7 @@ func jobNotify(name string, code int) {
 	var p Prefs
 	b, _ := os.ReadFile(filepath.Join(config.Dir(), "desktop.json"))
 	_ = json.Unmarshal(b, &p)
-	if p.Notify.Off || p.Notify.NoJobs {
+	if p.Notify.Off || p.Notify.NoJobs || notifyDenied(p, "job") {
 		return
 	}
 	c := notify.Load()

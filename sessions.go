@@ -26,7 +26,9 @@ type session struct {
 	cancel  context.CancelFunc
 	ml      *agents.Mainline
 	app     *App
-	ctxFrom int // /clear: the model's context starts at this message (the transcript keeps everything)
+	ctxFrom int     // /clear: the model's context starts at this message (the transcript keeps everything)
+	detach  bool    // v0.19.14: a new message came in mid-turn: a Cloud run moves to the background
+	bg      *bgSink // v0.19.14: a background shadow of a chat (runs_app.go): events go here, never to the screen
 }
 
 // tenv is the env this chat's tools run in.
@@ -151,6 +153,10 @@ func (a *App) Live() []string {
 // temit sends a turn's event to the chat view only when that chat is on screen. A
 // chat in the background still saves everything; the user sees it when they open it.
 func (a *App) temit(s *session, ev string, d any) {
+	if s != nil && s.bg != nil {
+		s.bg.event(ev, d) // a background shadow turn: nothing reaches the screen (runs_app.go)
+		return
+	}
 	if eventTap != nil {
 		eventTap(ev, d) // tests: App.run's events port (run_script_test.go)
 	}

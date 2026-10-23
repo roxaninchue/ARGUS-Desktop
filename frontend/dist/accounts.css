@@ -221,3 +221,45 @@ body.onboarding #app { visibility: hidden; }
 .spage .ucard:not(.compact), .ucard:not(.compact) { margin-bottom: 24px; }
 .callout.soonnote { margin-bottom: 22px; }
 .toast .sq { background: var(--on-ink); }
+
+/* v0.19.14 onboarding: two steps in one glass panel (orb, title, one control, next). */
+#onboard { display: grid; grid-template-columns: none; place-items: center; padding: 24px; overflow: auto; --wails-draggable: drag; }
+.obpanel { width: min(580px, 100%); max-height: calc(100vh - 48px); display: flex; flex-direction: column; min-height: 0; --wails-draggable: no-drag;
+  border: 1px solid var(--g-hair); border-radius: var(--r-card); background: linear-gradient(180deg, var(--glass-fill-strong), var(--glass-fill));
+  box-shadow: inset 0 1px 0 var(--glass-rim-top), var(--glass-shadow); backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2); }
+:root:not([data-theme=dark]) .obpanel { background: rgba(255,255,255,.7); }
+.obpanel .obtop { height: 52px; padding: 0 12px 0 18px; border-bottom: 1px solid var(--hair); }
+.os-windows .obpanel .obtop { padding-right: 12px; }
+.obpanel .obtop .logo { width: 20px; height: 20px; }
+.obpanel .obtop .bname { font: 600 14px var(--display); color: var(--ink); }
+.obdots { display: inline-flex; gap: 5px; margin-left: 6px; }
+.obdots span { width: 18px; height: 4px; border-radius: 2px; background: var(--hair2); }
+.obdots .on { background: var(--accent); } .obdots .done { background: var(--accent); opacity: .5; }
+.obcount { white-space: nowrap; }
+.obpanel .obbody { flex: 1; min-height: 0; overflow-y: auto; max-width: none; margin: 0; padding: 22px 24px 18px; display: block; }
+.obhead { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.obhead .oborb { flex: none; margin: 0; }
+.obht { min-width: 0; }
+.obbody .obhead h1 { font: 600 26px/1.15 var(--display); margin: 0 0 6px; }
+.obbody .obhead .lead { margin: 0; font-size: 13.5px; }
+.obsign.signbox { padding: 16px; gap: 10px; box-shadow: none; border-radius: var(--r-md); }
+.obsign > .label, .obsign > h2, .obsign > p.sub { display: none; }
+.obsign .obtn { height: 38px; }
+.obsign .switch { margin-top: -2px; }
+.signbox .switch .sw { width: auto; height: auto; box-shadow: none; } /* studio.css's colour-swatch .sw squeezed "Create an account" */
+.obok, .obfolder { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 12px 14px; border: 1px solid var(--hair2); border-radius: var(--r-md); background: var(--raised); color: var(--body); }
+.obpath { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.obfolder .btn { flex: none; }
+.obnav .obown { margin: 0; }
+.obpanel .obnav { padding: 12px 18px; border-radius: 0 0 var(--r-card) var(--r-card); border-left: 0; border-right: 0; border-bottom: 0; margin: 0; flex: none; }
+@media (max-width: 640px), (max-height: 660px) {
+  #onboard { padding: 12px; }
+  .obpanel { max-height: calc(100vh - 24px); }
+  .obpanel .obbody { padding: 16px 18px 14px; }
+  .obhead { gap: 12px; margin-bottom: 14px; }
+  .obhead .oborb { width: 48px !important; height: 48px !important; }
+  .obbody .obhead h1 { font-size: 22px; }
+  .obcount { display: none; }
+  .obsign.signbox { padding: 12px 14px; gap: 7px; }
+  .obsign .obtn { height: 34px; }
+}

@@ -6,6 +6,9 @@
 const Shell = (() => {
   const TABS = ["home", "chat", "projects"];
   let mode = TABS.includes(localStorage.getItem("blaze-shell-mode")) ? localStorage.getItem("blaze-shell-mode") : "home";
+  // The tab to open at launch, read before boot's first refreshSide() overwrites the saved one
+  // (v0.19.14 fix: launch always landed on Chat). Home unless the user last left Chat open.
+  const launch = mode === "chat" ? "chat" : "home";
   const AV = '<svg class="i" viewBox="0 0 16 16"><circle cx="8" cy="6" r="2.75"/><path d="M2.75 14c.6-2.6 2.7-4 5.25-4s4.65 1.4 5.25 4"/></svg>';
   const SEARCH = '<svg class="i sm" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3.5 3.5"/></svg>';
 
@@ -148,12 +151,14 @@ const Shell = (() => {
       row(icon("route", "i sm"), "Model", ($("#routeText") || {}).textContent || "", () => { closePop(); modelPopover(anchor); });
       row(icon(dark ? "moon" : "sun", "i sm"), "Theme", dark ? "Dark · click for light" : "Light · click for dark", () => { const t = $("#themeBtn"); if (t) t.click(); closePop(); });
       row(icon("grid", "i sm"), "All views", "Memory, Jobs, Schedule, Accounts, Doctor…", () => { closePop(); BlazeViews.picker(); });
+      if (window.BlazeMusic) row(BlazeMusic.mi("note", "i sm"), "Music", "Your songs, playlists, the Store", () => { closePop(); show("music"); });
+      if (window.VIEWS && VIEWS.video) row(window.BlazeMusic ? BlazeMusic.mi("film", "i sm") : icon("open", "i sm"), "Video", "Your videos, series, subtitles", () => { closePop(); show("video"); });
       row(icon("dl", "i sm"), "Check for updates", UPD && UPD.available ? "A new version is ready" : "", () => { closePop(); show("settings", "updates"); });
       if (acct && acct.signed_in) row(icon("x", "i sm"), "Sign out", "", async () => { closePop(); await API().AccountSignOut(); if (typeof loadAccount === "function") await loadAccount(); });
     }, { width: 300 });
   }
 
-  return { build, sync, setMode, go, search, tabOf, get mode() { return mode; } };
+  return { build, sync, setMode, go, search, tabOf, get mode() { return mode; }, get launch() { return launch; } };
 })();
 window.Shell = Shell;
 // Two icons the shell needs that app.js didn't have.

@@ -92,10 +92,19 @@ func (a *App) topicContext(ctx context.Context, s *session, hist []llm.Message, 
 			break
 		}
 	}
-	evs := st.Segment(hist, topics.SegOpts{Judge: a.topicJudge(ctx), JudgeFrom: lastUser, Clean: topicClean})
+	// A background run's request also skips the topic judge (a small model call, ~1 s): the ack
+	// waits on this request (live 0.19.14 N1 run 1: ack 1.4-1.6 s on a new subject, 0.2 s after);
+	// the lexical placement is used instead.
+	judge := a.topicJudge(ctx)
+	if skipFold(ctx) {
+		judge = nil
+	}
+	evs := st.Segment(hist, topics.SegOpts{Judge: judge, JudgeFrom: lastUser, Clean: topicClean})
 	budget := longchat.Budget(a.contextWindow())
 	// Fold the active topic's older turns into its note (in batches, never redone).
-	if chunk, start, upto, ok := st.FoldChunk(hist, st.Active, budget); ok {
+	// A background run's request skips the fold (a model call, ~3-4 s): the ack waits on this
+	// request, so the next classic turn folds instead (live 0.19.14 N3 run 5: ack at 3.8 s).
+	if chunk, start, upto, ok := st.FoldChunk(hist, st.Active, budget); ok && !skipFold(ctx) {
 		a.temit(s, "status", "Updating the topic note")
 		t := st.Get(st.Active)
 		note, err := a.topicNote(ctx, t.Title, t.Note, chunk, start)
@@ -248,3 +257,12 @@ func (a *App) carryToMind(st *topics.State, cs []topics.Carry) {
 		}
 	}()
 }
+
+type skipFoldKey struct{}
+
+// withSkipFold marks ctx as a request that must not wait on the topic-note fold.
+func withSkipFold(ctx context.Context) context.Context {
+	return context.WithValue(ctx, skipFoldKey{}, true)
+}
+
+func skipFold(ctx context.Context) bool { v, _ := ctx.Value(skipFoldKey{}).(bool); return v }
