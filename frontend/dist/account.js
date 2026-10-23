@@ -179,7 +179,7 @@ function signinForm(onDone) {
     <div class="oauthbtns"></div>
     <div class="ordiv"><span class="label weak">or with email</span></div>
     <form class="formgrid signform" autocomplete="on">
-      <div class="fg nm" ${up ? "" : "hidden"}><label class="label">Name <span class="weak">optional</span></label><input class="field" name="name" autocomplete="name" placeholder="Luke"></div>
+      <div class="fg nm" ${up ? "" : "hidden"}><label class="label">Name <span class="weak">optional</span></label><input class="field" name="name" autocomplete="name" placeholder="Your name"></div>
       <div class="fg"><label class="label">Email</label><input class="field" name="email" type="email" autocomplete="email" placeholder="you@example.com" required></div>
       <div class="fg"><label class="label">Password</label><input class="field" name="password" type="password" autocomplete="${up ? "new-password" : "current-password"}" placeholder="${up ? "At least 8 characters" : "Your password"}" required></div>
       <div class="out small" role="alert"></div>

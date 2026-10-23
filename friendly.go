@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/lacksonkapapahue/blaze-desktop/internal/runevents"
 )
 
 // plainRe: a model-written step summary that reads as words, not a command.
@@ -22,6 +24,24 @@ func friendlyTool(name, rawArgs string) string {
 	v := func(k string) string {
 		s, _ := a[k].(string)
 		return strings.TrimSpace(strings.SplitN(s, "\n", 2)[0])
+	}
+	// first non-empty of keys, clipped for a pill line
+	vs := func(n int, keys ...string) string {
+		for _, k := range keys {
+			if x := v(k); x != "" {
+				if r := []rune(x); len(r) > n {
+					x = strings.TrimSpace(string(r[:n-1])) + "…"
+				}
+				return x
+			}
+		}
+		return ""
+	}
+	with := func(prefix, obj, alone string) string {
+		if obj == "" {
+			return alone
+		}
+		return prefix + obj
 	}
 	file := func() string {
 		p := v("path")
@@ -95,14 +115,84 @@ func friendlyTool(name, rawArgs string) string {
 		s = "Checking a background job"
 	case "job_stop":
 		s = "Stopping a background job"
+	case "csv_report":
+		switch g, val := vs(20, "group_by"), vs(20, "value"); {
+		case g != "" && val != "":
+			s = "Charting " + val + " by " + g
+		case g != "":
+			s = "Charting " + orStr(baseOf(v("path")), "your CSV") + " by " + g
+		default:
+			s = with("Making a report from ", baseOf(v("path")), "Making your CSV report")
+		}
+	case "csv_summary":
+		s = "Writing your summary"
+	case "memory_save", "memory_update":
+		s = with("Remembering ", vs(40, "subject"), "Saving that to memory")
+	case "memory_search":
+		s = with("Checking what I remember about ", vs(30, "query"), "Checking what I remember")
+	case "schedule_add", "reminder_add", "set_reminder":
+		switch t, at := vs(36, "text", "title", "what", "message", "task"), vs(16, "at", "when", "time"); {
+		case t != "":
+			s = "Setting a reminder to " + strings.TrimPrefix(t, "to ")
+		case at != "":
+			s = "Setting a reminder for " + at
+		default:
+			s = "Setting up a reminder"
+		}
+	case "get_weather":
+		s = with("Checking the weather in ", vs(30, "place", "location", "city"), "Checking the weather")
+	case "search_chat":
+		s = with("Looking back through this chat for ", vs(24, "query"), "Looking back through this chat")
+	case "read_turn", "read_artifact":
+		s = "Rereading an earlier result"
+	case "open_view":
+		s = with("Opening ", vs(20, "view"), "Opening a view")
+	case "update_brief":
+		s = "Updating the project brief"
+	case "music_play":
+		s = with("Playing ", vs(36, "query", "song", "title", "artist"), "Playing music")
+	case "media_download":
+		s = "Downloading your media"
+	case "dispatch_specialist":
+		s = runevents.HelpLine(false, orStr(v("brief"), v("task")), "", v("name"))
+	case "message_specialist":
+		s = runevents.HelpLine(false, v("message"), "", v("name"))
+	case "check_specialist":
+		s = "Checking on the work in progress"
+	case "cancel_specialist":
+		s = "Stopping part of the work"
+	case "apply_specialist":
+		s = "Bringing in the reviewed changes"
+		if v("action") == "discard" {
+			s = "Setting aside the reviewed changes"
+		}
 	default:
-		s = "Working on it"
+		// an unknown tool still names its real object when the call has one
+		switch {
+		case v("summary") != "" && plainRe.MatchString(v("summary")):
+			s = strings.ToUpper(v("summary")[:1]) + v("summary")[1:]
+		case v("path") != "":
+			s = "Working on " + baseOf(v("path"))
+		case v("query") != "":
+			s = `Looking up "` + vs(36, "query") + `"`
+		case v("url") != "":
+			s = "Working with " + hostOf(v("url"))
+		default:
+			s = "Working on it"
+		}
 	}
 	if utf8.RuneCountInString(s) > 60 {
 		r := []rune(s)
 		s = string(r[:59]) + "…"
 	}
 	return s
+}
+
+func baseOf(p string) string {
+	if p == "" {
+		return ""
+	}
+	return filepath.Base(filepath.FromSlash(p))
 }
 
 func hostOf(s string) string {

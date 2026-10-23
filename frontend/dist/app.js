@@ -141,10 +141,11 @@ function setFolder(path) {
 function setModel(label, sel) {
   if (sel) S.selection = sel;
   if (label && window.CloudModels && CloudModels.on()) label = "Blaze Cloud"; // never a provider or model (v0.19.1)
+  if (label && window.PRIVACY) label = PRIVACY.route(label); // 0.19.16: nor with your own keys, unless the developer flag is on
   const t = $("#routeText"); if (!t) return;
   t.textContent = label || (S.selection && S.selection.auto ? "Auto · add a model" : "No model");
   $("#routeDot").className = "dot" + (label ? "" : " off");
-  $("#route").title = (S.selection && S.selection.auto ? "Auto (free routing)" : "Default: " + (S.selection?.label || "")) + " · click to switch";
+  $("#route").title = (S.selection && S.selection.auto ? "Auto (free routing)" : "Default: " + (window.PRIVACY ? PRIVACY.route(S.selection?.label || "") : (S.selection?.label || ""))) + " · click to switch";
 }
 
 $("#folder").onclick = async () => { const d = await API().PickFolder(); S.prefs.folder = d; setFolder(d); };
@@ -255,7 +256,7 @@ async function modelPopover(anchor) {
     auto.onclick = async () => { const l = await API().SelectModel("auto", ""); setModel(l); closePop(); };
     body.append(auto);
     const ready = (st.providers || []).filter(x => x.ready && x.id !== "pollinations");
-    if (!ready.length) body.append(h("div", "pnote", "No provider is set up yet. Add a free Gemini or Groq key to start."));
+    if (!ready.length) body.append(h("div", "pnote", "No provider is set up yet. Add a free key to start, or switch to Blaze Cloud."));
     ready.forEach(pv => {
       const isCur = !sel.auto && sel.provider === pv.id;
       const row = h("button", "opt" + (isCur ? " sel" : ""), `<span class="on-mark">${isCur ? icon("check", "i sm") : ""}</span><span class="col2"><span class="ot">${esc(pv.short)}</span><span class="om">${esc(isCur ? sel.model : pv.model || "choose a model")}</span></span><span class="chev">${icon("chev", "i sm")}</span>`);
@@ -269,7 +270,7 @@ async function modelPopover(anchor) {
       };
       body.append(row, list);
     });
-    const add = h("button", "opt", `<span class="on-mark">${icon("plus", "i sm")}</span><span class="col2"><span class="ot">Add a provider…</span><span class="od">Free keys: Gemini, Groq, Cerebras, OpenRouter, NVIDIA, Mistral</span></span>`);
+    const add = h("button", "opt", `<span class="on-mark">${icon("plus", "i sm")}</span><span class="col2"><span class="ot">Add a provider…</span><span class="od">Use your own key from a provider you choose</span></span>`);
     add.onclick = () => { closePop(); addModels(); };
     body.append(add);
   }, { width: 380 });
@@ -474,7 +475,7 @@ function hero() {
   });
   box.append(sug); col.append(box);
   const noModel = () => { if (S.setup_done && !(S.providers || []).some(p => p.ready && p.id !== "pollinations")) {
-    const c = h("div", "callout acc", `${icon("key")}<div><b>No model yet.</b> Blaze needs one AI model that can use tools. A free Gemini or Groq key takes a minute. <a data-go="providers" style="color:var(--accent);cursor:pointer">Add one</a></div>`);
+    const c = h("div", "callout acc", `${icon("key")}<div><b>No model yet.</b> Blaze needs one AI model that can use tools. A free key takes a minute. <a data-go="providers" style="color:var(--accent);cursor:pointer">Add one</a></div>`);
     c.style.marginTop = "18px"; $("a", c).onclick = () => addModels();
     box.append(c);
   } };
@@ -865,6 +866,7 @@ function routeMeta(turn, d) {
   const secs = d && d.seconds ? ` · ${d.seconds.toFixed(1)}s` : "";
   // Blaze Cloud: just "Blaze Cloud", no provider, model or "X didn't answer, so Y did" (v0.19.1, as on mobile).
   if (d && window.CloudModels && CloudModels.on()) d = Object.assign({}, d, { route: "Blaze Cloud", note: "" });
+  if (d && window.PRIVACY) d = Object.assign({}, d, { route: PRIVACY.route(d.route), note: PRIVACY.note(d.note) });
   m.innerHTML = `<span class="route"><span class="dot${d && d.keyless ? " off" : ""}"></span>${esc((d && d.route) || "")}${secs}</span>${d && d.note ? `<span class="note">${esc(d.note)}</span>` : ""}<span class="grow"></span><span class="acts"><button class="btn ghost xs cp" title="Copy answer">${icon("copy", "i sm")}</button><button class="btn ghost xs rt" title="Ask again">${icon("retry", "i sm")}</button></span>`;
   const text = turn.text;
   $(".cp", m).onclick = () => navigator.clipboard.writeText(text);
@@ -898,6 +900,10 @@ function cutRow(target, why) {
 // The error card: one plain sentence, what each model said (short), and actions.
 function errorCard(target, e) {
   if (typeof e === "string") e = { message: e, detail: "" };
+  if (window.PRIVACY) { // 0.19.16: what failed is said plainly, never which provider or model
+    const P = PRIVACY;
+    e = Object.assign({}, e, { message: P.scrub(e.message), detail: P.scrub(e.detail), failures: (e.failures || []).map(f => ({ name: P.route(f.name), message: P.scrub(f.message) })) });
+  }
   const fails = e.failures || [];
   const card = h("div", "card err");
   const setup = e.kind === "setup";
@@ -919,7 +925,7 @@ function errorCard(target, e) {
 // ---------- events from Go ----------
 on("thinking", () => { if (current) thinking(true); });
 // Backend progress lines can carry raw commands ("Running: cat …"): only plain words reach the line.
-on("status", t => { const p = STEPS.plainStatus(t); if (current && p) thinking(true, p); });
+on("status", t => { const p = STEPS.plainStatus(window.PRIVACY ? PRIVACY.scrub(t) : t); if (current && p) thinking(true, p); });
 on("delta", d => {
   if (!current) return;
   thinking(false);

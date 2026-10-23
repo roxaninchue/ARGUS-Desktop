@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
 	"time"
 
 	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
@@ -167,7 +168,7 @@ func (a *App) temit(s *session, ev string, d any) {
 	on := a.cur == s
 	a.mu.Unlock()
 	if on {
-		wr.EventsEmit(a.ctx, ev, d)
+		wr.EventsEmit(a.ctx, ev, privacy.Event(ev, d)) // never a provider or model in the chrome (0.19.16)
 	}
 }
 

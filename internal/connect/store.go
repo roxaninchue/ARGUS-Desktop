@@ -89,7 +89,7 @@ type ConnState struct {
 	ClientID    string            `json:"client_id,omitempty"`
 	Redirect    string            `json:"redirect,omitempty"` // "" (loopback) or "scheme" (blaze://)
 	Disabled    bool              `json:"disabled,omitempty"`
-	Account     string            `json:"account,omitempty"` // "luke@gmail.com", "@lacksonkapapahue"
+	Account     string            `json:"account,omitempty"` // "ada@gmail.com", "@ada"
 	Scopes      []string          `json:"scopes,omitempty"`  // granted
 	Expired     bool              `json:"expired,omitempty"` // refresh failed: needs Reconnect
 	Connected   bool              `json:"connected,omitempty"`

@@ -47,7 +47,7 @@ END;
 CREATE TABLE IF NOT EXISTS memories(
   id INTEGER PRIMARY KEY,
   kind TEXT NOT NULL,             -- profile | preference | person | project | decision | fact
-  subject TEXT NOT NULL,          -- who/what it is about: 'Luke', 'HomeGlow', 'food'
+  subject TEXT NOT NULL,          -- who/what it is about: 'Ada', 'HomeGlow', 'food'
   text TEXT NOT NULL,             -- one line, the user's conditions kept; '(inferred)' when inferred
   related TEXT NOT NULL DEFAULT '', -- comma-separated subjects
   source_turn INTEGER NOT NULL DEFAULT 0, -- journal.id it came from (0 = typed or imported)
