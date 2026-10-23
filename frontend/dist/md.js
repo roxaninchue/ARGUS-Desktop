@@ -192,6 +192,12 @@
     const last = moved[moved.length - 1];
     if (moved.length > 1 && last.type === "p" && last.text.length < 240 && /\?\s*$/.test(last.text)) { tail = [last]; moved = moved.slice(0, -1); }
     if (!moved.length) return null;
+    // v0.19.15: a picture on its own (the chart of a CSV report) stays with the short answer, shown
+    // whole, instead of being folded into the card below a table where only its top shows.
+    const solo = b => b.type === "p" && IMGLINE.test(b.text.split("\n")[0]) && (b.text.split("\n")[0].match(IMG) || []).length === 1;
+    const pics = moved.filter(solo);
+    if (pics.length) { moved = moved.filter(b => !solo(b)); tail = pics.concat(tail); }
+    if (!moved.length) return null;
     let title = "";
     if (moved[0].type === "heading") { title = moved[0].title; moved = moved.slice(1); }
     if (!title) { const hd = moved.find(b => b.type === "heading"); if (hd) title = hd.title; }
