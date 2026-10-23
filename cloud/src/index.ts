@@ -19,7 +19,7 @@ import { guard } from "./ratelimit";
 import { deviceStart, deviceInfo, deviceApprove, deviceDeny, devicePoll } from "./device";
 import { forgot, reset, setPassword, mfaSetup, mfaEnable, mfaDisable, mfaVerify, signInOrMfa, mailerConfigured, mfaEmailLogin, mfaEmailSend, mfaEmailEnable, mfaEmailDisable } from "./password";
 
-export const VERSION = "0.9.6";
+export const VERSION = "0.9.7";
 const STATE_TTL = 600; // the user has 10 minutes to finish at the provider
 const CODE_TTL = 120; // the desktop redeems within seconds of the loopback redirect; 2 minutes is slack, and the KV minimum is 60
 
@@ -76,6 +76,7 @@ function cors(env: Env, req: Request): Record<string, string> | null {
 
 // ---------------- router ----------------
 
+export { DeviceDO } from "./devicedo";
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     // Shared-page comments are open to every origin (shipped sites call them from the browser).

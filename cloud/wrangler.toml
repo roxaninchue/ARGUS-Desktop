@@ -26,9 +26,9 @@ namespace_id = "9402"
 simple = { limit = 6, period = 60 }
 
 [[ratelimits]]
-name = "RL_POLL"        # device-code polling per IP (clients poll every 5 s)
+name = "RL_POLL"        # device-code polling per IP
 namespace_id = "9403"
-simple = { limit = 30, period = 60 }
+simple = { limit = 120, period = 60 }  # 0.9.7: CLI polls every 1 s (or long-polls 20 s)
 
 [[kv_namespaces]]
 binding = "KV"
@@ -55,3 +55,12 @@ service = "blaze-gateway"
 # 0.9.4: no request logging (bodies carry passwords/tokens); console.error prints error names only.
 [observability]
 enabled = false
+
+# 0.9.7: device-code state (strongly consistent; KV edge caching made approve->signed-in take ~1 min)
+[[durable_objects.bindings]]
+name = "DEVICE"
+class_name = "DeviceDO"
+
+[[migrations]]
+tag = "v1-device"
+new_sqlite_classes = ["DeviceDO"]
