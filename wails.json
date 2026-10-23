@@ -6,12 +6,12 @@
   "frontend:build": "",
   "frontend:dir": "frontend",
   "wailsjsdir": "",
-  "author": { "name": "Lackson Kapapa", "email": "kapapaluckson75@gmail.com" },
+  "author": { "name": "Blazeinchue", "email": "" },
   "info": {
-    "companyName": "Blaze",
+    "companyName": "Blazeinchue",
     "productName": "Blaze",
-    "productVersion": "0.19.15",
-    "copyright": "© 2026 Lackson Kapapa",
+    "productVersion": "0.19.16",
+    "copyright": "© 2026 Blazeinchue",
     "comments": "Blaze for your computer",
     "protocols": [
       { "scheme": "blaze", "description": "Blaze sign-in links", "role": "Viewer" }

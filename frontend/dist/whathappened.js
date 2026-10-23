@@ -6,7 +6,16 @@
   const sec = v => v == null ? "" : v < 1 ? `${Math.round(v * 1000)} ms` : `${v.toFixed(2)} s`;
   const e = s => (typeof esc === "function" ? esc(String(s == null ? "" : s)) : String(s == null ? "" : s));
 
+  // 0.19.16: never which provider or model answered, unless the developer flag is on.
+  function clean(t) {
+    const P = window.PRIVACY; if (!P || P.dev()) return t;
+    const s = x => P.scrub(x || "");
+    return Object.assign({}, t, { error: s(t.error),
+      steps: (t.steps || []).map(x => Object.assign({}, x, { route: P.route(x.route || "Blaze"), provider: "", model: "", error: s(x.error), note: P.note(x.note) })),
+      attempts: (t.attempts || []).map(x => Object.assign({}, x, { provider: "Blaze Cloud", model: "", error: s(x.error), server_timing: s(x.server_timing), lane: s(x.lane) })) });
+  }
   function body(t) {
+    t = clean(t);
     const rows = [];
     rows.push(`<div class="wh-kv"><span>Request ID</span><span class="mono">${e(t.turn)}</span><button class="btn ghost xs wh-copy" title="Copy the request ID">Copy</button></div>`);
     rows.push(`<div class="wh-kv"><span>First word</span><span>${t.ttft_ms ? ms(t.ttft_ms) : "none streamed"}</span></div>`);

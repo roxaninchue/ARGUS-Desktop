@@ -225,3 +225,31 @@ body.orb.shell #app, body.orb.shell.mode-chat #app { grid-template-columns: 1fr;
 .suggest.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 18px; }
 @media (max-width: 720px) { .suggest.three { grid-template-columns: 1fr; } }
 #log .col:has(> .hero) > .olderbar { display: none; }
+
+/* 0.19.16 working pill: one subtle line under the pending reply, replaced in place.
+   Theme variables only (--sub text on --faint2 over the window ground), so every theme reads. */
+.msg.blaze > .wpill { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; margin: 8px 0 2px; padding: 3px 10px 3px 8px;
+  border-radius: var(--r-pill); background: var(--faint2); border: 1px solid var(--hair); color: var(--sub);
+  font: 500 12px/18px var(--sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msg.blaze > .wpill .wt { overflow: hidden; text-overflow: ellipsis; }
+/* the pill carries the step: the live "Working · 1 step · 2s" line above keeps only its counter */
+.msg.blaze.haspill .work.live > .wt { display: none; }
+.msg.blaze > .wpill .wdot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--sub); animation: wpulse 1.4s ease-in-out infinite; }
+.msg.blaze > .wpill.swap .wt { animation: wswap .22s ease-out; }
+@keyframes wpulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+@keyframes wswap { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+html.reduce-motion .msg.blaze > .wpill .wdot, html.reduce-motion .msg.blaze > .wpill.swap .wt { animation: none; }
+
+/* 0.19.16 delivery status under the user's latest message: dots + Sending / Sent / Read. */
+.msg.user > .dstat { display: flex; justify-content: flex-end; align-items: center; gap: 5px; margin-top: 4px; color: var(--sub); font: 500 11px/14px var(--sans); }
+.msg.user > .dstat .dd { display: inline-flex; gap: 2px; }
+.msg.user > .dstat .dd i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: .35; }
+.msg.user > .dstat[data-state=sending] .dd i { animation: wpulse 1.2s ease-in-out infinite; }
+.msg.user > .dstat[data-state=sending] .dd i:nth-child(2) { animation-delay: .2s; }
+.msg.user > .dstat[data-state=sending] .dd i:nth-child(3) { animation-delay: .4s; }
+.msg.user > .dstat[data-state=sent] .dd i:nth-child(-n+2) { opacity: 1; }
+.msg.user > .dstat[data-state=read] .dd i { opacity: 1; }
+html.reduce-motion .msg.user > .dstat .dd i { animation: none; }
+.about .group { display: grid; gap: 10px; margin: 14px 0; }
+.about .row { display: flex; align-items: center; gap: 14px; }
+.about .row .label { min-width: 90px; color: var(--sub); }

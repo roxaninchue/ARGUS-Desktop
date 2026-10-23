@@ -51,7 +51,7 @@ const ok = (cond, msg) => { n++; if (!cond) { fails++; console.log("FAIL " + msg
   const pan = btn.parentElement.querySelector(".wh-pan");
   const t = pan ? pan.textContent : "";
   ok(!pan.hidden && /tabc123/.test(t) && /640 ms/.test(t), "panel shows the request ID and first word time");
-  ok(/groq/.test(t) && /llama-3.3-70b/.test(t) && /410 ms/.test(t), "panel shows provider, model and gateway first byte");
+  ok(!/groq|llama/i.test(t) && /410 ms/.test(t), "0.19.16: panel shows gateway first byte, never the provider or model");
   ok(/read_file/.test(t) && /timed out/.test(t), "panel lists tools with their errors");
   ok(!errs.length, "no page errors" + (errs.length ? ": " + errs.slice(0, 3).join(" | ") : ""));
   console.log(`\n${n - fails}/${n} passed`);

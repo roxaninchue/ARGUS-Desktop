@@ -55,6 +55,18 @@ type Created struct {
 	Status      string `json:"status"`
 	Existing    bool   `json:"existing"`
 	Ack         *Ack   `json:"ack"`
+	// Delivery (gateway 0.8.45, STEPS_DELIVERY_CONTRACT.md): received = the message is stored
+	// durably (Sent); read != null = a worker already picked it up (Read). Read only through
+	// internal/runevents.
+	Received *Receipt0 `json:"received,omitempty"`
+	Read     *Receipt0 `json:"read,omitempty"`
+}
+
+// Receipt0 is a delivery receipt (received / read).
+type Receipt0 struct {
+	MessageID   string `json:"message_id,omitempty"`
+	ClientMsgID string `json:"client_msg_id,omitempty"`
+	AtMs        int64  `json:"at_ms,omitempty"`
 }
 
 // ToolCall is one pending call the gateway wants this computer to run.
@@ -98,6 +110,14 @@ type Event struct {
 	Message json.RawMessage `json:"message,omitempty"`
 	Line    string          `json:"line,omitempty"`   // ack
 	Intent  string          `json:"intent,omitempty"` // ack
+	Kind    string          `json:"kind,omitempty"`   // step: step | specialty (gateway 0.8.45)
+	// specialty_loaded / specialty_updated / step(kind specialty): what the help is for, when the
+	// gateway sends it (the pill shows it in plain words); Name / OwnerName are the specialty's
+	// names, used only to keep them out of the pill.
+	Detail    string `json:"detail,omitempty"`
+	Task      string `json:"task,omitempty"`
+	Name      string `json:"name,omitempty"`
+	OwnerName string `json:"_name,omitempty"`
 }
 
 // MessageText is the error event's message ("" when it isn't a string).

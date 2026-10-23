@@ -54,7 +54,8 @@ const ok = (cond, msg) => { n++; if (!cond) { fails++; console.log("FAIL " + msg
   const pan = d.querySelector(".wh-pan"), t = pan ? pan.textContent : "";
   ok(pan && !pan.hidden, "panel opens");
   ok(/t0123abcd/.test(t) && /640 ms/.test(t), "request ID and first-word time shown");
-  ok(/groq · llama-3\.3-70b/.test(t) && /429/.test(t) && /hedged/.test(t) && /rate limited/.test(t), "every Blaze Cloud attempt with status and notes");
+  ok(/429/.test(t) && /hedged/.test(t) && /rate limited/.test(t), "every Blaze Cloud attempt with status and notes");
+  ok(!/groq|llama|gemini/i.test(t) && /Blaze Cloud/.test(t), "0.19.16: no provider or model in What happened");
   ok(/read_file/.test(t) && /Error: exit 1/.test(t), "tools with timings and errors");
   ok(/req_9f2/.test(t) && /gateway TTFT 420 ms/.test(t) && /fast lane/.test(t) && /tools dropped/.test(t) && /upstream;dur=300/.test(t), "gateway 0.6.9 timings: request ID, TTFT, lane, tools dropped, Server-Timing");
   ok(/p50 640 ms/.test(t), "session p50/p95 of time to first word");

@@ -125,7 +125,7 @@ func localCategory(tokens []string) string {
 var stop = map[string]bool{}
 
 func init() {
-	for _, w := range strings.Fields(`the and for are but not you all any can had her was one our out has him his how its may new now old see two way who did get got let put say she too use uses used using with that this from they them then than when what will your into over also just only very more most some such like want wants user users luke blaze about after before their there these those which while where would could should been being have does doing done each make makes made keep keeps kept always never every much many here because via per it's i'm don't doesn't`) {
+	for _, w := range strings.Fields(`the and for are but not you all any can had her was one our out has him his how its may new now old see two way who did get got let put say she too use uses used using with that this from they them then than when what will your into over also just only very more most some such like want wants user users blaze about after before their there these those which while where would could should been being have does doing done each make makes made keep keeps kept always never every much many here because via per it's i'm don't doesn't`) {
 		stop[w] = true
 	}
 }
@@ -178,7 +178,7 @@ func linkTokens(s string) []string {
 
 func shortLabel(s string) string {
 	s = strings.TrimSpace(s)
-	for _, p := range []string{"User ", "The user ", "Luke "} {
+	for _, p := range []string{"User ", "The user "} {
 		if strings.HasPrefix(s, p) && len(s) > len(p)+8 {
 			s = strings.ToUpper(s[len(p):len(p)+1]) + s[len(p)+1:]
 		}

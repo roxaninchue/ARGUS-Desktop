@@ -40,6 +40,13 @@ for (const f of order) {
 }
 ok(bubbleBg && bubbleFg, `found the user bubble rule (${bubbleBg} / ${bubbleFg})`);
 
+const chat = css("chat.css");
+const ruleOf = sel => { const m = chat.match(new RegExp(sel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\s*\\{([^}]*)\\}")); return m ? m[1] : ""; };
+const prop = (r, k) => ((r.match(new RegExp("(?:^|;)\\s*" + k + "\\s*:\\s*([^;]+)")) || [])[1] || "").trim();
+const pillRule = ruleOf(".msg.blaze > .wpill"), dstatRule = ruleOf(".msg.user > .dstat");
+const pillFg = prop(pillRule, "color"), pillBg = prop(pillRule, "background"), dstatFg = prop(dstatRule, "color");
+ok(/^var\(--/.test(pillFg) && /^var\(--/.test(pillBg) && /^var\(--/.test(dstatFg), `pill and status use theme variables (${pillFg} on ${pillBg}; ${dstatFg})`);
+
 for (const [name, v] of Object.entries(themes)) {
   const ground = parse("var(--ground)", v);
   const on = (fg, bg, min, what) => {
@@ -54,6 +61,10 @@ for (const [name, v] of Object.entries(themes)) {
   on("var(--on-accent)", "var(--accent)", 4.5, "button text on accent");
   on("var(--on-primary)", "var(--primary)", 4.5, "primary button text");
   on("var(--weak)", "var(--ground)", 1.8, "hint text (placeholder-level, not AA-bound)");
+  // 0.19.16 working pill and delivery status, with the colours their rules use (read from chat.css).
+  on(pillFg, pillBg, 4.5, "working pill text on its pill");
+  on(dstatFg, "var(--ground)", 4.5, "delivery status (Sending / Sent / Read)");
+  on(dstatFg, "var(--bubble)", 4.5, "delivery status over a reply bubble's glass");
 }
 console.log(`\n${n - fails}/${n} passed`);
 process.exit(fails ? 1 : 0);

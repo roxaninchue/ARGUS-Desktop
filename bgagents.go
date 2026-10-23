@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
 	"os"
 	"path/filepath"
 	"strings"
@@ -136,7 +137,7 @@ func (a *App) startAgents() {
 
 func (a *App) emit(ev string, d any) {
 	if a.ctx != nil {
-		wr.EventsEmit(a.ctx, ev, d)
+		wr.EventsEmit(a.ctx, ev, privacy.Event(ev, d))
 	}
 }
 

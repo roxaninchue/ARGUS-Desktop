@@ -126,7 +126,7 @@ func subjectOf(text string) string {
 			return w
 		}
 	}
-	if f := strings.Fields(text); len(f) > 0 && (f[0] == "Luke" || f[0] == "User") {
+	if f := strings.Fields(text); len(f) > 0 && f[0] == "User" {
 		return f[0]
 	}
 	return "general"

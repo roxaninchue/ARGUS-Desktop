@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
 	"io"
 	"net"
 	"net/http"
@@ -221,7 +222,7 @@ func (a *App) SetProviderModel(provider, model string) {
 
 func (a *App) emitModel() {
 	if a.ctx != nil {
-		wr.EventsEmit(a.ctx, "model", map[string]any{"label": a.modelName(), "selection": a.selection()})
+		wr.EventsEmit(a.ctx, "model", map[string]any{"label": privacy.ModelLabel(a.modelName()), "selection": a.selection()})
 	}
 }
 

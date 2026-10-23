@@ -62,6 +62,12 @@ func (f *Fake) Create(_ context.Context, req bgrun.CreateReq) (*bgrun.Created, e
 	if f.CreateErr != nil {
 		return nil, f.CreateErr
 	}
+	// Idempotent on client_msg_id, as the gateway is: the same id is the same run (existing).
+	for _, id := range f.order {
+		if r := f.runs[id]; r != nil && r.cmid != "" && r.cmid == req.ClientMsgID {
+			return &bgrun.Created{RunID: id, ClientMsgID: req.ClientMsgID, Status: bgrun.StQueued, Existing: true}, nil
+		}
+	}
 	f.Created = append(f.Created, req)
 	f.n++
 	id := fmt.Sprintf("run_fake%d", f.n)
@@ -104,6 +110,13 @@ func (f *Fake) Get(_ context.Context, id string, after int) (*bgrun.View, error)
 		}
 	}
 	return &out, nil
+}
+
+// Runs is every run id the fake holds, in order.
+func (f *Fake) Runs() []string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]string(nil), f.order...)
 }
 
 // List implements bgrun.API.

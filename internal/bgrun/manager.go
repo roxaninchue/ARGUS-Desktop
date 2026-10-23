@@ -32,8 +32,11 @@ type Entry struct {
 	Intent      string `json:"intent,omitempty"` // the ack's intent (reminder, send, search, …)
 	// LocalIntent: the gateway sent no ack, so the app's own read of the request (an action) gave
 	// the ack and the intent; it outranks the receipt's intent when the final is shown.
-	LocalIntent bool      `json:"local_intent,omitempty"`
-	Created     time.Time `json:"created"`
+	LocalIntent bool `json:"local_intent,omitempty"`
+	// Ask is the user's request (clipped), so a specialty pill can say what the help is for when
+	// its event carries no detail.
+	Ask     string    `json:"ask,omitempty"`
+	Created time.Time `json:"created"`
 }
 
 // Store keeps the unfinished runs on disk, so a final that lands while Blaze is closed is

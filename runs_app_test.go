@@ -24,6 +24,7 @@ type deskTap struct {
 	mu    sync.Mutex
 	evs   []string
 	notes []string
+	runs  []string // 0.19.16 run_event (working pill / delivery status), kept apart from the chat's events
 }
 
 func (d *deskTap) on(ev string, v any) {
@@ -32,6 +33,11 @@ func (d *deskTap) on(ev string, v any) {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if ev == "run_event" {
+		b, _ := json.Marshal(v)
+		d.runs = append(d.runs, string(b))
+		return
+	}
 	b, _ := json.Marshal(v)
 	d.evs = append(d.evs, ev+" "+string(b))
 }

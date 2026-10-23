@@ -27,7 +27,7 @@ const CloudModels = (() => {
     const g = group("How Blaze answers");
     const ch = h("div", "choice cmchoice");
     const cloudB = h("button", isCloud() ? "on" : "", `<span class="radio"></span><span><span class="ct">${icon("cloud", "i sm")} Blaze Cloud <span class="pill acc">Recommended</span></span><span class="cd" style="display:block">Your Blaze account, no API keys. The best model for each message, with quiet retries.</span></span>`);
-    const custB = h("button", isCloud() ? "" : "on", `<span class="radio"></span><span><span class="ct">${icon("key", "i sm")} Custom</span><span class="cd" style="display:block">Your own providers and keys: OpenAI-compatible, OpenRouter, Claude, Gemini, Ollama and more.</span></span>`);
+    const custB = h("button", isCloud() ? "" : "on", `<span class="radio"></span><span><span class="ct">${icon("key", "i sm")} Custom</span><span class="cd" style="display:block">Your own providers and keys, set up one by one.</span></span>`);
     cloudB.dataset.mode = "cloud"; custB.dataset.mode = "custom";
     [cloudB, custB].forEach(b => b.onclick = async () => { if (b.classList.contains("on")) return; CH = await API().SetModelsMode(b.dataset.mode); await refreshState(); redraw(); });
     ch.append(cloudB, custB); g.append(ch);

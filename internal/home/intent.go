@@ -214,7 +214,7 @@ func FromMemories(texts []string) []Spec {
 
 var reName = regexp.MustCompile(`(?i)\b(?:my name is|user'?s name is|the user is called|call me|name:)\s+([A-Z][\p{L}'-]{1,30})`)
 
-// NameFrom finds the user's first name in memories ("My name is Luke", "User's name is Ada").
+// NameFrom finds the user's first name in memories ("My name is Ada", "User's name is Ada").
 func NameFrom(texts []string) string {
 	for _, t := range texts {
 		if m := reName.FindStringSubmatch(t); m != nil {

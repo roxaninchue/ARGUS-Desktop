@@ -18,6 +18,10 @@ type Follower struct {
 	// OnDelta gets streamed reply text (reset=true: drop what this step showed so far). Optional:
 	// only a run the user is watching in the foreground streams.
 	OnDelta func(text string, reset bool)
+	// OnEvent sees every run event and OnCall every device tool call before it runs (the chat's
+	// working pill and delivery status read them through internal/runevents). Optional.
+	OnEvent func(e Event)
+	OnCall  func(c ToolCall)
 	// Sleep waits between polls; tests replace it. It returns early when ctx ends.
 	Sleep func(ctx context.Context, d time.Duration) error
 	// Poll is the first wait between polls (it grows to MaxPoll while nothing happens).
@@ -92,6 +96,9 @@ func (f *Follower) Follow(ctx context.Context, id string, after int, action bool
 		moved := len(v.Events) > 0
 		for i := range v.Events {
 			e := v.Events[i]
+			if f.OnEvent != nil {
+				f.OnEvent(e)
+			}
 			switch e.Type {
 			case "delta":
 				if f.OnDelta != nil && e.Text != "" {
@@ -133,6 +140,9 @@ func (f *Follower) Follow(ctx context.Context, id string, after int, action bool
 			for _, c := range v.Pending {
 				if answered[c.ID] {
 					continue
+				}
+				if f.OnCall != nil {
+					f.OnCall(c)
 				}
 				out, ok := "Error: this computer can't run that tool.", false
 				if f.Device != nil {

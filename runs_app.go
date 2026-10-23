@@ -17,6 +17,7 @@ package main
 
 import (
 	"context"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/runevents"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -33,6 +34,7 @@ import (
 	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
 	"github.com/lacksonkapapahue/blaze-desktop/internal/notify"
 	"github.com/lacksonkapapahue/blaze-desktop/internal/persona"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
 	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
 )
 
@@ -47,6 +49,7 @@ var (
 	deviceToolTap   func(ctx context.Context, conv, name, args string) string
 	runsPoll        time.Duration
 	runsSleep       func(ctx context.Context, d time.Duration) error
+	runsCreateSleep func(ctx context.Context, d time.Duration) error // tests: the offline retry's waits
 )
 
 // winFocused is the window's focus as the frontend reports it (focus / blur / visibility).
@@ -154,11 +157,9 @@ func (a *App) ensureBgRuns() *bgrun.Manager {
 		return bgRuns
 	}
 	bgRuns = &bgrun.Manager{
-		API:   a.runsAPI(),
-		Store: &bgrun.Store{Path: filepath.Join(config.Dir(), "runs-pending.json")},
-		Follower: func(e bgrun.Entry) *bgrun.Follower {
-			return a.follower(e.Conv)
-		},
+		API:      a.runsAPI(),
+		Store:    &bgrun.Store{Path: filepath.Join(config.Dir(), "runs-pending.json")},
+		Follower: a.followerFor,
 		Deliver:  a.deliverFinal,
 		Notifier: &bgrun.Notifier{Focused: a.windowFocused, Send: a.notifyFinal},
 	}
@@ -167,6 +168,47 @@ func (a *App) ensureBgRuns() *bgrun.Manager {
 
 func (a *App) follower(conv string) *bgrun.Follower {
 	return &bgrun.Follower{API: a.runsAPI(), Device: a.deviceFor(conv), Poll: runsPoll, Sleep: runsSleep}
+}
+
+// followerFor follows run e and tells the chat what it is doing (working pill, delivery status)
+// through the one adapter, internal/runevents. Steps are never notifications.
+func (a *App) followerFor(e bgrun.Entry) *bgrun.Follower {
+	f := a.follower(e.Conv)
+	tr := &runevents.Tracker{RunID: e.RunID, ClientMsgID: e.ClientMsgID, Request: e.Ask}
+	var mu sync.Mutex
+	f.OnEvent = func(ev bgrun.Event) {
+		mu.Lock()
+		out := tr.FromRun(ev)
+		mu.Unlock()
+		a.emitRun(e.Conv, out...)
+	}
+	f.OnCall = func(c bgrun.ToolCall) {
+		mu.Lock()
+		out := tr.FromToolCall(c.Function.Name, friendlyTool(c.Function.Name, c.Function.Arguments))
+		mu.Unlock()
+		a.emitRun(e.Conv, out...)
+	}
+	return f
+}
+
+// clipAsk keeps the first line of a request, short, for Entry.Ask.
+func clipAsk(s string) string {
+	s = strings.TrimSpace(strings.SplitN(s, "\n", 2)[0])
+	if r := []rune(s); len(r) > 200 {
+		s = string(r[:200])
+	}
+	return s
+}
+
+// emitRun sends run events to the chat view ("run_event"; the frontend's runEvents.js reads them).
+func (a *App) emitRun(conv string, evs ...runevents.Ev) {
+	for _, ev := range evs {
+		ev.Conv = conv
+		if eventTap != nil {
+			eventTap("run_event", ev)
+		}
+		a.emit("run_event", ev)
+	}
 }
 
 var lastResume atomic.Int64
@@ -281,9 +323,9 @@ func (a *App) cloudRun(ctx context.Context, s *session, last, intent string) boo
 	if len(sent) > 0 {
 		req.Tools = llm.AdaptTools(sent, "")
 	}
-	cctx, cancel := context.WithTimeout(ctx, 20*time.Second)
-	cr, err := api.Create(cctx, req)
-	cancel()
+	// Offline: the message stays "Sending" and is tried again with the same client_msg_id (the
+	// gateway is idempotent on it: no second run, no duplicate message).
+	cr, err := runevents.Create(ctx, api, req, func(ev runevents.Ev) { a.emitRun(s.id, ev) }, runsCreateSleep)
 	if err != nil {
 		code := bgrun.StatusOf(err)
 		if code == 401 || code == 403 {
@@ -298,7 +340,7 @@ func (a *App) cloudRun(ctx context.Context, s *session, last, intent string) boo
 		return false
 	}
 	ack := bgrun.AckLine(cr.Ack)
-	e := bgrun.Entry{RunID: cr.RunID, ClientMsgID: req.ClientMsgID, Conv: s.id, Action: ack != "" || cr.Ack != nil, Created: time.Now()}
+	e := bgrun.Entry{RunID: cr.RunID, ClientMsgID: req.ClientMsgID, Conv: s.id, Action: ack != "" || cr.Ack != nil, Created: time.Now(), Ask: clipAsk(stripAttached(last))}
 	if cr.Ack != nil {
 		e.Intent = cr.Ack.Intent
 	}
@@ -315,6 +357,7 @@ func (a *App) cloudRun(ctx context.Context, s *session, last, intent string) boo
 	m.Hold(e.RunID)
 	m.Track(e)
 	if ack != "" {
+		a.emitRun(s.id, runevents.For(cr, e.ClientMsgID).Ack()...)
 		// The promise, at once, as a plain Blaze bubble. The turn ends here: the composer is free
 		// while the run works, and the final lands as its own message.
 		a.showAck(s, ack)
@@ -327,7 +370,7 @@ func (a *App) cloudRun(ctx context.Context, s *session, last, intent string) boo
 	// moves this run to the background).
 	// The run stays held while this turn watches it: the reply lands in this turn's bubble and the
 	// turn always ends.
-	f := a.follower(s.id)
+	f := a.followerFor(e)
 	fin, ferr := f.Follow(ctx, e.RunID, 0, e.Action)
 	if fin.Intent == "" {
 		fin.Intent = e.Intent
@@ -405,7 +448,10 @@ func (a *App) showAck(s *session, line string) {
 
 // showFinal shows a final in the turn's own bubble (foreground).
 func (a *App) showFinal(s *session, f bgrun.Final) {
-	text := f.Message()
+	a.mu.Lock()
+	ask := stripAttached(lastUserText(s.hist))
+	a.mu.Unlock()
+	text := privacy.OwnerReply(ask, f.Message()) // v0.19.16 owner guard, as in run()
 	a.temit(s, "delta", text)
 	a.mu.Lock()
 	s.hist = append(s.hist, llm.Message{Role: "assistant", Content: text})
@@ -429,7 +475,7 @@ func (a *App) finishTurn(s *session) {
 // deliverFinal puts a background final in its chat: the open session (on screen or working) or
 // the saved chat, and tells the chat view.
 func (a *App) deliverFinal(e bgrun.Entry, f bgrun.Final) {
-	msg := llm.Message{Role: "assistant", Content: f.Message()}
+	msg := llm.Message{Role: "assistant", Content: privacy.OwnerReply(e.Ask, f.Message())} // v0.19.16 owner guard
 	a.mu.Lock()
 	s := a.live[e.Conv]
 	if s == nil && a.cur != nil && a.cur.id == e.Conv {
@@ -444,7 +490,7 @@ func (a *App) deliverFinal(e bgrun.Entry, f bgrun.Final) {
 	} else {
 		appendToConv(e.Conv, msg)
 	}
-	ev := map[string]any{"conv": e.Conv, "text": msg.Content, "kind": f.Kind}
+	ev := map[string]any{"conv": e.Conv, "text": msg.Content, "kind": f.Kind, "run_id": e.RunID}
 	if eventTap != nil {
 		eventTap("blaze_msg", ev)
 	}
@@ -546,6 +592,8 @@ type bgSink struct {
 	tools    int
 	lastBad  bool
 	anyTools bool
+	// step sees each tool call of the shadow turn (the working pill's line, from local intent).
+	step func(name, args string)
 }
 
 func (b *bgSink) event(ev string, d any) {
@@ -569,6 +617,10 @@ func (b *bgSink) event(ev string, d any) {
 		}
 	case "stopped":
 		b.kind = "stopped"
+	case "tool":
+		if m, ok := d.(map[string]string); ok && b.step != nil {
+			go b.step(m["name"], m["args"])
+		}
 	case "tool_done":
 		if m, ok := d.(map[string]string); ok {
 			b.tools++
@@ -618,18 +670,31 @@ func (a *App) localBg(s *session, last string) bool {
 	m := a.ensureBgRuns()
 	a.mu.Lock()
 	base := append([]llm.Message(nil), s.hist...)
+	id := "local-" + newID()
+	tr := &runevents.Tracker{RunID: id, Request: stripAttached(last)}
+	var trMu sync.Mutex
+	sink := &bgSink{step: func(name, args string) {
+		trMu.Lock()
+		out := tr.FromToolCall(name, friendlyTool(name, args))
+		trMu.Unlock()
+		a.emitRun(s.id, out...)
+	}}
 	sh := &session{id: s.id, hist: base, folder: s.folder, project: s.project, started: true, tab: s.tab,
-		app: a, ctxFrom: s.ctxFrom, bg: &bgSink{}}
+		app: a, ctxFrom: s.ctxFrom, bg: sink}
 	if s.env != nil {
 		e := *s.env
 		e.Status = func(string) {} // no "working" lines
 		sh.env = &e
 	}
 	a.mu.Unlock()
+	// A local run: this computer has the message at once, and the ack is Blaze reading it.
+	a.emitRun(s.id, runevents.Accepted(&bgrun.Created{RunID: id}, ""))
+	trMu.Lock()
+	a.emitRun(s.id, tr.Ack()...)
+	trMu.Unlock()
 	a.showAck(s, line)
 	a.finishTurn(s)
-	id := "local-" + newID()
-	e := bgrun.Entry{RunID: id, Conv: s.id, Action: true, Intent: intent, Created: time.Now()}
+	e := bgrun.Entry{RunID: id, Conv: s.id, Action: true, Intent: intent, Created: time.Now(), Ask: clipAsk(stripAttached(last))}
 	go func() {
 		a.run(a.bgCtx(), sh)
 		m.Land(e, sh.bg.final(sh, len(base), id, intent))

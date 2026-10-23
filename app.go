@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lacksonkapapahue/blaze-desktop/internal/persona"
+	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
 	"net/http"
 	"os"
 	"os/exec"
@@ -201,7 +202,7 @@ func (a *App) newEnv() {
 	}
 	a.env.Conv = a.convKey
 	a.env.Confirm = a.gate
-	a.env.Status = func(s string) { wr.EventsEmit(a.ctx, "status", s) }
+	a.env.Status = func(s string) { wr.EventsEmit(a.ctx, "status", privacy.Event("status", s)) }
 	if a.pair != nil {
 		a.env.Phone = a.pair.askPhone
 	}
@@ -645,6 +646,10 @@ func (a *App) run(ctx context.Context, s *session) {
 	a.mu.Unlock()
 	// v0.19.13: an action request must be done with tools (intent.go).
 	intent := actionIntent(lastUser)
+	// v0.19.16: an owner question's reply is held until it is complete, so the owner guard
+	// (privacy.OwnerReply: always Blazeinchue, never a person's name) runs before anything shows.
+	ownerAsk := stripAttached(lastUser)
+	ownerQ := privacy.AsksOwner(ownerAsk)
 	forceTool, toolsRan, textRetries, proofRetries := intent, 0, 0, 0
 	defer func() {
 		if ok, st := a.pv.noteTurn(changed, urls, prompt); ok {
@@ -740,8 +745,19 @@ func (a *App) run(ctx context.Context, s *session) {
 		// v0.19.13: tool syntax a model writes as text is held back, never shown (CLI TextGuard).
 		tg := &llm.TextGuard{Known: sentNames, Out: func(t string) {
 			partial.WriteString(t)
-			a.temit(s, "delta", t)
+			if !ownerQ {
+				a.temit(s, "delta", t)
+			}
 		}}
+		// shown: the text a broken-off reply leaves; an owner question's held text shows now, guarded.
+		shown := func() string {
+			t := partial.String()
+			if ownerQ && strings.TrimSpace(t) != "" {
+				t = privacy.OwnerNames(t)
+				a.temit(s, "delta", t)
+			}
+			return t
+		}
 		cctx := ctx
 		if step == 0 && forceTool && len(sent) > 0 {
 			cctx = llm.WithRequireTool(ctx) // tool_choice "required" for a plain action request
@@ -780,19 +796,21 @@ func (a *App) run(ctx context.Context, s *session) {
 				a.temit(s, "status", "Retrying a tool call the model wrote as text")
 				continue
 			case junk:
-				a.keepPartial(s, partial.String())
+				a.keepPartial(s, shown())
 				a.temit(s, "error", map[string]any{"message": errTextCalls, "kind": "model", "partial": step > 0})
 				return
 			default:
 				if held != "" {
 					partial.WriteString(held)
-					a.temit(s, "delta", held) // it was prose after all
+					if !ownerQ {
+						a.temit(s, "delta", held) // it was prose after all
+					}
 				}
 			}
 		}
 		if err != nil {
 			// Keep what the user already saw, so Continue picks up from there.
-			kept := a.keepPartial(s, partial.String())
+			kept := a.keepPartial(s, shown())
 			if ctx.Err() != nil {
 				a.temit(s, "stopped", map[string]any{"resumable": kept || step > 0})
 			} else {
@@ -807,6 +825,16 @@ func (a *App) run(ctx context.Context, s *session) {
 		// The gatekeeper: repair what can be repaired; never save a call with no name or
 		// unreadable arguments (the provider would refuse every later request with a 400).
 		n := llm.NormalizeCalls(r.ToolCalls, known)
+		if ownerQ {
+			if len(n.Calls) == 0 {
+				r.Text = privacy.OwnerReply(ownerAsk, r.Text) // the final reply (local or cloud)
+			} else {
+				r.Text = privacy.OwnerNames(r.Text)
+			}
+			if strings.TrimSpace(r.Text) != "" {
+				a.temit(s, "delta", r.Text)
+			}
+		}
 		if strings.TrimSpace(r.Text) != "" || len(n.Calls) > 0 {
 			a.mu.Lock()
 			s.hist = append(s.hist, llm.Message{Role: "assistant", Content: r.Text, ToolCalls: n.Calls})
