@@ -59,7 +59,7 @@ func init() {
 		[]prop{p("path", "string", "File path"), p("content", "string", "Full file content"), p("append", "boolean", "Append instead of overwrite")},
 		[]string{"path", "content"}, func(e *Env, a args) string {
 			path := expand(e, a.s("path"))
-			if !inside(e.Root, path) && !inside(dataDir(""), path) && !e.ask("Write a file outside this project?", path) {
+			if !inside(e.Root, path) && !inside(dataDir(""), path) && !e.ask("Write a file outside this project?", e.Shown(path)) {
 				return "The user did NOT approve writing there. Write inside the project folder instead, or ask."
 			}
 			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
@@ -108,7 +108,7 @@ func init() {
 			if n > 1 && !a.b("all") {
 				return fmt.Sprintf("Error: old_text appears %d times. Add surrounding lines so it's unique, or set all=true.", n)
 			}
-			if !inside(e.Root, path) && !e.ask("Edit a file outside this project?", path) {
+			if !inside(e.Root, path) && !e.ask("Edit a file outside this project?", e.Shown(path)) {
 				return "The user did NOT approve editing that file."
 			}
 			if a.b("all") {
@@ -250,7 +250,7 @@ func init() {
 			if path == h || path == "/" || filepath.Dir(path) == path {
 				return "Refused: that would delete a whole drive or home folder."
 			}
-			if !e.Confirm("Delete?", path) {
+			if !e.Confirm("Delete?", e.Shown(path)) {
 				return "The user did NOT approve deleting it."
 			}
 			if err := os.RemoveAll(path); err != nil {

@@ -187,6 +187,8 @@ body.shell .inbox:not(.has-text):not(.busy) #mic.rec ~ #send { display: none; }
 .md .rimg { max-width: 480px; }
 .md .rgroup { display: grid; gap: 6px; grid-template-columns: repeat(var(--n, 2), 1fr); }
 .md .rgroup img, .md .rside img, .md .rimg img { aspect-ratio: 4 / 3; }
+/* v0.19.15: a single picture (a chart, a screenshot) is shown whole, never cropped; 2-3 side by side and the deck stay 4:3 cover */
+.md .rimg img, .md .rside img { aspect-ratio: auto; object-fit: contain; }
 .md .rside { display: grid; grid-template-columns: minmax(120px, 38%) 1fr; gap: 14px; align-items: start; }
 .md .rside p { margin: 0; }
 .chatpane.narrow .md .rside { grid-template-columns: 1fr; }

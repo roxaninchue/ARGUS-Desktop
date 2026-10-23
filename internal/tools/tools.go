@@ -179,9 +179,67 @@ func expand(e *Env, path string) string {
 	return filepath.Clean(path)
 }
 
+// inside reports whether path is in root once both are resolved through symlinks (v0.19.15):
+// a picked folder that is itself a symlink (~/work -> /data/work) still holds its files,
+// however the path is written, and a symlink inside it that points elsewhere (~/work/etc -> /etc)
+// does not make what it points at count as inside.
 func inside(root, path string) bool {
+	if strings.TrimSpace(root) == "" {
+		return false
+	}
+	return within(realPath(root), realPath(path))
+}
+
+// within is the plain path test, no symlinks resolved.
+func within(root, path string) bool {
 	rel, err := filepath.Rel(root, path)
-	return err == nil && !strings.HasPrefix(rel, "..") && !filepath.IsAbs(rel)
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && !filepath.IsAbs(rel)
+}
+
+// realPath resolves every symlink in p (filepath.EvalSymlinks). A path that does not exist yet
+// (a file about to be written) has its deepest existing parent resolved and the rest put back.
+func realPath(p string) string {
+	p = filepath.Clean(p)
+	if r, err := filepath.EvalSymlinks(p); err == nil {
+		return r
+	}
+	dir, rest := p, ""
+	for i := 0; i < 64; i++ {
+		parent := filepath.Dir(dir)
+		rest = filepath.Join(filepath.Base(dir), rest)
+		if parent == dir {
+			return p
+		}
+		dir = parent
+		if r, err := filepath.EvalSymlinks(dir); err == nil {
+			return filepath.Join(r, rest)
+		}
+	}
+	return p
+}
+
+// Shown is path as the user knows it: a path inside the picked folder is written under the
+// folder exactly as they picked it (~/work/report.md), not under where a symlink leads
+// (/data/work/report.md). Anything else is shown as it is.
+func (e *Env) Shown(path string) string {
+	if e == nil || strings.TrimSpace(e.Root) == "" {
+		return path
+	}
+	root := filepath.Clean(e.Root)
+	if within(root, filepath.Clean(path)) {
+		return path // already written under the picked folder
+	}
+	rr, rp := realPath(root), realPath(path)
+	if !within(rr, rp) {
+		return path
+	}
+	if rel, err := filepath.Rel(rr, rp); err == nil {
+		if rel == "." {
+			return root
+		}
+		return filepath.Join(root, rel)
+	}
+	return path
 }
 
 func (e *Env) ask(title, detail string) bool {

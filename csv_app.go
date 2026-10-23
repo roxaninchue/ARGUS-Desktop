@@ -228,7 +228,7 @@ func init() {
 			if _, err := os.Stat(p); err != nil {
 				return "Error: " + err.Error()
 			}
-			if e != nil && !e.Inside(p) && !e.Ask("Save a cleaned copy and a report next to this CSV?", filepath.Dir(p)) {
+			if e != nil && !e.Inside(p) && !e.Ask("Save a cleaned copy and a report next to this CSV?", e.Shown(filepath.Dir(p))) {
 				return "The user did NOT approve writing next to that file. Ask where to save, or copy it into the project first."
 			}
 			if e != nil && e.Status != nil {
