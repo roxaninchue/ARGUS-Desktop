@@ -5,6 +5,7 @@ import {
   Env, HttpError, json, redirect, html, esc, readJSON, clientIP, randomToken, sha256, pkceChallenge, safeEqual,
   hashPassword, verifyPassword, iterations, normEmail, validPassword, cleanName, loopbackRedirect, appRedirect, appHandoff,
   STATE_RE, CHALLENGE_RE, VERIFIER_RE, CODE_RE, softLimit, webReturn,
+  PREVIEW_ORIGIN_RE,
 } from "./util";
 import { PROVIDERS, ProviderId, provider, credentials, callbackURL, pickScopes, tokenRequest, fetchProfile, Tokens } from "./providers";
 import {
@@ -64,7 +65,7 @@ function allowedOrigins(env: Env): string[] {
 function cors(env: Env, req: Request): Record<string, string> | null {
   const o = req.headers.get("Origin");
   if (!o) return {};
-  if (!allowedOrigins(env).includes(o)) return null;
+  if (!allowedOrigins(env).includes(o) && !PREVIEW_ORIGIN_RE.test(o)) return null;
   return {
     "Access-Control-Allow-Origin": o,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
