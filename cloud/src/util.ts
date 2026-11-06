@@ -218,6 +218,9 @@ export function softLimit(key: string, max: number, windowSec: number): void {
   if (++b.n > max) throw new HttpError(429, "rate_limited", { retry_after: Math.ceil((b.reset - t) / 1000) });
 }
 
+/** Cloudflare Pages preview branches of the site (https://<hash-or-branch>.blazeinchue.pages.dev) are always allowed. */
+export const PREVIEW_ORIGIN_RE = /^https:\/\/[a-z0-9-]+\.blazeinchue\.pages\.dev$/;
+
 /** An https URL whose origin is in ALLOWED_ORIGINS (web sign-in and reset links come back there), else null. */
 export function webReturn(env: Env, v: string | null | undefined): URL | null {
   if (!v || typeof v !== "string" || v.length > 500) return null;
@@ -229,7 +232,7 @@ export function webReturn(env: Env, v: string | null | undefined): URL | null {
   }
   if (u.protocol !== "https:" || u.username || u.password) return null;
   const allowed = (env.ALLOWED_ORIGINS || "").split(",").map(s => s.trim()).filter(Boolean);
-  if (!allowed.includes(u.origin)) return null;
+  if (!allowed.includes(u.origin) && !PREVIEW_ORIGIN_RE.test(u.origin)) return null;
   u.hash = "";
   return u;
 }
