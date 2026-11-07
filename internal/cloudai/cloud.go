@@ -1,9 +1,9 @@
-// Package cloudai is Blaze Cloud on the desktop (v0.19): every model call goes through the
-// Blaze gateway (one OpenAI-compatible endpoint, signed in with the Blaze account), with
+// Package cloudai is Argus Cloud on the desktop (v0.19): every model call goes through the
+// Argus gateway (one OpenAI-compatible endpoint, signed in with the Argus account), with
 // model "blaze-auto" and a per-request task hint. The gateway holds the provider keys and
 // picks the model, so a default user needs no keys at all.
 //
-// It is a port of Blaze Android's agent/Cloud.kt (v0.25+), ThinkBudget.kt and EmptyReply.kt:
+// It is a port of Argus Android's agent/Cloud.kt (v0.25+), ThinkBudget.kt and EmptyReply.kt:
 // the same task classification, retry policy, backoff and the same plain lines.
 //
 // The user can choose Custom instead (their own providers and keys, Settings › Models);
@@ -12,10 +12,11 @@ package cloudai
 
 import (
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Model is the gateway's "pick for me" model; the task hint does the real choosing.
@@ -32,12 +33,12 @@ const MaxTries = 3
 
 // The lines a person sees. Same words as the phone.
 const (
-	SignedOut   = "Sign in to your Blaze account and I'm ready to go."
-	Expired     = "Your Blaze sign-in has expired. Sign in again and I'll carry on."
-	Unreachable = "I couldn't reach Blaze Cloud just now. Check your internet connection, then Retry."
-	Busy        = "Blaze Cloud is busy right now. Retry in a moment."
-	Waitlisted  = "You're on the Blaze waiting list. You'll get access as soon as you're approved."
-	Rejected    = "Your Blaze account doesn't have access to Blaze AI. If you think this is a mistake, contact the Blaze team."
+	SignedOut   = "Sign in to your " + brand.NAME + " account and I'm ready to go."
+	Expired     = "Your " + brand.NAME + " sign-in has expired. Sign in again and I'll carry on."
+	Unreachable = "I couldn't reach " + brand.NAME + " Cloud just now. Check your internet connection, then Retry."
+	Busy        = brand.NAME + " Cloud is busy right now. Retry in a moment."
+	Waitlisted  = "You're on the " + brand.NAME + " waiting list. You'll get access as soon as you're approved."
+	Rejected    = "Your " + brand.NAME + " account doesn't have access to " + brand.NAME + " AI. If you think this is a mistake, contact the " + brand.NAME + " team."
 	Allowance   = "You've used today's free messages. They come back tomorrow."
 	EmptyFailed = "The AI came back without an answer, a few times in a row. Retry and I'll ask again."
 )
@@ -49,10 +50,10 @@ const EmptyTries = 3
 const EmptyCode = -2
 
 // Nudge is added as a user turn when asking again after an empty reply.
-const Nudge = "[Blaze] Your last reply came back empty (no answer text). Answer the user now in one or two sentences, " +
+const Nudge = "[" + brand.NAME + "] Your last reply came back empty (no answer text). Answer the user now in one or two sentences, " +
 	"from what you already know and the tool results above. Don't call a tool unless the answer truly needs one."
 
-// Error is a Blaze Cloud failure: Line is what the chat shows, Raw is the gateway's own text (details).
+// Error is an Argus Cloud failure: Line is what the chat shows, Raw is the gateway's own text (details).
 type Error struct {
 	Line       string
 	Code       int
@@ -72,7 +73,7 @@ func Access(code int, text string) string {
 	}
 	t := strings.ToLower(text)
 	switch {
-	case strings.Contains(t, "access_rejected") || strings.Contains(t, "doesn't have access to blaze"):
+	case strings.Contains(t, "access_rejected") || strings.Contains(t, "doesn't have access to argus"):
 		return Rejected
 	case strings.Contains(t, "waitlisted") || strings.Contains(t, "waiting list"):
 		return Waitlisted

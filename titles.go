@@ -17,7 +17,7 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 const (
@@ -84,7 +84,7 @@ func (a *App) autoTitlesOn() bool { return a.prefs.AutoTitles == nil || *a.prefs
 // SetAutoTitles turns AI chat titles on or off (Settings › Behaviour).
 func (a *App) SetAutoTitles(on bool) { a.prefs.AutoTitles = &on; a.savePrefs() }
 
-// RenameConversation sets a title by hand; Blaze won't retitle it again.
+// RenameConversation sets a title by hand; Argus won't retitle it again.
 // An empty title hands the chat back to automatic titles.
 func (a *App) RenameConversation(id, title string) string {
 	title = strings.Join(strings.Fields(title), " ")

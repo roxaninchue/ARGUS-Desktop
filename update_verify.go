@@ -1,6 +1,6 @@
 package main
 
-// Signed updates. Before Blaze replaces itself (binary swap, pacman/apt install,
+// Signed updates. Before Argus replaces itself (binary swap, pacman/apt install,
 // NSIS run or .dmg copy) it downloads SHA256SUMS and SHA256SUMS.sig from the same
 // release, checks the ed25519 signature with the key built in below, then checks the
 // downloaded file's SHA-256 against its line. Anything else (no signature, a bad one,
@@ -10,30 +10,33 @@ package main
 
 import (
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/updsig"
+	"github.com/lacksonkapapahue/argus-desktop/internal/updsig"
 )
 
-// updatePublicKey is Blaze's release-signing public key (raw ed25519, base64). It is
+// updatePublicKey is Argus's release-signing public key (raw ed25519, base64). It is
 // defined in internal/updsig (shared with ci/sign and ci/verify); during a key rotation
 // updsig.TrustedKeys also lists the next key. The private half is only in the
 // BLAZE_UPDATE_SIGNING_KEY Actions secret.
 const updatePublicKey = updsig.PublicKey
 
 // unsignedMsg is what the user sees when a download fails verification.
-const unsignedMsg = "This update isn't signed by Blaze, so I didn't install it."
+const unsignedMsg = "This update isn't signed by " + brand.NAME + ", so I didn't install it."
 
 // detailsSep splits the plain message from the technical details; the frontend shows
 // the part after it behind a "Details" toggle.
 const detailsSep = "\n\nDetails: "
 
-// allowUnsigned is the development escape hatch: BLAZE_ALLOW_UNSIGNED_UPDATE=1.
-func allowUnsigned() bool { return strings.TrimSpace(os.Getenv("BLAZE_ALLOW_UNSIGNED_UPDATE")) == "1" }
+// allowUnsigned is the development escape hatch: ARGUS_ALLOW_UNSIGNED_UPDATE=1.
+func allowUnsigned() bool {
+	return strings.TrimSpace(os.Getenv(brand.UPPER+"_ALLOW_UNSIGNED_UPDATE")) == "1"
+}
 
 // releaseFileURL is where to fetch a release asset, the same way download() does.
 func (a *App) releaseFileURL(as ghAsset) string { return as.Download }
@@ -52,7 +55,7 @@ func (a *App) verifyUpdate(rel *ghRelease, as ghAsset, file string) error {
 	}
 	hdr := http.Header{}
 	hdr.Set("Accept", "application/octet-stream")
-	hdr.Set("User-Agent", "Blaze-Desktop/"+version)
+	hdr.Set("User-Agent", brand.NAME+"-Desktop/"+version)
 	sumsURL, sigURL := "", ""
 	if sums.Name != "" {
 		sumsURL = a.releaseFileURL(sums)
@@ -66,8 +69,8 @@ func (a *App) verifyUpdate(rel *ghRelease, as ghAsset, file string) error {
 		return nil
 	}
 	if allowUnsigned() {
-		log.Printf("!!!!!!!! update: INSTALLING AN UNVERIFIED UPDATE because BLAZE_ALLOW_UNSIGNED_UPDATE=1 (%s %s): %v !!!!!!!!", rel.Tag, as.Name, err)
-		a.progress("install", 100, "Warning: installing an unsigned update (BLAZE_ALLOW_UNSIGNED_UPDATE=1)")
+		log.Printf("!!!!!!!! update: INSTALLING AN UNVERIFIED UPDATE because "+brand.UPPER+"_ALLOW_UNSIGNED_UPDATE=1 (%s %s): %v !!!!!!!!", rel.Tag, as.Name, err)
+		a.progress("install", 100, "Warning: installing an unsigned update ("+brand.UPPER+"_ALLOW_UNSIGNED_UPDATE=1)")
 		return nil
 	}
 	_ = os.Remove(file)

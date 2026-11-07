@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"image"
 	"image/png"
 	"io"
@@ -37,12 +38,12 @@ import (
 
 	"rsc.io/qr"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloud"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/screen"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/studio"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloud"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/screen"
+	"github.com/lacksonkapapahue/argus-desktop/internal/studio"
 )
 
 // StudioPrefs are the Design studio's settings (desktop.json "studio").
@@ -186,7 +187,7 @@ func (a *App) studioPrompt() string {
 	} else if a.prefs.Folder != "" {
 		b.WriteString("PROJECT STACK: " + studio.DetectStack(a.prefs.Folder).Describe() + " (build designs in it)\n")
 	}
-	b.WriteString(`- A message starting with [Critic fix] comes from Blaze's own design critic: fix exactly the listed issues in the source, keep the look, one line on what changed.
+	b.WriteString(`- A message starting with [Critic fix] comes from ` + brand.NAME + `'s own design critic: fix exactly the listed issues in the source, keep the look, one line on what changed.
 - A message starting with [Copy window] has a screenshot: rebuild what it shows as editable code in the project's stack, matching layout, spacing, type and colours closely (use the brand kit only where the screenshot has no opinion). Real text, no images of text.
 - A message starting with [Directions mix] names parts to take from each Directions branch (folders given). Read those files and combine the named parts into the project's own files, then say in one line what came from where.
 `)
@@ -505,7 +506,7 @@ func (a *App) RestoreElement(n int, t studio.Target) EditResult {
 
 // ---------------- 5. the critic ----------------
 
-// CritiqueResult is the score card, plus the fix request when Blaze should fix it itself.
+// CritiqueResult is the score card, plus the fix request when Argus should fix it itself.
 type CritiqueResult struct {
 	Card studio.Card `json:"card"`
 	Fix  string      `json:"fix,omitempty"`
@@ -571,7 +572,7 @@ var webClient = &http.Client{Timeout: 15 * time.Second}
 
 func fetchText(u string, max int64) (string, error) {
 	req, _ := http.NewRequest("GET", u, nil)
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Blaze brand kit)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 ("+brand.NAME+" brand kit)")
 	resp, err := webClient.Do(req)
 	if err != nil {
 		return "", err
@@ -642,7 +643,7 @@ func (a *App) BrandFromImageData(b64, name string) BrandResult {
 
 // ---------------- 4. copy any window ----------------
 
-// CopyWindow takes a screenshot of the window behind Blaze and asks Blaze to rebuild it.
+// CopyWindow takes a screenshot of the window behind Argus and asks Argus to rebuild it.
 func (a *App) CopyWindow(note string) string {
 	if sv.r == nil {
 		return "Screen capture isn't available on this computer."
@@ -810,7 +811,7 @@ func (a *App) dirFolder(handle string) string {
 	return v.Path
 }
 
-// MixDirections asks Blaze to combine named parts ("header from B, colours from C").
+// MixDirections asks Argus to combine named parts ("header from B, colours from C").
 func (a *App) MixDirections(instruction string) string {
 	ds := a.Directions()
 	if len(ds) == 0 {
@@ -997,16 +998,16 @@ func (p *preview) serveLAN(w http.ResponseWriter, r *http.Request) {
 		ok = true
 	}
 	if !ok || tok == "" {
-		http.Error(w, "This preview link has expired. Scan the QR code in Blaze again.", 403)
+		http.Error(w, "This preview link has expired. Scan the QR code in "+brand.NAME+" again.", 403)
 		return
 	}
 	p.serve(w, r)
 }
 
-// special serves Blaze's own endpoints: hot reload and comments.
+// special serves Argus's own endpoints: hot reload and comments.
 func (p *preview) special(w http.ResponseWriter, r *http.Request) bool {
 	switch r.URL.Path {
-	case "/__blaze/live":
+	case "/__argus/live":
 		fl, ok := w.(http.Flusher)
 		if !ok {
 			http.Error(w, "no streaming", 500)
@@ -1038,7 +1039,7 @@ func (p *preview) special(w http.ResponseWriter, r *http.Request) bool {
 				fl.Flush()
 			}
 		}
-	case "/__blaze/comment":
+	case "/__argus/comment":
 		if r.Method == http.MethodPost {
 			var c Comment
 			if err := json.NewDecoder(io.LimitReader(r.Body, 8<<10)).Decode(&c); err != nil || strings.TrimSpace(c.Text) == "" {
@@ -1086,7 +1087,7 @@ func (p *preview) broadcast(msg string) {
 	}
 }
 
-// watchDesign reloads previews when tracked files change outside Blaze (an editor).
+// watchDesign reloads previews when tracked files change outside Argus (an editor).
 func (a *App) watchDesign() {
 	seen := map[string]time.Time{}
 	for range time.Tick(time.Second) {
@@ -1212,7 +1213,7 @@ func (a *App) Ship(provider string) string {
 		defer cancel()
 		run := studio.ExecRunner(func(c *exec.Cmd) { quiet(c) })
 		st := studio.DetectStack(folder)
-		dest, err := os.MkdirTemp("", "blaze-ship-")
+		dest, err := os.MkdirTemp("", "argus-ship-")
 		if err != nil {
 			fail(err)
 			return

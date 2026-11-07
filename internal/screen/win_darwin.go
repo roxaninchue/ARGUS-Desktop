@@ -12,15 +12,15 @@ package screen
 #include <ApplicationServices/ApplicationServices.h>
 #include <CoreFoundation/CoreFoundation.h>
 
-typedef struct { unsigned int id; int pid; int x, y, w, h; int full; char app[256]; char title[512]; } blaze_win;
+typedef struct { unsigned int id; int pid; int x, y, w, h; int full; char app[256]; char title[512]; } argus_win;
 
-static void blaze_cfstr(CFTypeRef s, char *out, int n) {
+static void argus_cfstr(CFTypeRef s, char *out, int n) {
 	out[0] = 0;
 	if (s && CFGetTypeID(s) == CFStringGetTypeID()) CFStringGetCString((CFStringRef)s, out, n, kCFStringEncodingUTF8);
 }
 
-// blaze_front fills w with the frontmost normal window not owned by skip (or window id want). 1 = found.
-static int blaze_front(int skip, unsigned int want, blaze_win *w) {
+// argus_front fills w with the frontmost normal window not owned by skip (or window id want). 1 = found.
+static int argus_front(int skip, unsigned int want, argus_win *w) {
 	CFArrayRef list = CGWindowListCopyWindowInfo(kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements, kCGNullWindowID);
 	if (!list) return 0;
 	CGRect main = CGDisplayBounds(CGMainDisplayID());
@@ -44,8 +44,8 @@ static int blaze_front(int skip, unsigned int want, blaze_win *w) {
 			w->id = wid; w->pid = pid;
 			w->x = (int)r.origin.x; w->y = (int)r.origin.y; w->w = (int)r.size.width; w->h = (int)r.size.height;
 			w->full = CGRectContainsRect(r, main) ? 1 : 0;
-			blaze_cfstr(CFDictionaryGetValue(d, kCGWindowOwnerName), w->app, sizeof w->app);
-			blaze_cfstr(CFDictionaryGetValue(d, kCGWindowName), w->title, sizeof w->title);
+			argus_cfstr(CFDictionaryGetValue(d, kCGWindowOwnerName), w->app, sizeof w->app);
+			argus_cfstr(CFDictionaryGetValue(d, kCGWindowName), w->title, sizeof w->title);
 			found = 1;
 			break;
 		}
@@ -54,26 +54,26 @@ static int blaze_front(int skip, unsigned int want, blaze_win *w) {
 	return found;
 }
 
-static double blaze_idle(void) {
+static double argus_idle(void) {
 	return CGEventSourceSecondsSinceLastEventType(kCGEventSourceStateHIDSystemState, kCGAnyInputEventType);
 }
 
-static int blaze_ax_trusted(void) { return AXIsProcessTrusted() ? 1 : 0; }
+static int argus_ax_trusted(void) { return AXIsProcessTrusted() ? 1 : 0; }
 
-static int blaze_screen_ok(void) {
+static int argus_screen_ok(void) {
 	if (__builtin_available(macOS 10.15, *)) return CGPreflightScreenCaptureAccess() ? 1 : 0;
 	return 1;
 }
 
-static void blaze_screen_ask(void) {
+static void argus_screen_ask(void) {
 	if (__builtin_available(macOS 10.15, *)) CGRequestScreenCaptureAccess();
 }
 
 // ---------- AX tree ----------
 
-typedef struct { char *buf; size_t len, cap; int count, max; } blaze_out;
+typedef struct { char *buf; size_t len, cap; int count, max; } argus_out;
 
-static void blaze_put(blaze_out *o, const char *s) {
+static void argus_put(argus_out *o, const char *s) {
 	size_t n = strlen(s);
 	if (o->len + n + 1 > o->cap) {
 		size_t c = (o->cap ? o->cap * 2 : 65536);
@@ -85,9 +85,9 @@ static void blaze_put(blaze_out *o, const char *s) {
 	memcpy(o->buf + o->len, s, n); o->len += n; o->buf[o->len] = 0;
 }
 
-// blaze_attr copies an attribute as text: tabs and newlines become spaces (newlines
+// argus_attr copies an attribute as text: tabs and newlines become spaces (newlines
 // become \x1f when keepLines, for terminals). Long text keeps its end when keepLines.
-static void blaze_attr(AXUIElementRef el, CFStringRef attr, char *out, int n, int keepLines) {
+static void argus_attr(AXUIElementRef el, CFStringRef attr, char *out, int n, int keepLines) {
 	out[0] = 0;
 	CFTypeRef v = NULL;
 	if (AXUIElementCopyAttributeValue(el, attr, &v) != kAXErrorSuccess || !v) return;
@@ -111,15 +111,15 @@ static void blaze_attr(AXUIElementRef el, CFStringRef attr, char *out, int n, in
 	CFRelease(v);
 }
 
-static void blaze_walk(AXUIElementRef el, int depth, blaze_out *o) {
+static void argus_walk(AXUIElementRef el, int depth, argus_out *o) {
 	if (o->count >= o->max || depth > 40) return;
 	o->count++;
 	// static: each is used before recursing into the children
 	static char role[128], sub[128], title[1024], val[8192], line[12000];
-	blaze_attr(el, kAXRoleAttribute, role, sizeof role, 0);
-	blaze_attr(el, kAXSubroleAttribute, sub, sizeof sub, 0);
-	blaze_attr(el, kAXTitleAttribute, title, sizeof title, 0);
-	if (!title[0]) blaze_attr(el, kAXDescriptionAttribute, title, sizeof title, 0);
+	argus_attr(el, kAXRoleAttribute, role, sizeof role, 0);
+	argus_attr(el, kAXSubroleAttribute, sub, sizeof sub, 0);
+	argus_attr(el, kAXTitleAttribute, title, sizeof title, 0);
+	if (!title[0]) argus_attr(el, kAXDescriptionAttribute, title, sizeof title, 0);
 	int secret = strcmp(sub, "AXSecureTextField") == 0;
 	val[0] = 0;
 	char box[96] = "";
@@ -130,7 +130,7 @@ static void blaze_walk(AXUIElementRef el, int depth, blaze_out *o) {
 		snprintf(box, sizeof box, "%d,%d,%d,%d", (int)pt.x, (int)pt.y, (int)sz.width, (int)sz.height);
 	} else {
 		int big = strcmp(role, "AXTextArea") == 0;
-		blaze_attr(el, kAXValueAttribute, val, big ? (int)sizeof val : 512, big);
+		argus_attr(el, kAXValueAttribute, val, big ? (int)sizeof val : 512, big);
 	}
 	CFTypeRef foc = NULL; int focused = 0;
 	if (AXUIElementCopyAttributeValue(el, kAXFocusedAttribute, &foc) == kAXErrorSuccess && foc) {
@@ -138,21 +138,21 @@ static void blaze_walk(AXUIElementRef el, int depth, blaze_out *o) {
 		CFRelease(foc);
 	}
 	snprintf(line, sizeof line, "%d\t%s\t%s\t%s\t%d%d\t%s\n", depth, role, title, val, secret, focused, box);
-	blaze_put(o, line);
+	argus_put(o, line);
 	CFTypeRef kids = NULL;
 	if (AXUIElementCopyAttributeValue(el, kAXChildrenAttribute, &kids) != kAXErrorSuccess || !kids) return;
 	if (CFGetTypeID(kids) == CFArrayGetTypeID()) {
 		CFIndex n = CFArrayGetCount((CFArrayRef)kids);
 		if (n > 300) n = 300;
 		for (CFIndex i = 0; i < n && o->count < o->max; i++)
-			blaze_walk((AXUIElementRef)CFArrayGetValueAtIndex((CFArrayRef)kids, i), depth + 1, o);
+			argus_walk((AXUIElementRef)CFArrayGetValueAtIndex((CFArrayRef)kids, i), depth + 1, o);
 	}
 	CFRelease(kids);
 }
 
-// blaze_ax_tree returns the window of pid (titled title, else the focused one) as
+// argus_ax_tree returns the window of pid (titled title, else the focused one) as
 // lines "depth\trole\tname\tvalue\tSF\tbox"; free() it. err: 1 no permission, 2/3 no window.
-static char* blaze_ax_tree(int pid, const char *title, int max, int *err) {
+static char* argus_ax_tree(int pid, const char *title, int max, int *err) {
 	*err = 0;
 	if (!AXIsProcessTrusted()) { *err = 1; return NULL; }
 	AXUIElementRef app = AXUIElementCreateApplication(pid);
@@ -165,7 +165,7 @@ static char* blaze_ax_tree(int pid, const char *title, int max, int *err) {
 			char t[1024];
 			for (CFIndex i = 0; i < CFArrayGetCount((CFArrayRef)wins) && !win; i++) {
 				AXUIElementRef w = (AXUIElementRef)CFArrayGetValueAtIndex((CFArrayRef)wins, i);
-				blaze_attr(w, kAXTitleAttribute, t, sizeof t, 0);
+				argus_attr(w, kAXTitleAttribute, t, sizeof t, 0);
 				if (strcmp(t, title) == 0) { win = w; CFRetain(win); }
 			}
 		}
@@ -174,15 +174,15 @@ static char* blaze_ax_tree(int pid, const char *title, int max, int *err) {
 	if (!win) AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute, (CFTypeRef*)&win);
 	if (!win) AXUIElementCopyAttributeValue(app, kAXMainWindowAttribute, (CFTypeRef*)&win);
 	if (!win) { CFRelease(app); *err = 3; return NULL; }
-	blaze_out o = {0};
+	argus_out o = {0};
 	o.max = max;
-	blaze_walk(win, 0, &o);
+	argus_walk(win, 0, &o);
 	CFRelease(win);
 	CFRelease(app);
 	return o.buf;
 }
 
-static char* blaze_win_title(int pid) {
+static char* argus_win_title(int pid) {
 	AXUIElementRef app = AXUIElementCreateApplication(pid);
 	if (!app) return NULL;
 	AXUIElementSetMessagingTimeout(app, 0.5);
@@ -190,7 +190,7 @@ static char* blaze_win_title(int pid) {
 	char *out = NULL;
 	if (AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute, (CFTypeRef*)&win) == kAXErrorSuccess && win) {
 		out = malloc(1024);
-		if (out) blaze_attr(win, kAXTitleAttribute, out, 1024, 0);
+		if (out) argus_attr(win, kAXTitleAttribute, out, 1024, 0);
 		CFRelease(win);
 	}
 	CFRelease(app);
@@ -201,6 +201,7 @@ import "C"
 
 import (
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"image"
 	_ "image/jpeg"
 	"os"
@@ -217,15 +218,15 @@ func hideConsole(cmd *exec.Cmd)  {}
 func thumb(w Win) (uint64, bool) { return 0, false }
 
 func probe(skip int, id uint64) (Win, error) {
-	var cw C.blaze_win
-	if C.blaze_front(C.int(skip), C.uint(id), &cw) == 0 {
+	var cw C.argus_win
+	if C.argus_front(C.int(skip), C.uint(id), &cw) == 0 {
 		return Win{}, errors.New("no window is open")
 	}
 	w := Win{ID: uint64(cw.id), PID: int(cw.pid), App: C.GoString(&cw.app[0]), Title: C.GoString(&cw.title[0]),
 		X: int(cw.x), Y: int(cw.y), W: int(cw.w), H: int(cw.h), Fullscreen: cw.full != 0}
-	if w.Title == "" && C.blaze_ax_trusted() != 0 {
+	if w.Title == "" && C.argus_ax_trusted() != 0 {
 		// Without Screen Recording, macOS hides window titles; Accessibility still has them.
-		if t := C.blaze_win_title(C.int(w.PID)); t != nil {
+		if t := C.argus_win_title(C.int(w.PID)); t != nil {
 			w.Title = C.GoString(t)
 			C.free(unsafe.Pointer(t))
 		}
@@ -238,10 +239,10 @@ func tree(w Win, max int) ([]Flat, string, error) {
 	ct := C.CString(w.Title)
 	defer C.free(unsafe.Pointer(ct))
 	var cerr C.int
-	buf := C.blaze_ax_tree(C.int(w.PID), ct, C.int(max), &cerr)
+	buf := C.argus_ax_tree(C.int(w.PID), ct, C.int(max), &cerr)
 	switch cerr {
 	case 1:
-		return nil, src, errors.New("Blaze needs the Accessibility permission to read windows (System Settings › Privacy & Security › Accessibility)")
+		return nil, src, errors.New(brand.NAME + " needs the Accessibility permission to read windows (System Settings › Privacy & Security › Accessibility)")
 	case 2, 3:
 		return nil, src, errors.New("the window didn't answer accessibility requests")
 	}
@@ -275,10 +276,10 @@ func tree(w Win, max int) ([]Flat, string, error) {
 }
 
 func capture(w Win, full bool) (image.Image, image.Point, string, error) {
-	if C.blaze_screen_ok() == 0 {
-		return nil, image.Point{}, "screencapture", errors.New("Blaze needs the Screen Recording permission to take screenshots (System Settings › Privacy & Security › Screen Recording)")
+	if C.argus_screen_ok() == 0 {
+		return nil, image.Point{}, "screencapture", errors.New(brand.NAME + " needs the Screen Recording permission to take screenshots (System Settings › Privacy & Security › Screen Recording)")
 	}
-	tmp := filepath.Join(os.TempDir(), "blaze-shot-"+strconv.Itoa(os.Getpid())+".jpg")
+	tmp := filepath.Join(os.TempDir(), "argus-shot-"+strconv.Itoa(os.Getpid())+".jpg")
 	defer os.Remove(tmp)
 	args := []string{"-x", "-t", "jpg"}
 	origin := image.Pt(0, 0)
@@ -319,24 +320,24 @@ func capture(w Win, full bool) (image.Image, image.Point, string, error) {
 	return img, origin, "screencapture", nil
 }
 
-func IdleSeconds() int { return int(C.blaze_idle()) }
+func IdleSeconds() int { return int(C.argus_idle()) }
 
 // AskScreenRecording shows macOS's own Screen Recording prompt (first time only).
-func AskScreenRecording() { C.blaze_screen_ask() }
+func AskScreenRecording() { C.argus_screen_ask() }
 
 func Capabilities() Caps {
 	c := Caps{TextVia: "Accessibility (AX)", PixelsVia: "screencapture",
 		Permission: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture",
 		TextPerm:   "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"}
-	if C.blaze_ax_trusted() != 0 {
+	if C.argus_ax_trusted() != 0 {
 		c.Text = true
 	} else {
-		c.TextNote = "Allow Blaze in System Settings › Privacy & Security › Accessibility"
+		c.TextNote = "Allow " + brand.NAME + " in System Settings › Privacy & Security › Accessibility"
 	}
-	if C.blaze_screen_ok() != 0 {
+	if C.argus_screen_ok() != 0 {
 		c.Pixels = true
 	} else {
-		c.PixelsNote = "Allow Blaze in System Settings › Privacy & Security › Screen Recording, then reopen Blaze"
+		c.PixelsNote = "Allow " + brand.NAME + " in System Settings › Privacy & Security › Screen Recording, then reopen " + brand.NAME
 	}
 	return c
 }

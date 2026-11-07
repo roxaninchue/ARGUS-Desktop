@@ -11,8 +11,8 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 // A Project is a folder with its own chats and standing instructions.

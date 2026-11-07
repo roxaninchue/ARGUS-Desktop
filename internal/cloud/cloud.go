@@ -1,11 +1,11 @@
-// Package cloud talks to blaze-auth, Blaze's small Cloudflare Worker (cloud/ in this
+// Package cloud talks to blaze-auth, Argus's small Cloudflare Worker (cloud/ in this
 // repo). It does two things:
 //
 //   - one-click connectors: the Worker holds each provider's client secret, so the
 //     user just presses Connect. The browser signs in, the Worker swaps the code for
 //     tokens, and hands them back to a 127.0.0.1 loopback here through a one-time
 //     code bound to our PKCE verifier.
-//   - Blaze accounts: email + password, or Sign in with Google / GitHub.
+//   - Argus accounts: email + password, or Sign in with Google / GitHub.
 //
 // No secret lives in the desktop binary. Tokens end up in the OS keychain.
 package cloud
@@ -32,9 +32,9 @@ import (
 // DefaultBase is the deployed Worker.
 const DefaultBase = "https://blaze-auth.blaze-app.workers.dev"
 
-// BaseURL is BLAZE_CLOUD_URL, else "cloud_url" in <dir>/cloud.json, else DefaultBase.
+// BaseURL is ARGUS_CLOUD_URL, else "cloud_url" in <dir>/cloud.json, else DefaultBase.
 func BaseURL(dir string) string {
-	if v := strings.TrimSpace(os.Getenv("BLAZE_CLOUD_URL")); v != "" {
+	if v := strings.TrimSpace(os.Getenv("ARGUS_CLOUD_URL")); v != "" {
 		return strings.TrimRight(v, "/")
 	}
 	var f struct {
@@ -68,7 +68,7 @@ var ErrNotConfigured = errors.New("not_configured")
 // ErrCancelled: the sign-in was cancelled or timed out before the browser came back.
 var ErrCancelled = errors.New("cancelled")
 
-// ErrBadAnswer: the service answered 2xx with a body that isn't the JSON Blaze expects
+// ErrBadAnswer: the service answered 2xx with a body that isn't the JSON Argus expects
 // (a captive portal, a proxy page, a half-deployed Worker).
 var ErrBadAnswer = errors.New("bad_answer")
 
@@ -90,7 +90,7 @@ func (e *APIError) Error() string { return e.Code }
 type Unreachable struct{ Err error }
 
 func (e *Unreachable) Error() string {
-	return "couldn't reach Blaze's sign-in service: " + e.Err.Error()
+	return "couldn't reach Argus's sign-in service: " + e.Err.Error()
 }
 func (e *Unreachable) Unwrap() error { return e.Err }
 
@@ -106,9 +106,9 @@ func Message(err error) string {
 	case errors.Is(err, ErrCancelled):
 		return "Sign-in was cancelled."
 	case errors.As(err, &un):
-		return "Couldn't reach Blaze's sign-in service. Check your internet connection."
+		return "Couldn't reach Argus's sign-in service. Check your internet connection."
 	case errors.Is(err, ErrBadAnswer):
-		return "Blaze's sign-in service sent an answer Blaze couldn't read. Try again in a moment."
+		return "Argus's sign-in service sent an answer Argus couldn't read. Try again in a moment."
 	case errors.As(err, &ae):
 		switch ae.Code {
 		case "too_large":
@@ -118,7 +118,7 @@ func Message(err error) string {
 		case "invalid_credentials":
 			return "That email and password don't match."
 		case "email_taken":
-			return "There's already a Blaze account with that email. Sign in instead."
+			return "There's already an Argus account with that email. Sign in instead."
 		case "invalid_email":
 			return "That doesn't look like an email address."
 		case "invalid_password":
@@ -141,10 +141,10 @@ func Message(err error) string {
 		case "too_many_codes":
 			return "That's the most codes for one sign-in. Start again in a few minutes."
 		case "mail_failed":
-			return "Blaze couldn't send the email. Try again in a moment."
+			return "Argus couldn't send the email. Try again in a moment."
 		}
 		if ae.Status >= 500 && strings.HasPrefix(ae.Code, "http_") {
-			return "Blaze's sign-in service is having trouble right now. Try again in a moment."
+			return "Argus's sign-in service is having trouble right now. Try again in a moment."
 		}
 		return "Sign-in failed (" + ae.Code + ")."
 	}
@@ -184,7 +184,7 @@ type User struct {
 	CreatedAt int64    `json:"created_at"`
 }
 
-// Redeemed is what /oauth/redeem returns: provider tokens, or a Blaze session.
+// Redeemed is what /oauth/redeem returns: provider tokens, or an Argus session.
 type Redeemed struct {
 	Kind     string   `json:"kind"` // tokens | session
 	Provider string   `json:"provider"`
@@ -194,7 +194,7 @@ type Redeemed struct {
 	User     *User    `json:"user,omitempty"`
 }
 
-// Session is a signed-in Blaze account.
+// Session is a signed-in Argus account.
 type Session struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`
@@ -216,7 +216,7 @@ func (c *Client) do(ctx context.Context, method, path, bearer string, body, out 
 		return err
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "Blaze-Desktop")
+	req.Header.Set("User-Agent", "Argus-Desktop")
 	if body != nil {
 		req.Header.Set("Content-Type", ctype)
 	}
@@ -271,13 +271,13 @@ func (c *Client) Providers(ctx context.Context) (*Providers, error) {
 
 func (c *Client) SignUp(ctx context.Context, name, email, password string) (*Session, error) {
 	var s Session
-	err := c.do(ctx, "POST", "/v1/auth/signup", "", map[string]string{"name": name, "email": email, "password": password, "client": "Blaze Desktop"}, &s)
+	err := c.do(ctx, "POST", "/v1/auth/signup", "", map[string]string{"name": name, "email": email, "password": password, "client": "Argus Desktop"}, &s)
 	return &s, err
 }
 
 func (c *Client) SignIn(ctx context.Context, email, password string) (*Session, error) {
 	var s Session
-	err := c.do(ctx, "POST", "/v1/auth/login", "", map[string]string{"email": email, "password": password, "client": "Blaze Desktop"}, &s)
+	err := c.do(ctx, "POST", "/v1/auth/login", "", map[string]string{"email": email, "password": password, "client": "Argus Desktop"}, &s)
 	return &s, err
 }
 
@@ -414,7 +414,7 @@ func (c *Client) Connect(ctx context.Context, provider string, scopes []string, 
 	return c.authorize(ctx, "/oauth/"+url.PathEscape(provider)+"/start", scopes, open)
 }
 
-// SignInWith runs "Sign in with Google/GitHub" and returns a Blaze session.
+// SignInWith runs "Sign in with Google/GitHub" and returns an Argus session.
 func (c *Client) SignInWith(ctx context.Context, provider string, open func(string)) (*Session, error) {
 	r, err := c.authorize(ctx, "/v1/auth/"+url.PathEscape(provider)+"/start", nil, open)
 	if err != nil {
@@ -435,7 +435,7 @@ type cbResult struct {
 func (c *Client) authorize(ctx context.Context, startPath string, scopes []string, open func(string)) (*Redeemed, error) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		return nil, fmt.Errorf("Blaze couldn't open a local port for the sign-in: %v", err)
+		return nil, fmt.Errorf("Argus couldn't open a local port for the sign-in: %v", err)
 	}
 	port := ln.Addr().(*net.TCPAddr).Port
 	state := randB64(24)
@@ -447,7 +447,7 @@ func (c *Client) authorize(ctx context.Context, startPath string, scopes []strin
 	mux.HandleFunc("/cb", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		if q.Get("state") != state {
-			writePage(w, false, "Sign-in didn't finish", "That link doesn't match the sign-in Blaze started. Start again from Blaze.")
+			writePage(w, false, "Sign-in didn't finish", "That link doesn't match the sign-in Argus started. Start again from Argus.")
 			return
 		}
 		res := cbResult{code: q.Get("code"), errCode: q.Get("error")}
@@ -455,13 +455,13 @@ func (c *Client) authorize(ctx context.Context, startPath string, scopes []strin
 			res.errCode = "missing_code"
 		}
 		if res.errCode != "" {
-			msg := "The sign-in came back with an error (" + res.errCode + "). Go back to Blaze and try again."
+			msg := "The sign-in came back with an error (" + res.errCode + "). Go back to Argus and try again."
 			if res.errCode == "access_denied" {
 				msg = "You declined access. Nothing changed; you can close this tab."
 			}
 			writePage(w, false, "Sign-in didn't finish", msg)
 		} else {
-			writePage(w, true, "You're signed in", "You can close this tab and go back to Blaze.")
+			writePage(w, true, "You're signed in", "You can close this tab and go back to Argus.")
 		}
 		select {
 		case got <- res:
@@ -510,7 +510,7 @@ func (c *Client) authorize(ctx context.Context, startPath string, scopes []strin
 		return nil, &APIError{Status: 400, Code: res.errCode}
 	}
 	var out Redeemed
-	if err := c.do(ctx, "POST", "/oauth/redeem", "", map[string]string{"code": res.code, "code_verifier": verifier, "client": "Blaze Desktop"}, &out); err != nil {
+	if err := c.do(ctx, "POST", "/oauth/redeem", "", map[string]string{"code": res.code, "code_verifier": verifier, "client": "Argus Desktop"}, &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -524,6 +524,6 @@ func writePage(w http.ResponseWriter, ok bool, title, msg string) {
 		mark = "#111110"
 	}
 	esc := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&quot;").Replace
-	fmt.Fprintf(w, `<!doctype html><meta charset="utf-8"><title>Blaze</title><body style="font:15px/1.5 system-ui,sans-serif;background:#FBFBFA;color:#111110;display:grid;place-items:center;height:100vh;margin:0"><div style="max-width:440px;padding:32px;border:1px solid rgba(17,17,16,.18);background:#fff;box-shadow:inset 3px 0 0 %s"><div style="font:500 11px monospace;letter-spacing:.12em;text-transform:uppercase;color:%s">Blaze</div><h2 style="margin:8px 0 6px;font-weight:600">%s</h2><p style="margin:0;color:rgba(17,17,16,.6)">%s</p></div></body>`,
+	fmt.Fprintf(w, `<!doctype html><meta charset="utf-8"><title>Argus</title><body style="font:15px/1.5 system-ui,sans-serif;background:#FBFBFA;color:#111110;display:grid;place-items:center;height:100vh;margin:0"><div style="max-width:440px;padding:32px;border:1px solid rgba(17,17,16,.18);background:#fff;box-shadow:inset 3px 0 0 %s"><div style="font:500 11px monospace;letter-spacing:.12em;text-transform:uppercase;color:%s">Argus</div><h2 style="margin:8px 0 6px;font-weight:600">%s</h2><p style="margin:0;color:rgba(17,17,16,.6)">%s</p></div></body>`,
 		mark, mark, esc(title), esc(msg))
 }

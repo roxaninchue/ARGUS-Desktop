@@ -1,7 +1,7 @@
 package cloudai
 
-// The Blaze gateway client: one OpenAI-compatible POST /v1/chat/completions with the
-// Blaze account session token as the bearer, model blaze-auto + blaze_task, and the
+// The Argus gateway client: one OpenAI-compatible POST /v1/chat/completions with the
+// Argus account session token as the bearer, model blaze-auto + blaze_task, and the
 // phone's retry loop (Cloud.drive) around it.
 
 import (
@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net"
 	"net/http"
@@ -18,22 +19,22 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
-// DefaultBase is the deployed gateway (gateway/ in Blaze Mobile's repo, `GET /health`).
+// DefaultBase is the deployed gateway (gateway/ in Argus Mobile's repo, `GET /health`).
 const DefaultBase = "https://ai.blaze-app.workers.dev/v1"
 
-// ProviderID is how Blaze Cloud shows up in usage and routes.
-const ProviderID = "blaze-cloud"
+// ProviderID is how Argus Cloud shows up in usage and routes.
+const ProviderID = "argus-cloud"
 
 // Name is what the model chip and Settings call it.
-const Name = "Blaze Cloud"
+const Name = brand.NAME + " Cloud"
 
-// BaseFrom picks the gateway base: BLAZE_GATEWAY_URL, then the saved choice, then DefaultBase.
+// BaseFrom picks the gateway base: ARGUS_GATEWAY_URL, then the saved choice, then DefaultBase.
 // It always ends in /v1 (a bare host gets it added).
 func BaseFrom(saved string) string {
-	b := strings.TrimSpace(os.Getenv("BLAZE_GATEWAY_URL"))
+	b := strings.TrimSpace(os.Getenv(brand.UPPER + "_GATEWAY_URL"))
 	if b == "" {
 		b = strings.TrimSpace(saved)
 	}
@@ -47,10 +48,10 @@ func BaseFrom(saved string) string {
 	return b
 }
 
-// Gateway talks to Blaze Cloud.
+// Gateway talks to Argus Cloud.
 type Gateway struct {
 	Base  string
-	Token func() string // the Blaze account session token ("" when signed out)
+	Token func() string // the Argus account session token ("" when signed out)
 	HC    *http.Client
 	// Sleep waits between tries (tests replace it). It returns early when ctx ends.
 	Sleep func(ctx context.Context, d time.Duration) error
@@ -200,7 +201,7 @@ func Drive(ctx context.Context, streaming bool, call func(Attempt) (*llm.Result,
 	return nil, &Error{Line: Friendly(last.Code, last.Body), Code: last.Code, RetryAfter: last.RetryAfter, Raw: last.Body}
 }
 
-// Complete answers one request through Blaze Cloud. quickCall marks small background calls.
+// Complete answers one request through Argus Cloud. quickCall marks small background calls.
 func (g *Gateway) Complete(ctx context.Context, msgs []llm.Message, tools []llm.Tool, onText func(string), quickCall bool) (*llm.Result, error) {
 	token := ""
 	if g.Token != nil {
@@ -334,7 +335,7 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("User-Agent", "Blaze-Desktop")
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop")
 	if onText != nil {
 		req.Header.Set("Accept", "text/event-stream")
 		// No compression on the stream: a gzip layer can hold back the first words until a
@@ -355,7 +356,7 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 		if ctx.Err() != nil && errors.Is(ctx.Err(), context.Canceled) {
 			return nil, ctx.Err()
 		}
-		return nil, &llm.HTTPError{Code: 0, Body: "couldn't reach Blaze Cloud: " + err.Error()}
+		return nil, &llm.HTTPError{Code: 0, Body: "couldn't reach " + brand.NAME + " Cloud: " + err.Error()}
 	}
 	defer resp.Body.Close()
 	prov, model := resp.Header.Get("X-Blaze-Provider"), resp.Header.Get("X-Blaze-Model")
@@ -425,7 +426,7 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 		}
 		if len(bytes.TrimSpace(raw)) == 0 {
 			// An empty 200 is a hiccup: the normal retry path takes over.
-			return nil, &llm.HTTPError{Code: 503, Body: "Blaze Cloud sent an empty reply"}
+			return nil, &llm.HTTPError{Code: 503, Body: brand.NAME + " Cloud sent an empty reply"}
 		}
 		r, err = llm.ParseWhole(raw, onText)
 	}
@@ -435,7 +436,7 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 			return nil, he
 		}
 		if ctx.Err() != nil && errors.Is(ctx.Err(), context.Canceled) {
-			return nil, &llm.HTTPError{Code: 0, Body: "Blaze Cloud stopped sending (no data for " + stall.String() + ")"}
+			return nil, &llm.HTTPError{Code: 0, Body: brand.NAME + " Cloud stopped sending (no data for " + stall.String() + ")"}
 		}
 		return nil, &llm.HTTPError{Code: 0, Body: err.Error()}
 	}
@@ -450,7 +451,7 @@ func (g *Gateway) call(ctx context.Context, token string, msgs []llm.Message, to
 	if prov != "" && model != "" {
 		turn.Served(prov + "/" + model)
 	}
-	// Blaze Cloud is one product, like on Blaze Mobile: the person never sees which provider
+	// Argus Cloud is one product, like on Argus Mobile: the person never sees which provider
 	// or model answered (v0.19.1). The served route stays in the turn log (turn.Served) and in
 	// lastRoute, so blaze_avoid and diagnostics still work.
 	r.Provider = ProviderID
@@ -476,7 +477,7 @@ func gatewayErr(raw []byte) string {
 	return llm.CleanErr(string(raw))
 }
 
-// Status is the account's standing with Blaze Cloud, for Settings › Models.
+// Status is the account's standing with Argus Cloud, for Settings › Models.
 type Status struct {
 	Ready bool   `json:"ready"`          // signed in and allowed
 	Line  string `json:"line,omitempty"` // what to tell the person when not ready
@@ -498,7 +499,7 @@ func (g *Gateway) Check(ctx context.Context) Status {
 		return Status{Line: Unreachable}
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
-	req.Header.Set("User-Agent", "Blaze-Desktop")
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop")
 	hc := g.HC
 	if hc == nil {
 		hc = http.DefaultClient

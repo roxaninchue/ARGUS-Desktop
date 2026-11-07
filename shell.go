@@ -74,7 +74,7 @@ func isWayland() bool {
 	return runtime.GOOS == "linux" && (strings.EqualFold(os.Getenv("XDG_SESSION_TYPE"), "wayland") || (os.Getenv("WAYLAND_DISPLAY") != "" && os.Getenv("DISPLAY") == ""))
 }
 
-// backgroundOn: closing the window keeps Blaze running (default on).
+// backgroundOn: closing the window keeps Argus running (default on).
 func (a *App) backgroundOn() bool { return a.prefs.Background == nil || *a.prefs.Background }
 
 // quit really quits: tray Quit, the updater, and close when background mode is off.
@@ -87,7 +87,7 @@ func (a *App) quit() {
 	}
 }
 
-// beforeClose hides the window instead of quitting when Blaze lives in the tray.
+// beforeClose hides the window instead of quitting when Argus lives in the tray.
 func (a *App) beforeClose(ctx interface{}) bool {
 	a.sh.mu.Lock()
 	quitting, tray := a.quitting, a.sh.trayOK
@@ -99,12 +99,12 @@ func (a *App) beforeClose(ctx interface{}) bool {
 	return true
 }
 
-// secondInstance runs when Blaze is launched again while it's already running.
+// secondInstance runs when Argus is launched again while it's already running.
 func (a *App) secondInstance(args []string) {
 	a.waitReady()
-	// A blaze:// sign-in link (Windows and Linux hand it over as an argument).
+	// An argus:// sign-in link (Windows and Linux hand it over as an argument).
 	for _, arg := range args {
-		if strings.HasPrefix(strings.ToLower(arg), "blaze://") {
+		if strings.HasPrefix(strings.ToLower(arg), "argus://") {
 			a.routeURL(arg)
 			a.ShowMain()
 			return
@@ -138,7 +138,7 @@ func (a *App) ShowMain() {
 	a.sh.mu.Unlock()
 }
 
-// HideWindow hides Blaze; it keeps running in the tray.
+// HideWindow hides Argus; it keeps running in the tray.
 func (a *App) HideWindow() {
 	if a.ctx == nil {
 		return
@@ -345,7 +345,7 @@ func (a *App) startShell() {
 	a.sh.mu.Unlock()
 	a.startTray()
 	a.applyHotkey()
-	// Keep the login item pointing at this copy of Blaze (it may have moved or updated).
+	// Keep the login item pointing at this copy of Argus (it may have moved or updated).
 	if a.prefs.Autostart && !autostartEnabled() {
 		_ = setAutostart(true)
 	}

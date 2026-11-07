@@ -10,7 +10,7 @@ func TestParallelSafeList(t *testing.T) {
 			t.Errorf("%s should be parallel-safe", n)
 		}
 	}
-	for _, n := range []string{"file_write", "file_edit", "file_delete", "run_shell", "git", "install", "schedule", "remember", "forget", "system_info", "phone", "dispatch_agent", "update_blaze", "http_request", "nope"} {
+	for _, n := range []string{"file_write", "file_edit", "file_delete", "run_shell", "git", "install", "schedule", "remember", "forget", "system_info", "phone", "dispatch_agent", "update_argus", "http_request", "nope"} {
 		if ParallelSafe(n) {
 			t.Errorf("%s must not run in parallel", n)
 		}

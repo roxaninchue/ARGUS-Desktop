@@ -1,24 +1,25 @@
-// Package config keeps Blaze's settings in ~/.blaze/config.json and API keys in
-// the shared key store (internal/keystore, the same code as Blaze CLI's): the OS
+// Package config keeps Argus's settings in ~/.argus/config.json and API keys in
+// the shared key store (internal/keystore, the same code as Argus CLI's): the OS
 // keychain (Windows Credential Manager, macOS Keychain, Linux Secret Service),
-// falling back to ~/.blaze/keys.json (mode 0600) when no keychain exists. A key saved
-// in Blaze CLI works here and the other way round.
+// falling back to ~/.argus/keys.json (mode 0600) when no keychain exists. A key saved
+// in Argus CLI works here and the other way round.
 //
-// The file is shared with Blaze CLI. Every field added since v0.2 is optional
+// The file is shared with Argus CLI. Every field added since v0.2 is optional
 // (omitempty) so an older config.json loads unchanged and an older CLI simply
 // ignores what it doesn't know. Save keeps fields it doesn't know (and legacy keys an
-// older Blaze still reads) instead of dropping them.
+// older Argus still reads) instead of dropping them.
 package config
 
 import (
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/keystore"
+	"github.com/lacksonkapapahue/argus-desktop/internal/keystore"
 )
 
 type Provider struct {
@@ -57,15 +58,15 @@ var FreeOrder = []string{"gemini", "groq", "cerebras", "nvidia", "openrouter", "
 var (
 	cmu        sync.RWMutex
 	customBase string
-	bases      = map[string]string{} // per-provider address overrides (BlazeRouter's own, a Cloudflare account)
-	extra      []Provider            // providers added at run time (BlazeRouter's catalog)
+	bases      = map[string]string{} // per-provider address overrides (ArgusRouter's own, a Cloudflare account)
+	extra      []Provider            // providers added at run time (ArgusRouter's catalog)
 )
 
-// RouterID is BlazeRouter, the local OpenAI-compatible gateway built into Blaze Desktop.
+// RouterID is ArgusRouter, the local OpenAI-compatible gateway built into Argus Desktop.
 // Its address is only set while its server runs (SetBase), so a stopped router is never usable.
-const RouterID = "blazerouter"
+const RouterID = "argusrouter"
 
-// Register adds providers at run time (BlazeRouter's free-tier catalog). Known ids are skipped.
+// Register adds providers at run time (ArgusRouter's free-tier catalog). Known ids are skipped.
 func Register(ps ...Provider) {
 	cmu.Lock()
 	defer cmu.Unlock()
@@ -152,7 +153,7 @@ type Config struct {
 	CustomBase string            `json:"custom_base,omitempty"` // base URL of the custom provider
 	CustomName string            `json:"custom_name,omitempty"` // label for it
 
-	// Private vision (desktop v0.8.3, shared with Blaze CLI): pictures never leave the
+	// Private vision (desktop v0.8.3, shared with Argus CLI): pictures never leave the
 	// computer. The OS's own OCR and a local colour/size readout turn each image into
 	// text, and only that text goes to cloud models.
 	PrivateVision bool `json:"private_vision,omitempty"`
@@ -163,11 +164,11 @@ type Config struct {
 const Auto = "auto"
 
 func Dir() string {
-	if d := os.Getenv("BLAZE_HOME"); d != "" {
+	if d := os.Getenv(brand.UPPER + "_HOME"); d != "" {
 		return d
 	}
 	h, _ := os.UserHomeDir()
-	return filepath.Join(h, ".blaze")
+	return filepath.Join(h, ".argus")
 }
 
 func Load() *Config {
@@ -252,7 +253,7 @@ func (c *Config) IsAuto() bool {
 	return c.Default == nil || c.Default.Provider == "" || c.Default.Provider == Auto
 }
 
-// Model is the model Blaze uses for a provider: the user's pick, then its chain entry, then the built-in default.
+// Model is the model Argus uses for a provider: the user's pick, then its chain entry, then the built-in default.
 func (c *Config) Model(provider string) string {
 	if m := c.ModelFor[provider]; m != "" {
 		return m
@@ -277,7 +278,7 @@ func (c *Config) SetModelFor(provider, model string) {
 
 // ---------------- keys ----------------
 
-// Keys is the shared key store (same as Blaze CLI's).
+// Keys is the shared key store (same as Argus CLI's).
 func Keys() *keystore.Store { return keystore.Open(Dir()) }
 
 // KeysChanged, when set, runs after a provider's keys change (the account syncs them).
@@ -289,7 +290,7 @@ func keysChanged(provider string) {
 	}
 }
 
-// KeyHook, when set, supplies keys that don't live in the key store (BlazeRouter's local key).
+// KeyHook, when set, supplies keys that don't live in the key store (ArgusRouter's local key).
 var KeyHook func(provider string) string
 
 // Key returns the provider's main key: env var first, then the shared key store.

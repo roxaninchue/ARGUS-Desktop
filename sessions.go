@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
+	"github.com/lacksonkapapahue/argus-desktop/internal/privacy"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -187,7 +187,7 @@ func (a *App) deliverResult(in agents.Input) {
 	if s == nil {
 		appendToConv(in.Conv, llm.Message{Role: "user", Content: in.Text})
 		a.emit("toast", map[string]string{"text": "Background agent " + in.Handle + " finished in another chat", "kind": "ok"})
-		a.agentElsewhere(in.Handle, in.Conv) // native notification when Blaze is hidden (notify_app.go)
+		a.agentElsewhere(in.Handle, in.Conv) // native notification when Argus is hidden (notify_app.go)
 		return
 	}
 	s.main().Submit(in)

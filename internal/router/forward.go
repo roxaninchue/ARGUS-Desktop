@@ -4,12 +4,12 @@ package router
 //
 //   - Targets come from plan (combos.go), already ordered by the strategy and the
 //     circuit breaker (resting models last).
-//   - Each provider can hold several keys (Blaze's key ring). A key that runs out of
+//   - Each provider can hold several keys (Argus's key ring). A key that runs out of
 //     quota on a model rests and the next key carries on with the same model.
 //   - Outages and timeouts get one quick retry with a short backoff; rate limits,
 //     auth errors and refusals move straight on to the next target.
-//   - Health, cool-downs, key rests and the rate-limit budget are Blaze's own
-//     (internal/llm), shared with Blaze's chats.
+//   - Health, cool-downs, key rests and the rate-limit budget are Argus's own
+//     (internal/llm), shared with Argus's chats.
 //   - Once an answer has started streaming to the client it is never restarted on
 //     another model.
 
@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net"
 	"net/http"
@@ -27,8 +28,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 var upstreamClient = &http.Client{Transport: &http.Transport{
@@ -83,7 +84,7 @@ func (r *Router) dispatch(ctx context.Context, body map[string]any, pl Plan, str
 	tokens := llm.Estimate(len(raw))
 	var attempts []Attempt
 	if len(pl.Targets) == 0 {
-		msg := "No model is set up in BlazeRouter yet. Add a free key (Gemini, Groq, OpenRouter…) on the dashboard's Providers page."
+		msg := "No model is set up in " + brand.NAME + "Router yet. Add a free key (Gemini, Groq, OpenRouter…) on the dashboard's Providers page."
 		if pl.Combo != "" && pl.Combo != "auto" {
 			msg = fmt.Sprintf("Combo %q has no usable models: add keys for its providers or edit it on the dashboard.", pl.Combo)
 		}
@@ -179,7 +180,7 @@ func (r *Router) dispatch(ctx context.Context, body map[string]any, pl Plan, str
 	for _, a := range attempts {
 		parts = append(parts, fmt.Sprintf("%s/%s: %s", a.Provider, a.Model, a.Error))
 	}
-	return nil, &RouteError{Code: code, Msg: "BlazeRouter: no model could answer. " + strings.Join(parts, "; "), Attempts: attempts}
+	return nil, &RouteError{Code: code, Msg: brand.NAME + "Router: no model could answer. " + strings.Join(parts, "; "), Attempts: attempts}
 }
 
 func allRateLimited(as []Attempt) bool {
@@ -243,7 +244,7 @@ func (r *Router) send(ctx context.Context, p config.Provider, key string, body [
 	}
 	if p.ID == "openrouter" {
 		req.Header.Set("HTTP-Referer", "https://blazeinchue.pages.dev")
-		req.Header.Set("X-Title", "BlazeRouter")
+		req.Header.Set("X-Title", brand.NAME+"Router")
 	}
 	resp, err := upstreamClient.Do(req)
 	if err != nil {

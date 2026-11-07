@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"image"
 	"image/draw"
 	"image/jpeg"
@@ -111,7 +112,7 @@ func fill(r Request, rp *Reply) string {
 	if len(filled) == 0 {
 		return ""
 	}
-	return "Blaze filled in " + strings.Join(filled, ", ") + " itself. Check them before you post."
+	return brand.NAME + " filled in " + strings.Join(filled, ", ") + " itself. Check them before you post."
 }
 
 func firstWords(s string, n int) string {

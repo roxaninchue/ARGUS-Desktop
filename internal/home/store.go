@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// Store keeps the board in one JSON file (~/.blaze/desktop/home.json): widgets, their last content and a
+// Store keeps the board in one JSON file (~/.argus/desktop/home.json): widgets, their last content and a
 // few board keys. Writes are atomic (temp file + rename). Safe for concurrent use.
 type Store struct {
 	path string

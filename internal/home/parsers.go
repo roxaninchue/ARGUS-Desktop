@@ -14,7 +14,7 @@ import (
 	"unicode"
 )
 
-// Parsers for the board's free, keyless sources. Pure (strings in, Data out), ported from Blaze
+// Parsers for the board's free, keyless sources. Pure (strings in, Data out), ported from Argus
 // Mobile's HomeParsers.kt and tested on fixtures.
 
 // SourceError carries a plain line for the card.

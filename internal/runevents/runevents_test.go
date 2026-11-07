@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun/bgruntest"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun/bgruntest"
+	"github.com/lacksonkapapahue/argus-desktop/internal/privacy"
 )
 
 func TestSanitize(t *testing.T) {

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 func TestLowDataMode(t *testing.T) {

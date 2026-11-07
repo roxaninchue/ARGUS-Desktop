@@ -1,22 +1,23 @@
 package main
 
-// Model keys follow the Blaze account. On this computer Blaze Desktop and Blaze CLI
+// Model keys follow the Argus account. On this computer Argus Desktop and Argus CLI
 // already share one key store (internal/keystore). While signed in, the store is also
-// merged with the account's encrypted copy so Blaze on the phone and other PCs get the
+// merged with the account's encrypted copy so Argus on the phone and other PCs get the
 // same keys: at start (at most hourly), right after signing in, and whenever a key is
 // added or removed here. Nothing runs when signed out.
 
 import (
 	"context"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strings"
 	"sync"
 	"time"
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/keystore"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/keystore"
 )
 
 var keySyncMu sync.Mutex
@@ -49,7 +50,7 @@ func (a *App) syncKeys(quiet bool) (*keystore.SyncResult, error) {
 	if err == nil && len(r.Pulled) > 0 {
 		a.emitModel()
 		if a.ctx != nil && !quiet {
-			wr.EventsEmit(a.ctx, "toast", map[string]string{"text": "Got your " + providerList(r.Pulled) + " key from your Blaze account", "kind": "ok"})
+			wr.EventsEmit(a.ctx, "toast", map[string]string{"text": "Got your " + providerList(r.Pulled) + " key from your " + brand.NAME + " account", "kind": "ok"})
 		}
 	}
 	return r, err
@@ -71,22 +72,22 @@ func (a *App) startKeySync() {
 	}
 }
 
-// KeySyncNow syncs keys with the Blaze account now (Settings button).
+// KeySyncNow syncs keys with the Argus account now (Settings button).
 func (a *App) KeySyncNow() KeySyncView {
 	r, err := a.syncKeys(true)
 	v := a.KeySyncState()
 	switch {
 	case errors.Is(err, keystore.ErrSignedOut):
-		v.Message = "Sign in to your Blaze account to use your keys on your phone too."
+		v.Message = "Sign in to your " + brand.NAME + " account to use your keys on your phone too."
 	case errors.Is(err, keystore.ErrUnsupported):
 		v.Available = false
-		v.Message = "Keys are shared with Blaze CLI on this computer. Syncing them to your phone isn't switched on in Blaze's service yet."
+		v.Message = "Keys are shared with " + brand.NAME + " CLI on this computer. Syncing them to your phone isn't switched on in " + brand.NAME + "'s service yet."
 	case err != nil:
 		v.Message = "Couldn't sync keys: " + err.Error()
 	case len(r.Pulled) > 0:
-		v.Message = "Got " + providerList(r.Pulled) + " from your Blaze account."
+		v.Message = "Got " + providerList(r.Pulled) + " from your " + brand.NAME + " account."
 	case r.Pushed:
-		v.Message = "Your keys are on your Blaze account now."
+		v.Message = "Your keys are on your " + brand.NAME + " account now."
 	default:
 		v.Message = "Keys are up to date."
 	}

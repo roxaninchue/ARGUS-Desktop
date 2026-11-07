@@ -1,7 +1,7 @@
 package tools
 
 // Memory metadata for the Memory screen. Since v0.5.1 everything lives in the
-// memories table of blaze.db: created time, project and chat a fact was saved in,
+// memories table of argus.db: created time, project and chat a fact was saved in,
 // the category a model gave it, and use counts. The old memory.md and
 // memory.meta.json are imported once (store.ImportMarkdown) and kept as
 // *.migrated backups.

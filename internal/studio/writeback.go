@@ -390,7 +390,7 @@ func containsStr(s []string, v string) bool {
 
 // Apply makes one edit in src and returns the new source.
 func Apply(src string, lang Lang, e Edit) (string, error) {
-	if e.Kind == "part" { // a 3D mockup part lives in the page's blaze-parts JSON, not in the markup
+	if e.Kind == "part" { // a 3D mockup part lives in the page's argus-parts JSON, not in the markup
 		return ApplyPart(src, e.Target.ID, e.Props)
 	}
 	n, err := locate(src, lang, e.Target)

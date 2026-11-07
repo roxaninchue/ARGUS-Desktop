@@ -3,10 +3,11 @@ package mind
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strings"
 )
 
-// ---------- shared prompt text (mirrored by Blaze Android; see plan-one-mind.md) ----------
+// ---------- shared prompt text (mirrored by Argus Android; see plan-one-mind.md) ----------
 
 // MindRule goes in every system prompt.
 const MindRule = `ONE MIND
@@ -19,7 +20,7 @@ const MindRule = `ONE MIND
 const LookupRule = `CONTEXT RESET: earlier turns are NOT in this prompt. You don't remember them; look them up. Use memory_search for facts, preferences and decisions, and search_chat / read_turn for exact earlier words, before you answer. Don't guess and don't ask the user to repeat.`
 
 // ExtractPrompt is the cheap after-turn pass and the idle review.
-const ExtractPrompt = `You maintain the user's memory for Blaze. From the conversation below, list what is worth remembering for months: profile facts (name, school, work, where they live), standing preferences (with every condition the user attached), people in their life and who they are to them, project state, decisions and why, commitments and deadlines.
+const ExtractPrompt = `You maintain the user's memory for ` + brand.NAME + `. From the conversation below, list what is worth remembering for months: profile facts (name, school, work, where they live), standing preferences (with every condition the user attached), people in their life and who they are to them, project state, decisions and why, commitments and deadlines.
 Skip: procedure, how a tool works, one-off values (prices, counts, order numbers, codes), small talk, secrets and passwords, anything already in EXISTING unless it changed.
 Write lines no broader or firmer than the user said. Mark your inferences "(inferred)".
 Answer ONLY a JSON array, [] when nothing: [{"kind":"profile|preference|person|project|decision|fact","subject":"who or what it is about","text":"one line","related":"other subjects, comma-separated"}]`

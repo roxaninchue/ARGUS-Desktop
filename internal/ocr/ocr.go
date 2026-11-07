@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-// ErrNoEngine means this computer has no text recognition Blaze can use.
+// ErrNoEngine means this computer has no text recognition Argus can use.
 var ErrNoEngine = errors.New("no on-device text recognition available")
 
 // Engine names the OCR this OS offers ("" when none) and a note for Settings.

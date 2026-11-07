@@ -36,7 +36,7 @@ func skey(kind, id string) string { return kind + "\x00" + id }
 func NewState() *State { return &State{Items: map[string]Entry{}} }
 
 // LoadState reads the state file at path (a missing or broken file is a fresh start, as on the
-// phone). Desktop and CLI share one file: ~/.blaze/cloudsync/state.json.
+// phone). Desktop and CLI share one file: ~/.argus/cloudsync/state.json.
 func LoadState(path string) *State {
 	s := &State{path: path, Items: map[string]Entry{}}
 	b, err := os.ReadFile(path)

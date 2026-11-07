@@ -1,6 +1,6 @@
-// Package skillpack is Blaze's bundled skill library: the skills/ folder of the
+// Package skillpack is Argus's bundled skill library: the skills/ folder of the
 // desktop repo, embedded in the binary and seeded into the user's skills folder
-// (~/.blaze/skills, shared by the desktop app, the CLI and the Android app).
+// (~/.argus/skills, shared by the desktop app, the CLI and the Android app).
 //
 // Pack format (easy to port, no YAML library needed):
 //
@@ -8,7 +8,7 @@
 //	skills/<name>/assets/...    optional files the skill refers to
 //
 //	---
-//	name: web-design-blaze-classic
+//	name: web-design-argus-classic
 //	description: When to use it, one or two sentences.
 //	tags: [design, web, css]
 //	version: 3
@@ -16,12 +16,12 @@
 //	# Body
 //
 // Seeding is idempotent and version-aware. The state lives in a manifest beside
-// the skills (~/.blaze/skills/.bundled.json) so every app that shares the folder
+// the skills (~/.argus/skills/.bundled.json) so every app that shares the folder
 // agrees on it:
 //
 //   - a bundled skill the user never had is written;
 //   - a newer bundled version replaces the old one only when the file on disk is
-//     still exactly what Blaze wrote (same sha256), so a skill the user (or Blaze,
+//     still exactly what Argus wrote (same sha256), so a skill the user (or Argus,
 //     on their behalf) edited is never overwritten;
 //   - a bundled skill the user deleted stays deleted (Restore brings it back);
 //   - a user's own skill with the same name as a bundled one wins;
@@ -34,6 +34,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io/fs"
 	"os"
 	"path"
@@ -215,13 +216,13 @@ func Load(fsys fs.FS) ([]Skill, error) {
 
 // ---------------- manifest ----------------
 
-// Entry is what Blaze last wrote for one bundled skill.
+// Entry is what Argus last wrote for one bundled skill.
 type Entry struct {
 	Version int    `json:"version"`
 	SHA256  string `json:"sha256"`
 }
 
-// Manifest is the pack state shared by every Blaze app using the folder.
+// Manifest is the pack state shared by every Argus app using the folder.
 type Manifest struct {
 	Format   int              `json:"format"`
 	Bundled  map[string]Entry `json:"bundled"`
@@ -347,7 +348,7 @@ func Seed(dir string, pack []Skill) (Report, error) {
 			h := Hash(cur)
 			switch {
 			case h == s.SHA256:
-				// Already the current bundled text (maybe written by another Blaze app).
+				// Already the current bundled text (maybe written by another Argus app).
 				if rec != (Entry{s.Version, s.SHA256}) {
 					m.Bundled[s.Name] = Entry{s.Version, s.SHA256}
 					dirty = true
@@ -380,10 +381,10 @@ func Seed(dir string, pack []Skill) (Report, error) {
 
 // State of one skill in the folder, for Settings › Skills.
 const (
-	StateBundled = "bundled" // Blaze's, as shipped
-	StateEdited  = "edited"  // Blaze's, changed by the user (kept on upgrades)
-	StateOwn     = "own"     // the user's (or one Blaze wrote for them)
-	StateRemoved = "removed" // Blaze's, deleted by the user (restorable)
+	StateBundled = "bundled" // Argus's, as shipped
+	StateEdited  = "edited"  // Argus's, changed by the user (kept on upgrades)
+	StateOwn     = "own"     // the user's (or one Argus wrote for them)
+	StateRemoved = "removed" // Argus's, deleted by the user (restorable)
 )
 
 // View is one row of the skills list.
@@ -503,7 +504,7 @@ func Restore(dir, name string, pack []Skill) error {
 		m.Bundled[name] = Entry{s.Version, s.SHA256}
 		return writeManifest(dir, m)
 	}
-	return errors.New("Blaze has no bundled skill called " + name + ".")
+	return errors.New(brand.NAME + " has no bundled skill called " + name + ".")
 }
 
 // ---------------- index ----------------

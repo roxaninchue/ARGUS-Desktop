@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
-// Entry is one notification Blaze sent (Settings › Notifications › History).
+// Entry is one notification Argus sent (Settings › Notifications › History).
 type Entry struct {
 	Note
 	At      time.Time `json:"at"`

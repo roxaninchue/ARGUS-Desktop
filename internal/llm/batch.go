@@ -18,7 +18,7 @@ var CallTimeout = 2 * time.Minute
 
 // RunBatch runs a model's tool calls 0..n-1 in order, except that a run of consecutive
 // calls safe(i) allows (reads: file reads, searches, fetches) runs at the same time, up
-// to MaxParallel at once, like the Blaze CLI's batchEnd/runBatch. Anything else (a
+// to MaxParallel at once, like the Argus CLI's batchEnd/runBatch. Anything else (a
 // write, a command, git, an approval) runs on its own and ends the run of reads.
 //
 // start and finish are always called in call order on the caller's goroutine, so

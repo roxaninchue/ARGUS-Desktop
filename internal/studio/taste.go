@@ -1,6 +1,6 @@
 package studio
 
-// Taste memory (v0.8.0): Blaze learns the user's fonts, colours, radii and spacing from
+// Taste memory (v0.8.0): Argus learns the user's fonts, colours, radii and spacing from
 // what they keep and what they undo. A value that a version introduced and the next
 // version still has counts as kept (+1); one the next version dropped, or that the user
 // undid or restored away from, counts as disliked (-1). Direct edits in the preview

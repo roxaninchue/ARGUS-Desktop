@@ -1,9 +1,9 @@
 package llm
 
-// v0.19 (desktop): an optional backend that can take over routing. Blaze Desktop sets
-// one (internal/cloudai) so every model call goes through Blaze Cloud by default, or
-// through the user's own models when they chose Custom. Blaze CLI never sets it, so
-// CLI routing is exactly what it was (the user's providers in ~/.blaze/config.json).
+// v0.19 (desktop): an optional backend that can take over routing. Argus Desktop sets
+// one (internal/cloudai) so every model call goes through Argus Cloud by default, or
+// through the user's own models when they chose Custom. Argus CLI never sets it, so
+// CLI routing is exactly what it was (the user's providers in ~/.argus/config.json).
 //
 // Everything here is additive: no existing function changes shape.
 
@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 // Backend may answer a turn instead of the provider router.

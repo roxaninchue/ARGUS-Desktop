@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 func TestCleanTitle(t *testing.T) {
@@ -69,7 +69,7 @@ func TestTitlePromptIsSmall(t *testing.T) {
 
 func TestPersonality(t *testing.T) {
 	a := &App{}
-	if p := a.personality(); !strings.Contains(p, "PERSONALITY\nYou are Blaze. Be warm, sharp") || !strings.Contains(p, "not a person.") {
+	if p := a.personality(); !strings.Contains(p, "PERSONALITY\nYou are Argus. Be warm, sharp") || !strings.Contains(p, "not a person.") {
 		t.Fatalf("default personality missing: %q", p)
 	}
 	a.prefs.Personality = "plain"

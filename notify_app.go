@@ -1,12 +1,13 @@
 package main
 
-// Native notifications: probe once, cache the working method in ~/.blaze/notify.json,
-// then every notification is a template fill. Clicks open Blaze on the related chat
+// Native notifications: probe once, cache the working method in ~/.argus/notify.json,
+// then every notification is a template fill. Clicks open Argus on the related chat
 // (or the orb with a suggestion).
 
 import (
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"runtime"
 	"strings"
@@ -16,8 +17,8 @@ import (
 	"github.com/godbus/dbus/v5"
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/notify"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/notify"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 // NotifyPrefs live in desktop.json under "notify". Zero values are the defaults.
@@ -70,7 +71,7 @@ type NotifyView struct {
 	Quiet    [2]string      `json:"quiet"`
 	Method   string         `json:"method"`   // e.g. "Windows toast"
 	Kind     string         `json:"kind"`     // native | exec | ""
-	Clicks   bool           `json:"clicks"`   // a click opens Blaze
+	Clicks   bool           `json:"clicks"`   // a click opens Argus
 	Fallback string         `json:"fallback"` // the command method scheduled jobs use
 	Probed   string         `json:"probed"`
 	Missing  []string       `json:"missing,omitempty"`
@@ -168,7 +169,7 @@ func (a *App) probeNotify() *notify.Cache {
 			}
 			if err != nil || !ok {
 				nativeOK = false
-				nativeErr = "Notifications are off for Blaze in System Settings › Notifications"
+				nativeErr = "Notifications are off for " + brand.NAME + " in System Settings › Notifications"
 				if err != nil {
 					nativeErr = err.Error()
 				}
@@ -271,7 +272,7 @@ func (a *App) sendWith(m *notify.Method, n notify.Note) error {
 	return notify.RunExec(*m, n)
 }
 
-// notificationClicked: open Blaze on the related chat, or the orb with the suggestion.
+// notificationClicked: open Argus on the related chat, or the orb with the suggestion.
 func (a *App) notificationClicked(res wr.NotificationResult) {
 	if res.Error != nil {
 		return
@@ -304,7 +305,7 @@ func (a *App) notificationClicked(res wr.NotificationResult) {
 
 var mdRe = regexp.MustCompile("(?s)```.*?```|:::card[^\n]*|:::|[*_`#>]+")
 
-// afterTurn tells the user an answer is ready when Blaze's window is hidden.
+// afterTurn tells the user an answer is ready when Argus's window is hidden.
 func (a *App) afterTurn(s *session, started time.Time) {
 	if a.prefs.Notify.Off || a.prefs.Notify.NoTasks || a.ctx == nil {
 		return
@@ -329,12 +330,12 @@ func (a *App) afterTurn(s *session, started time.Time) {
 	a.mu.Unlock()
 	body := strings.Join(strings.Fields(mdRe.ReplaceAllString(text, " ")), " ")
 	if isPrivate(conv) {
-		body = "Blaze answered in your private chat." // never the words themselves
+		body = brand.NAME + " answered in your private chat." // never the words themselves
 	}
 	if body == "" {
 		body = "Your answer is ready."
 	}
-	_, _ = a.send(notify.Note{Title: "Blaze finished", Body: body, Kind: "task", Chat: conv})
+	_, _ = a.send(notify.Note{Title: brand.NAME + " finished", Body: body, Kind: "task", Chat: conv})
 }
 
 // agentElsewhere: a background agent finished in a chat that isn't open. The toast
@@ -379,7 +380,7 @@ func clipStr(s string, n int) string {
 // ---------------- the notify tool ----------------
 
 func init() {
-	tools.Register("notify", "Show a native notification on this computer (instant; the method is cached). Only for something the user needs to know when they're not looking at Blaze: a long task finished, something failed, a reminder they asked for. Never for greetings or small talk.",
+	tools.Register("notify", "Show a native notification on this computer (instant; the method is cached). Only for something the user needs to know when they're not looking at "+brand.NAME+": a long task finished, something failed, a reminder they asked for. Never for greetings or small talk.",
 		[][3]string{{"title", "string", "Short title (max ~60 chars)"}, {"body", "string", "One or two sentences"}},
 		[]string{"title", "body"}, func(e *tools.Env, args map[string]any) string {
 			a := theApp
@@ -449,7 +450,7 @@ func (a *App) ProbeNotify() NotifyView { a.probeNotify(); return a.notifyView(tr
 
 // TestNotify sends a test notification; "" or the error.
 func (a *App) TestNotify() string {
-	_, err := a.send(notify.Note{Title: "Blaze notifications work", Body: "This is how Blaze will tell you when something needs you.", Kind: "test"})
+	_, err := a.send(notify.Note{Title: brand.NAME + " notifications work", Body: "This is how " + brand.NAME + " will tell you when something needs you.", Kind: "test"})
 	if err != nil {
 		return err.Error()
 	}
@@ -487,9 +488,9 @@ func (a *App) notifyCheck() Check {
 	if c.Primary == nil {
 		return Check{Name: "Notifications", OK: false, Detail: "No way to show notifications was found: " + strings.Join(c.Tried, "; ")}
 	}
-	d := c.Primary.Name + " · cached in ~/.blaze/notify.json"
+	d := c.Primary.Name + " · cached in ~/.argus/notify.json"
 	if !c.Primary.Clicks {
-		d += " · clicks don't open Blaze"
+		d += " · clicks don't open " + brand.NAME
 	}
 	if c.Primary.Kind != "native" && len(c.Tried) > 0 {
 		d += " (" + c.Tried[0] + ")"

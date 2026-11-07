@@ -10,14 +10,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/notify"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/screen"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/notify"
+	"github.com/lacksonkapapahue/argus-desktop/internal/screen"
 )
 
 var ws struct {
@@ -40,9 +41,9 @@ func watchState() string {
 	return ws.state
 }
 
-const gatePrompt = `You decide whether Blaze, an assistant on the user's computer, should interrupt with a notification. You get the text of the window the user is looking at.
+const gatePrompt = `You decide whether ` + brand.NAME + `, an assistant on the user's computer, should interrupt with a notification. You get the text of the window the user is looking at.
 
-Reply with exactly NONE unless the screen shows something specific where Blaze can genuinely help right now, for example:
+Reply with exactly NONE unless the screen shows something specific where ` + brand.NAME + ` can genuinely help right now, for example:
 - an error dialog, a crash, or a stack trace
 - a failing build, test or command in a terminal or editor
 - a long or confusing form the user is filling in
@@ -51,7 +52,7 @@ Reply with exactly NONE unless the screen shows something specific where Blaze c
 Never greet. Never comment on ordinary browsing, reading, chatting, music, videos or games. Never give generic tips. Never mention private content (messages, passwords, money details). When in doubt: NONE.
 
 If you do suggest something, reply with one JSON object and nothing else:
-{"title": "<specific, max 50 chars>", "body": "<what you noticed and how Blaze can help, one sentence, max 140 chars>", "ask": "<the request Blaze should run if the user accepts, written as the user would ask>"}`
+{"title": "<specific, max 50 chars>", "body": "<what you noticed and how ` + brand.NAME + ` can help, one sentence, max 140 chars>", "ask": "<the request ` + brand.NAME + ` should run if the user accepts, written as the user would ask>"}`
 
 var jsonObj = regexp.MustCompile(`(?s)\{.*\}`)
 
@@ -127,8 +128,8 @@ func (a *App) watchTick(force bool) time.Duration {
 	a.mu.Lock()
 	busy := a.busy
 	a.mu.Unlock()
-	if !force && (busy || sv.r.BlazeInFront()) {
-		return time.Minute // the user is already talking to Blaze
+	if !force && (busy || sv.r.ArgusInFront()) {
+		return time.Minute // the user is already talking to Argus
 	}
 	ws.mu.Lock()
 	ws.lastCheck = now

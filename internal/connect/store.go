@@ -1,11 +1,11 @@
-// Package connect is Blaze's connectors: the user's own accounts (Google, GitHub,
+// Package connect is Argus's connectors: the user's own accounts (Google, GitHub,
 // Spotify, Notion, Slack) and MCP servers, offered to the agent as tools.
 //
-// Blaze has no server, so OAuth happens on this computer: the system browser signs
-// in, the code comes back to a 127.0.0.1 loopback port (or the blaze:// protocol),
-// Blaze exchanges it with PKCE and keeps the tokens in the OS keychain. Settings
+// Argus has no server, so OAuth happens on this computer: the system browser signs
+// in, the code comes back to a 127.0.0.1 loopback port (or the argus:// protocol),
+// Argus exchanges it with PKCE and keeps the tokens in the OS keychain. Settings
 // that are not secret (client IDs, enabled flags, per-tool approval) live in
-// ~/.blaze/desktop/connectors.json.
+// ~/.argus/desktop/connectors.json.
 package connect
 
 import (
@@ -29,12 +29,12 @@ type Secrets interface {
 }
 
 // Keychain is the OS keychain (Windows Credential Manager, macOS Keychain, Linux
-// Secret Service), under the same service name as Blaze's model keys.
+// Secret Service), under the same service name as Argus's model keys.
 func Keychain() Secrets { return keychain{} }
 
 type keychain struct{}
 
-const service = "blaze-cli"
+const service = "argus-cli"
 
 func (keychain) Get(k string) (string, error) { return keyring.Get(service, k) }
 func (keychain) Set(k, v string) error {
@@ -87,13 +87,13 @@ type Token struct {
 // ConnState is one connector's saved, non-secret settings.
 type ConnState struct {
 	ClientID    string            `json:"client_id,omitempty"`
-	Redirect    string            `json:"redirect,omitempty"` // "" (loopback) or "scheme" (blaze://)
+	Redirect    string            `json:"redirect,omitempty"` // "" (loopback) or "scheme" (argus://)
 	Disabled    bool              `json:"disabled,omitempty"`
 	Account     string            `json:"account,omitempty"` // "ada@gmail.com", "@ada"
 	Scopes      []string          `json:"scopes,omitempty"`  // granted
 	Expired     bool              `json:"expired,omitempty"` // refresh failed: needs Reconnect
 	Connected   bool              `json:"connected,omitempty"`
-	Via         string            `json:"via,omitempty"` // "broker": one-click through Blaze's sign-in service
+	Via         string            `json:"via,omitempty"` // "broker": one-click through Argus's sign-in service
 	ConnectedAt time.Time         `json:"connected_at,omitempty"`
 	Modes       map[string]string `json:"modes,omitempty"` // tool -> ask | always | off
 }
@@ -140,7 +140,7 @@ type Store struct {
 	d    storeData
 	has  sync.Map // connector id -> bool: token present (saves a keychain read per check)
 
-	cfgPath string    // the shared ~/.blaze/mcp.json (mcpconfig.go)
+	cfgPath string    // the shared ~/.argus/mcp.json (mcpconfig.go)
 	cfgMod  time.Time // its mtime and size when last read
 	cfgSize int64
 	cfgErr  string

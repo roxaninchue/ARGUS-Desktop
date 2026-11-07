@@ -13,17 +13,17 @@ import (
 
 	"github.com/zalando/go-keyring"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloud"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/connect"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloud"
+	"github.com/lacksonkapapahue/argus-desktop/internal/connect"
 )
 
-// v0.19.13: the Blaze account session and one-click refresh against a fake blaze-auth.
+// v0.19.13: the Argus account session and one-click refresh against a fake blaze-auth.
 // A 401 signs out cleanly; offline, timeouts, 5xx and garbled answers keep the session.
 
 func accountApp(t *testing.T, base string) *App {
 	t.Helper()
 	keyring.MockInit()
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	c := cloud.New(base)
 	c.HC.Timeout = 2 * time.Second
 	a := &App{cloud: &cloudState{client: c, sec: connect.Keychain()}}
@@ -98,7 +98,7 @@ func TestCheckSessionPassingFailuresKeepSession(t *testing.T) {
 	defer rate.Close()
 
 	for name, base := range map[string]string{
-		"refused": refused, "dns": "http://blaze-auth.does-not-exist.invalid", "timeout": slow.URL,
+		"refused": refused, "dns": "http://argus-auth.does-not-exist.invalid", "timeout": slow.URL,
 		"502 html": html502.URL, "garbled": garbled.URL, "429": rate.URL,
 	} {
 		a := accountApp(t, base)

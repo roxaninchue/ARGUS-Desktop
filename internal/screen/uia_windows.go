@@ -3,7 +3,7 @@
 package screen
 
 // UI Automation over raw COM vtables (no cgo). Runs only in the helper process,
-// so a misbehaving provider in another app can't take Blaze down with it.
+// so a misbehaving provider in another app can't take Argus down with it.
 
 import (
 	"errors"

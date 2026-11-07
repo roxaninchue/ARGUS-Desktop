@@ -3,9 +3,10 @@ package agents
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 func tool(name, desc string, props map[string]any, required ...string) llm.Tool {
@@ -137,7 +138,7 @@ You do the user's tasks yourself, in this chat. dispatch_agent hands work to a b
 func SubSystem(handle string) string {
 	return fmt.Sprintf(`
 YOU ARE A BACKGROUND AGENT (handle: %s)
-The main Blaze chat handed you the task in the first message. The user is not watching you and can't see your messages; only your final reply goes back, to the main agent, which tells the user.
+The main `+brand.NAME+` chat handed you the task in the first message. The user is not watching you and can't see your messages; only your final reply goes back, to the main agent, which tells the user.
 - Work the task through to the end with your tools, checking your work as you go.
 - Approvals still apply: risky actions ask the user on your card and you wait.
 - Use ask_user only when you truly can't continue without the user.

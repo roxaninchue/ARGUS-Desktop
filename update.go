@@ -1,6 +1,6 @@
 package main
 
-// In-app updates from the Blaze downloads site (no GitHub).
+// In-app updates from the Argus downloads site (no GitHub).
 //
 // CI publishes every release as vX.Y.Z with one asset per platform, and the site serves
 // them at <updateBase>/vX.Y.Z/<asset>, with <updateBase>/latest/ pointing at the newest
@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"os"
@@ -74,7 +75,7 @@ var (
 	installing bool
 )
 
-// siteVersion pulls vX.Y.Z out of a release asset name (Blaze-v0.19.1-..., blaze-desktop_0.19.1_amd64.deb).
+// siteVersion pulls vX.Y.Z out of a release asset name (Argus-v0.19.1-..., argus-desktop_0.19.1_amd64.deb).
 var siteVersion = regexp.MustCompile(`(?:^|[-_])v?([0-9]+\.[0-9]+\.[0-9]+)(?:[-_.]|$)`)
 
 // releaseFromSums turns a release's SHA256SUMS into the release the rest of the updater
@@ -108,7 +109,7 @@ func releaseFromSums(base string, sums []byte) (*ghRelease, error) {
 		rel.Assets = append(rel.Assets, ghAsset{Name: n, Download: dir + n})
 	}
 	rel.HTMLURL = updatePage
-	rel.Body = "Blaze " + rel.Tag + " is ready. What's new is on the downloads page."
+	rel.Body = brand.NAME + " " + rel.Tag + " is ready. What's new is on the downloads page."
 	return rel, nil
 }
 
@@ -117,11 +118,11 @@ func (a *App) CheckUpdate() UpdateInfo {
 	a.waitReady()
 	info := UpdateInfo{Current: version}
 	req, _ := http.NewRequest("GET", strings.TrimRight(updateBase, "/")+"/latest/SHA256SUMS", nil)
-	req.Header.Set("User-Agent", "Blaze-Desktop/"+version)
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop/"+version)
 	req.Header.Set("Cache-Control", "no-cache")
 	res, err := (&http.Client{Timeout: 20 * time.Second}).Do(req)
 	if err != nil {
-		info.Error = "Couldn't reach the Blaze downloads site. Check your connection."
+		info.Error = "Couldn't reach the " + brand.NAME + " downloads site. Check your connection."
 		return info
 	}
 	defer res.Body.Close()
@@ -181,9 +182,9 @@ func (a *App) SetUpdateCheck(on bool) { a.prefs.NoUpdateCheck = !on; a.savePrefs
 // SkipUpdate hides the update card for this version until a newer one comes out.
 func (a *App) SkipUpdate(tag string) { a.prefs.SkipUpdate = tag; a.savePrefs() }
 
-// InstallUpdate downloads the latest release and installs it, then restarts Blaze.
+// InstallUpdate downloads the latest release and installs it, then restarts Argus.
 // Progress goes to the UI as "update" events: {stage, pct, text}.
-// It returns "" when Blaze is about to restart, or a message saying what went wrong.
+// It returns "" when Argus is about to restart, or a message saying what went wrong.
 func (a *App) InstallUpdate() string {
 	a.waitReady()
 	updMu.Lock()
@@ -227,7 +228,7 @@ func (a *App) InstallUpdate() string {
 		a.progress("error", 0, err.Error())
 		return err.Error()
 	}
-	a.progress("restart", 100, "Restarting Blaze…")
+	a.progress("restart", 100, "Restarting "+brand.NAME+"…")
 	a.markResume() // running agents carry on after the restart (selfupdate.go)
 	go func() {
 		time.Sleep(600 * time.Millisecond)
@@ -246,13 +247,13 @@ func (a *App) progress(stage string, pct int, text string) {
 }
 
 func (a *App) download(as ghAsset) (string, error) {
-	dir := filepath.Join(os.TempDir(), "blaze-update")
+	dir := filepath.Join(os.TempDir(), "argus-update")
 	_ = os.MkdirAll(dir, 0o755)
 	dst := filepath.Join(dir, filepath.Base(as.Name))
 
 	req, _ := http.NewRequest("GET", as.Download, nil)
 	req.Header.Set("Accept", "application/octet-stream")
-	req.Header.Set("User-Agent", "Blaze-Desktop/"+version)
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop/"+version)
 	res, err := (&http.Client{Timeout: 30 * time.Minute}).Do(req)
 	if err != nil {
 		return "", errors.New("The download failed. Check your connection and try again.")
@@ -327,7 +328,7 @@ func selfPathOS() string {
 	return p
 }
 
-// installKind says how this copy of Blaze was installed.
+// installKind says how this copy of Argus was installed.
 func installKind() string {
 	exe := selfPath()
 	switch updateGOOS {
@@ -364,22 +365,22 @@ func pickAsset(assets []ghAsset) (ghAsset, string, bool) {
 	switch installKind() {
 	case "setup":
 		want = func(n string) bool { return strings.HasSuffix(n, "-windows-amd64-setup.exe") }
-		method = "Runs the new installer, then reopens Blaze."
+		method = "Runs the new installer, then reopens " + brand.NAME + "."
 	case "portable":
 		want = func(n string) bool { return strings.HasSuffix(n, "-windows-amd64-portable.exe") }
-		method = "Replaces this Blaze.exe, then reopens Blaze."
+		method = "Replaces this " + brand.NAME + ".exe, then reopens " + brand.NAME + "."
 	case "dmg":
 		want = func(n string) bool { return strings.HasSuffix(n, "-macos-universal.dmg") }
-		method = "Replaces Blaze.app, then reopens Blaze."
+		method = "Replaces " + brand.NAME + ".app, then reopens " + brand.NAME + "."
 	case "arch":
 		want = func(n string) bool { return strings.HasSuffix(n, ".pkg.tar.zst") }
-		method = "Installs the Arch package with pacman (asks for your password), then reopens Blaze."
+		method = "Installs the Arch package with pacman (asks for your password), then reopens " + brand.NAME + "."
 	case "deb":
 		want = func(n string) bool { return strings.HasSuffix(n, "_amd64.deb") }
-		method = "Installs the .deb with apt (asks for your password), then reopens Blaze."
+		method = "Installs the .deb with apt (asks for your password), then reopens " + brand.NAME + "."
 	default:
 		want = func(n string) bool { return strings.HasSuffix(n, "-linux-amd64.tar.gz") }
-		method = "Replaces this blaze-desktop binary, then reopens Blaze."
+		method = "Replaces this argus-desktop binary, then reopens " + brand.NAME + "."
 	}
 	for _, as := range assets {
 		if want(as.Name) {
@@ -394,8 +395,8 @@ func installFile(file string) (func() error, error) {
 	exe := selfPath()
 	switch kind := installKind(); kind {
 	case "setup":
-		// The running exe can't be overwritten, so a hidden helper waits for Blaze to
-		// quit, runs the installer silently and starts the new Blaze.
+		// The running exe can't be overwritten, so a hidden helper waits for Argus to
+		// quit, runs the installer silently and starts the new Argus.
 		script := fmt.Sprintf(`ping -n 3 127.0.0.1 >nul & "%s" /S & start "" "%s" --relaunch`, file, exe)
 		return func() error { return detached("cmd", "/C", script).Start() }, nil
 
@@ -404,11 +405,11 @@ func installFile(file string) (func() error, error) {
 		old := exe + ".old"
 		_ = os.Remove(old)
 		if err := os.Rename(exe, old); err != nil {
-			return nil, errors.New("Couldn't replace Blaze.exe: " + err.Error())
+			return nil, errors.New("Couldn't replace " + brand.NAME + ".exe: " + err.Error())
 		}
 		if err := copyFile(file, exe, 0o755); err != nil {
 			_ = os.Rename(old, exe)
-			return nil, errors.New("Couldn't write the new Blaze.exe: " + err.Error())
+			return nil, errors.New("Couldn't write the new " + brand.NAME + ".exe: " + err.Error())
 		}
 		return func() error { return detached(exe, "--relaunch").Start() }, nil
 
@@ -443,12 +444,12 @@ func installFile(file string) (func() error, error) {
 }
 
 func installDMG(dmg, exe string) (func() error, error) {
-	// exe is …/Blaze.app/Contents/MacOS/Blaze
+	// exe is …/Argus.app/Contents/MacOS/Argus
 	app := filepath.Dir(filepath.Dir(filepath.Dir(exe)))
 	if !strings.HasSuffix(app, ".app") {
-		return nil, errors.New("Couldn't find Blaze.app. Open the downloaded .dmg in " + filepath.Dir(dmg) + " and drag Blaze to Applications.")
+		return nil, errors.New("Couldn't find " + brand.NAME + ".app. Open the downloaded .dmg in " + filepath.Dir(dmg) + " and drag " + brand.NAME + " to Applications.")
 	}
-	mnt, err := os.MkdirTemp("", "blaze-dmg")
+	mnt, err := os.MkdirTemp("", "argus-dmg")
 	if err != nil {
 		return nil, err
 	}
@@ -457,22 +458,22 @@ func installDMG(dmg, exe string) (func() error, error) {
 	}
 	defer exec.Command("hdiutil", "detach", "-quiet", mnt).Run()
 
-	src := filepath.Join(mnt, "Blaze.app")
+	src := filepath.Join(mnt, brand.NAME+".app")
 	next, old := app+".new", app+".old"
 	_ = os.RemoveAll(next)
 	_ = os.RemoveAll(old)
 	if out, err := exec.Command("ditto", src, next).CombinedOutput(); err != nil {
 		_ = exec.Command("open", dmg).Start()
-		return nil, errors.New("Couldn't copy the new Blaze.app (" + lastLine(string(out)) + "). The .dmg is open: drag Blaze to Applications.")
+		return nil, errors.New("Couldn't copy the new " + brand.NAME + ".app (" + lastLine(string(out)) + "). The .dmg is open: drag " + brand.NAME + " to Applications.")
 	}
 	_ = exec.Command("xattr", "-dr", "com.apple.quarantine", next).Run()
 	if err := os.Rename(app, old); err != nil {
 		_ = os.RemoveAll(next)
-		return nil, errors.New("Couldn't replace Blaze.app: " + err.Error())
+		return nil, errors.New("Couldn't replace " + brand.NAME + ".app: " + err.Error())
 	}
 	if err := os.Rename(next, app); err != nil {
 		_ = os.Rename(old, app)
-		return nil, errors.New("Couldn't replace Blaze.app: " + err.Error())
+		return nil, errors.New("Couldn't replace " + brand.NAME + ".app: " + err.Error())
 	}
 	_ = os.RemoveAll(old)
 	return func() error { return detached("sh", "-c", `sleep 1; open -n "$0" --args --relaunch`, app).Start() }, nil
@@ -493,12 +494,12 @@ func replaceFromTarball(tgz, exe string) error {
 	for {
 		h, err := tr.Next()
 		if err == io.EOF {
-			return errors.New("The download has no blaze-desktop binary.")
+			return errors.New("The download has no argus-desktop binary.")
 		}
 		if err != nil {
 			return errors.New("The download is damaged. Try again.")
 		}
-		if filepath.Base(h.Name) != "blaze-desktop" {
+		if filepath.Base(h.Name) != "argus-desktop" {
 			continue
 		}
 		out, err := os.OpenFile(next, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o755)
@@ -616,7 +617,7 @@ func fetchPlatformVersion() (string, string, bool) {
 	if err != nil {
 		return "", "", false
 	}
-	req.Header.Set("User-Agent", "Blaze-Desktop/"+version)
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop/"+version)
 	req.Header.Set("Cache-Control", "no-cache")
 	res, err := (&http.Client{Timeout: 8 * time.Second}).Do(req)
 	if err != nil {

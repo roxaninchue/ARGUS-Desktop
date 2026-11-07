@@ -17,11 +17,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/mind"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/store"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/mind"
+	"github.com/lacksonkapapahue/argus-desktop/internal/store"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 // mainConv is the id of the one continuous main conversation (Chat mode, no project).
@@ -29,7 +29,7 @@ const mainConv = "main"
 
 const (
 	migratedKey   = "migrated_v1"    // chats imported into the journal
-	importedKey   = "imported_v1"    // blaze.db memories imported into the memories table
+	importedKey   = "imported_v1"    // argus.db memories imported into the memories table
 	idleAfter     = 10 * time.Minute // no turn for this long = idle
 	reviewEvery   = 10 * time.Minute // at most one review chunk per this
 	reviewChunk   = 12000            // characters of journal per review call
@@ -74,8 +74,8 @@ func (a *App) startMind() {
 }
 
 // migrateMind imports every saved chat into the journal (queued for review) and the
-// blaze.db memories into the memories table, once. Both steps are idempotent: journal
-// rows are unique per (conv, turn), imported memories carry their blaze.db id, and a
+// argus.db memories into the memories table, once. Both steps are idempotent: journal
+// rows are unique per (conv, turn), imported memories carry their argus.db id, and a
 // flag records each finished step. Chat files are never changed or deleted.
 func (a *App) migrateMind() (journaled, imported int) {
 	d := mindDB()
@@ -220,11 +220,11 @@ func (a *App) extract(d *mind.DB, text string) []mind.Memory {
 	return ms
 }
 
-// mindModel is the BlazeRouter preset the memory passes use: free tiers only, cheapest
+// mindModel is the ArgusRouter preset the memory passes use: free tiers only, cheapest
 // and healthiest first, so save-as-you-go and idle review never spend paid quota.
 const mindModel = "auto/best-free"
 
-// llmQuick is the cheap model call (swappable in tests). While BlazeRouter runs it goes
+// llmQuick is the cheap model call (swappable in tests). While ArgusRouter runs it goes
 // through auto/best-free; otherwise (or if that fails) it falls back to llm.Quick, which
 // also tries free models first.
 var llmQuick = func(ctx context.Context, a *App, msgs []llm.Message) (string, error) {
@@ -241,7 +241,7 @@ var llmQuick = func(ctx context.Context, a *App, msgs []llm.Message) (string, er
 	return llm.Quick(ctx, a.cfg, msgs, 60*time.Second)
 }
 
-// mindSave writes one memory and keeps a blaze.db copy in step so Blaze CLI sees it.
+// mindSave writes one memory and keeps an argus.db copy in step so Argus CLI sees it.
 func (a *App) mindSave(d *mind.DB, m mind.Memory) mind.Saved {
 	r, err := d.Save(m)
 	if err != nil {
@@ -274,7 +274,7 @@ func (a *App) idleOK() bool {
 	return !busy && idle && onMains() && cpuQuiet()
 }
 
-// maybeIdleReview reviews one chunk of unreviewed journal turns when Blaze is idle
+// maybeIdleReview reviews one chunk of unreviewed journal turns when Argus is idle
 // (force skips the idle and throttle checks; tests). Returns how many turns it marked.
 func (a *App) maybeIdleReview(ctx context.Context, force bool) int {
 	if !a.mindReviewOn() || a.cfg == nil {

@@ -1,10 +1,10 @@
 // Package bgrun is "ack now, work in background, report when done" (v0.19.14) on the desktop:
-// the Blaze gateway's Cloud runs (POST /v1/runs, gateway 0.8.38 RUNS_ACK_CONTRACT) and the same
+// the Argus gateway's Cloud runs (POST /v1/runs, gateway 0.8.38 RUNS_ACK_CONTRACT) and the same
 // behaviour for local / own-key turns.
 //
 //   - Create answers at once with an ack: a template line ("Got it, setting that reminder for
 //     9:00 tomorrow. I'll confirm when it's set.") for action requests, nothing for greetings,
-//     thanks, small talk and plain questions. The chat shows the line as a plain Blaze bubble and
+//     thanks, small talk and plain questions. The chat shows the line as a plain Argus bubble and
 //     never edits it; it never says the work is done.
 //   - The run keeps going on the gateway even when the window closes. The desktop follows it,
 //     answers tool calls only this computer can run (needs_device), and on start-up picks up runs
@@ -12,7 +12,7 @@
 //   - It ends in exactly one final: done (the reply, with a short "Done ✓ …" confirmation once
 //     any device tool came back OK) or failed (an honest reason and what to try).
 //   - No "working" notices. When the window isn't focused as the final lands: exactly one desktop
-//     notification, worded like a text from Blaze. Nothing when it is focused.
+//     notification, worded like a text from Argus. Nothing when it is focused.
 //
 // Everything here is plain Go with small interfaces, so it is tested with fakes (no network).
 package bgrun
@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"net/url"
@@ -230,7 +231,7 @@ func (h *HTTP) do(ctx context.Context, method, path string, body any, out any) e
 		return &HTTPError{Code: 401, Body: "signed out"}
 	}
 	req.Header.Set("Authorization", "Bearer "+tok)
-	req.Header.Set("User-Agent", "Blaze-Desktop")
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop")
 	hc := h.HC
 	if hc == nil {
 		hc = &http.Client{Timeout: 30 * time.Second}

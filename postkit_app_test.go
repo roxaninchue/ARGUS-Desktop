@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/postkit"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/postkit"
 )
 
 // The model is stubbed at the app's chat call, so this covers the real path: request, photo
@@ -47,9 +47,9 @@ func noRouteNames(t *testing.T, s string) {
 func TestPostKitIdeaEndToEnd(t *testing.T) {
 	seen := stubPostKitModel(t, `{"hook":"Three ingredients, ten minutes, zero excuses","hashtags":["#quickdinner","#nshima","#cooking"],
 "alt_text":"A plate of nshima with greens and tomato relish on a wooden table",
-"posts":{"x":{"body":"My weeknight fix. Recipe: https://blaze.test/r"},"tiktok":{"body":"Weeknight dinner in ten. Follow for part 2."}}}`, nil)
+"posts":{"x":{"body":"My weeknight fix. Recipe: https://argus.test/r"},"tiktok":{"body":"Weeknight dinner in ten. Follow for part 2."}}}`, nil)
 	a := &App{cfg: &config.Config{}}
-	r := a.PostKitMake(PostKitRequest{Idea: "Quick nshima dinner, recipe at https://blaze.test/r", Language: "en", Platforms: []string{"x", "tiktok"}})
+	r := a.PostKitMake(PostKitRequest{Idea: "Quick nshima dinner, recipe at https://argus.test/r", Language: "en", Platforms: []string{"x", "tiktok"}})
 	if r.Error != "" || r.Kit == nil {
 		t.Fatalf("no kit: %+v", r)
 	}
@@ -60,7 +60,7 @@ func TestPostKitIdeaEndToEnd(t *testing.T) {
 	if k == nil || len(problems) > 0 {
 		t.Fatalf("JSON isn't a valid kit: %v\n%s", problems, r.JSON)
 	}
-	if !strings.Contains(k.Platforms["x"].Caption, "https://blaze.test/r") {
+	if !strings.Contains(k.Platforms["x"].Caption, "https://argus.test/r") {
 		t.Fatal("link lost")
 	}
 	noRouteNames(t, r.JSON+r.Text+r.Note+r.Error)
@@ -68,7 +68,7 @@ func TestPostKitIdeaEndToEnd(t *testing.T) {
 	if c := a.PostKitCheck(r.JSON); c.Kit == nil || len(c.Problems) > 0 {
 		t.Fatalf("check: %+v", c.Problems)
 	}
-	if c := a.PostKitCheck(`{"schema":"blaze.postkit/1"}`); len(c.Problems) == 0 {
+	if c := a.PostKitCheck(`{"schema":"argus.postkit/1"}`); len(c.Problems) == 0 {
 		t.Fatal("broken kit passed the check")
 	}
 }

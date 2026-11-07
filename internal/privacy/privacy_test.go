@@ -21,7 +21,7 @@ func TestScrubNames(t *testing.T) {
 			t.Errorf("Leaks(%q) = false", in)
 		}
 	}
-	for _, clean := range []string{"Blaze Cloud", "Sign in to Google again", "Your Google Calendar is connected", "Reading your CSV",
+	for _, clean := range []string{"Argus Cloud", "Sign in to Google again", "Your Google Calendar is connected", "Reading your CSV",
 		"Searching the web", "glimpse", "nimble", "The model is busy. Try again in a minute."} {
 		if Leaks(clean) || Scrub(clean) != clean {
 			t.Errorf("false positive on %q: %v", clean, Found(clean))
@@ -30,8 +30,8 @@ func TestScrubNames(t *testing.T) {
 }
 
 func TestEventDropsProviderModel(t *testing.T) {
-	t.Setenv("BLAZE_DEV", "")
-	t.Setenv("BLAZE_DEBUG", "")
+	t.Setenv("ARGUS_DEV", "")
+	t.Setenv("ARGUS_DEBUG", "")
 	ev := map[string]any{"type": "done", "reply": "Here's what I found about Llama models.", "provider": "groq", "model": "llama-3.3-70b",
 		"route": "Groq · llama-3.3-70b", "note": "Cerebras didn't answer, so Groq did",
 		"receipt": map[string]any{"summary": "ok"}, "steps": []any{map[string]any{"provider": "cohere", "model": "command-r", "error": "Cohere 429"}}}
@@ -54,14 +54,14 @@ func TestEventDropsProviderModel(t *testing.T) {
 	if Event("status", "Asking Groq") != "Asking the model" {
 		t.Fatalf("status: %v", Event("status", "Asking Groq"))
 	}
-	f := Event("blaze_msg", map[string]any{"kind": "failed", "text": "Couldn't finish: SambaNova is busy", "provider": "x"}).(map[string]any)
+	f := Event("argus_msg", map[string]any{"kind": "failed", "text": "Couldn't finish: SambaNova is busy", "provider": "x"}).(map[string]any)
 	if Leaks(f["text"].(string)) || f["provider"] != nil {
 		t.Fatalf("failed final leaks: %v", f)
 	}
 }
 
 func TestDevFlagShowsNames(t *testing.T) {
-	t.Setenv("BLAZE_DEV", "1")
+	t.Setenv("ARGUS_DEV", "1")
 	if Event("status", "Asking Groq") != "Asking Groq" {
 		t.Fatal("dev flag should let names through")
 	}

@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/notify"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/notify"
 )
 
 // jobNotify tells the user a scheduled job ran. Scheduled jobs run without the app,
@@ -55,7 +56,7 @@ func jobNotify(name string, code int) {
 func lastLines(name string) string {
 	b, err := os.ReadFile(filepath.Join(config.Dir(), "logs", name+".log"))
 	if err != nil {
-		return "Open Blaze › Schedule for the log."
+		return "Open " + brand.NAME + " › Schedule for the log."
 	}
 	s := string(b)
 	if i := strings.LastIndex(s, "\n=== "); i >= 0 {

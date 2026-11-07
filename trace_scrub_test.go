@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudai"
 )
 
-// v0.19.13: the trace event never carries the upstream provider or model of a Blaze Cloud attempt.
+// v0.19.13: the trace event never carries the upstream provider or model of an Argus Cloud attempt.
 func TestTraceScrubsCloudUpstream(t *testing.T) {
 	in := []cloudai.Step{{Provider: "groq", Model: "llama-3.3-70b-versatile", RequestID: "r1", Status: 200},
 		{Provider: "openrouter", Model: "deepseek/deepseek-chat-v3:free", RequestID: "r2"}}

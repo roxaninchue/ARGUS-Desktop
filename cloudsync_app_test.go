@@ -10,15 +10,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudsync"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudsync"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 func syncTestChats(t *testing.T) (*App, *appChats) {
 	t.Helper()
 	home := t.TempDir()
-	t.Setenv("BLAZE_HOME", home)
+	t.Setenv("ARGUS_HOME", home)
 	c := Conv{ID: "main", Title: "Main", Messages: []llm.Message{{Role: "user", Content: "hello"}, {Role: "assistant", Content: "Hi."}}}
 	b, _ := json.Marshal(c)
 	if err := os.WriteFile(filepath.Join(convDir(), "main.json"), b, 0o600); err != nil {
@@ -82,7 +82,7 @@ func TestSyncChatsLeaveRunningTurnsAlone(t *testing.T) {
 }
 
 func TestSyncStatusIsHonest(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	a := &App{}
 	if v := a.SyncState(); v.On || v.SignedIn || !strings.Contains(v.Status, "Sign in") {
 		t.Fatalf("signed out: %+v", v)

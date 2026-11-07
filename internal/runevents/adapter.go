@@ -16,7 +16,7 @@ package runevents
 import (
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun"
 )
 
 // UI event types (the chat's vocabulary; the frontend reads only these).
@@ -46,7 +46,7 @@ type Ev struct {
 	Conv        string `json:"conv,omitempty"`
 	Text        string `json:"text,omitempty"`    // step / specialty: the pill's line, already sanitized
 	Attempt     int    `json:"attempt,omitempty"` // sending: which try (1 = first)
-	Offline     bool   `json:"offline,omitempty"` // sending: the last try could not reach Blaze
+	Offline     bool   `json:"offline,omitempty"` // sending: the last try could not reach Argus
 }
 
 // Sent is the event for a create attempt (attempt 1 = the first try).
@@ -135,7 +135,7 @@ func (t *Tracker) step(out []Ev, typ, text string) []Ev {
 	return append(out, e)
 }
 
-// Ack is the 202's ack line being shown (stub: Blaze has read the message; with the contract the
+// Ack is the 202's ack line being shown (stub: Argus has read the message; with the contract the
 // ack is a template computed before pickup, so it is not Read).
 func (t *Tracker) Ack() []Ev { return t.readOnce(nil) }
 

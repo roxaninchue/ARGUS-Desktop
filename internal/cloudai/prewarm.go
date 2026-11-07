@@ -1,6 +1,6 @@
 package cloudai
 
-// v0.19.1 (Blaze Mobile 0.45.1 LlmClient.prewarm): open the connection to Blaze Cloud before Send,
+// v0.19.1 (Argus Mobile 0.45.1 LlmClient.prewarm): open the connection to Argus Cloud before Send,
 // so DNS and TLS are done when the first request goes out. It is a GET of the gateway's public
 // /health (no account token, no model call, no quota), at most once a minute, on the same
 // keep-alive client the chat requests use. The body is read to the end and closed so the
@@ -8,6 +8,7 @@ package cloudai
 
 import (
 	"context"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"strings"
@@ -56,7 +57,7 @@ func (g *Gateway) Prewarm(ctx context.Context) bool {
 	if err != nil {
 		return false
 	}
-	req.Header.Set("User-Agent", "Blaze-Desktop")
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop")
 	if tok != "" {
 		req.Header.Set("Authorization", "Bearer "+tok)
 	}

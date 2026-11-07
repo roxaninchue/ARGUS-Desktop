@@ -2,13 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/runevents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/runevents"
 )
 
 // plainRe: a model-written step summary that reads as words, not a command.
@@ -87,8 +88,8 @@ func friendlyTool(name, rawArgs string) string {
 		s = "Running " + orStr(v("language"), "some") + " code"
 	case "install_tool":
 		s = "Installing " + orStr(v("name"), "a tool")
-	case "update_blaze":
-		s = "Checking for a Blaze update"
+	case "update_argus":
+		s = "Checking for an " + brand.NAME + " update"
 	case "remember":
 		s = "Saving that to memory"
 	case "schedule":

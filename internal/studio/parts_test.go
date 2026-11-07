@@ -7,7 +7,7 @@ import (
 )
 
 const mockup = `<!doctype html><html><body><canvas></canvas>
-<script type="application/json" id="blaze-parts">
+<script type="application/json" id="argus-parts">
 {
   "units": "mm",
   "parts": [

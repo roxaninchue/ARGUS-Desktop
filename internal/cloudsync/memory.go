@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/mind"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/store"
+	"github.com/lacksonkapapahue/argus-desktop/internal/mind"
+	"github.com/lacksonkapapahue/argus-desktop/internal/store"
 )
 
 // MemLine is one memory line as it syncs (the phone's MemoryStore.Line). Updated is ms.
@@ -104,16 +104,16 @@ func (m *MemoryAdapter) Shrink(Item, func(Item) bool) (Item, bool) { return Item
 func (m *MemoryAdapter) PushDeletes() bool                         { return true }
 func (m *MemoryAdapter) Flush() error                              { m.cache = nil; return nil }
 
-// ---------------- Desktop: mind.db (+ the blaze.db copy Blaze CLI reads) ----------------
+// ---------------- Desktop: mind.db (+ the argus.db copy Argus CLI reads) ----------------
 
 // MindStore is Desktop's memory: mind.db memories (kind/subject/text/related, the phone's
-// shape) is the source of truth, and every line is kept in step with a blaze.db row (the
-// table Blaze CLI reads) through memories.mirror, as mind_app.go mindSave does. Lines from
+// shape) is the source of truth, and every line is kept in step with an argus.db row (the
+// table Argus CLI reads) through memories.mirror, as mind_app.go mindSave does. Lines from
 // other devices are inserted exactly (mind.Insert), never merged into a similar line here.
-// Blaze is nil = no blaze.db copy.
+// Argus is nil = no argus.db copy.
 type MindStore struct {
 	Mind  *mind.DB
-	Blaze *store.DB
+	Argus *store.DB
 }
 
 func (s *MindStore) All() []MemLine {
@@ -127,7 +127,7 @@ func (s *MindStore) All() []MemLine {
 func (s *MindStore) Add(l MemLine) error {
 	// Exact insert (no dedupe; see mind.Insert), keeping the line's own time.
 	id, err := s.Mind.Insert(mind.Memory{Kind: l.Kind, Subject: l.Subject, Text: l.Text, Related: l.Related, Updated: l.Updated / 1000})
-	if err != nil || s.Blaze == nil {
+	if err != nil || s.Argus == nil {
 		return err
 	}
 	cur, ok := s.Mind.Get(id)
@@ -138,13 +138,13 @@ func (s *MindStore) Add(l MemLine) error {
 	if l.Updated <= 0 {
 		at = time.Now()
 	}
-	bid, _, err := s.Blaze.Add(cur.Text, "", "", at)
+	bid, _, err := s.Argus.Add(cur.Text, "", "", at)
 	if err != nil {
 		return err
 	}
 	if bid > 0 {
 		s.Mind.SetMirror(id, bid)
-		_ = s.Blaze.SetCategory(bid, cur.Kind)
+		_ = s.Argus.SetCategory(bid, cur.Kind)
 	}
 	return nil
 }
@@ -158,28 +158,28 @@ func (s *MindStore) Remove(l MemLine) error {
 		if err := s.Mind.Delete(m.ID); err != nil {
 			return err
 		}
-		if s.Blaze != nil && m.Mirror != 0 {
-			_ = s.Blaze.Delete(m.Mirror)
+		if s.Argus != nil && m.Mirror != 0 {
+			_ = s.Argus.Delete(m.Mirror)
 		}
 	}
-	if s.Blaze != nil { // a blaze.db line with the same text but no mirror link (CLI-typed)
-		for _, b := range s.Blaze.Memories() {
+	if s.Argus != nil { // an argus.db line with the same text but no mirror link (CLI-typed)
+		for _, b := range s.Argus.Memories() {
 			if MemoryID(b.Text) == want {
-				_ = s.Blaze.Delete(b.ID)
+				_ = s.Argus.Delete(b.ID)
 			}
 		}
 	}
 	return nil
 }
 
-// ---------------- Blaze CLI alone: blaze.db only ----------------
+// ---------------- Argus CLI alone: argus.db only ----------------
 
-// BlazeDBStore syncs blaze.db memories directly (for Blaze CLI on a PC without Desktop).
-// blaze.db has no subject column: kind comes from category ("" = fact), subject is "".
-// Never run it next to MindStore on the same PC: Desktop's MindStore already covers blaze.db.
-type BlazeDBStore struct{ DB *store.DB }
+// ArgusDBStore syncs argus.db memories directly (for Argus CLI on a PC without Desktop).
+// argus.db has no subject column: kind comes from category ("" = fact), subject is "".
+// Never run it next to MindStore on the same PC: Desktop's MindStore already covers argus.db.
+type ArgusDBStore struct{ DB *store.DB }
 
-func (s *BlazeDBStore) All() []MemLine {
+func (s *ArgusDBStore) All() []MemLine {
 	var out []MemLine
 	for _, m := range s.DB.Memories() {
 		out = append(out, MemLine{Kind: mind.NormKind(m.Category), Text: m.Text, Updated: m.Updated.UnixMilli()})
@@ -187,7 +187,7 @@ func (s *BlazeDBStore) All() []MemLine {
 	return out
 }
 
-func (s *BlazeDBStore) Add(l MemLine) error {
+func (s *ArgusDBStore) Add(l MemLine) error {
 	at := time.UnixMilli(l.Updated)
 	if l.Updated <= 0 {
 		at = time.Now()
@@ -199,7 +199,7 @@ func (s *BlazeDBStore) Add(l MemLine) error {
 	return err
 }
 
-func (s *BlazeDBStore) Remove(l MemLine) error {
+func (s *ArgusDBStore) Remove(l MemLine) error {
 	want := MemoryID(l.Text)
 	for _, m := range s.DB.Memories() {
 		if MemoryID(m.Text) == want {

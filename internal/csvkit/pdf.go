@@ -3,6 +3,7 @@ package csvkit
 import (
 	"bytes"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"math"
 	"strings"
 )
@@ -161,6 +162,6 @@ func (p *PDF) Bytes() []byte {
 	for _, o := range offs {
 		fmt.Fprintf(&out, "%010d 00000 n \n", o)
 	}
-	fmt.Fprintf(&out, "trailer\n<< /Size %d /Root 1 0 R /Info << /Producer (Blaze Desktop csvkit) >> >>\nstartxref\n%d\n%%%%EOF\n", len(offs)+1, xref)
+	fmt.Fprintf(&out, "trailer\n<< /Size %d /Root 1 0 R /Info << /Producer ("+brand.NAME+" Desktop csvkit) >> >>\nstartxref\n%d\n%%%%EOF\n", len(offs)+1, xref)
 	return out.Bytes()
 }

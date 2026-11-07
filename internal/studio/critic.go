@@ -3,7 +3,7 @@ package studio
 // The critic (v0.8.0): every new version is rendered at phone, tablet and desktop
 // widths and checked inside the page (contrast, alt text, labels, tap targets,
 // overflow, DOM size, image weight, load time). This scores the reports and writes the
-// fix request Blaze sends itself when auto-fix is on.
+// fix request Argus sends itself when auto-fix is on.
 
 import (
 	"fmt"
@@ -177,7 +177,7 @@ func (c Card) NeedsFix(threshold int) bool {
 	return c.Score < threshold && len(c.Issues) > 0 && c.FixOf == 0 && !c.Fixed
 }
 
-// FixPrompt is the message Blaze sends itself to fix a version.
+// FixPrompt is the message Argus sends itself to fix a version.
 func FixPrompt(c Card, audits []Audit, file string) string {
 	var w strings.Builder
 	fmt.Fprintf(&w, "[Critic fix] Version %d of %s scored %d/100 (accessibility %d, layout %d, speed %d). Fix these in the source, keep the design otherwise identical, then say in one line what you fixed:\n", c.Version, file, c.Score, c.A11y, c.Layout, c.Speed)

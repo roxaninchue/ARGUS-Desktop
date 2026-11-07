@@ -15,16 +15,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/selfknow"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/selfknow"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 	"rsc.io/qr"
 )
 
-// The whole Blaze Link handshake as Blaze Android's DesktopLink.kt does it: parse the
+// The whole Argus Link handshake as Argus Android's DesktopLink.kt does it: parse the
 // blaze://pair link, pin the certificate, trade the one-time code for a token, ping,
 // long-poll the inbox for phone_ask, reply, unpair.
 func TestPairFlow(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	a := NewApp()
 	a.pair = newPairHub(a)
 	info := a.StartPairing()
@@ -34,7 +34,7 @@ func TestPairFlow(t *testing.T) {
 	u, _ := url.Parse(info.Link)
 	q := u.Query()
 	fp := q.Get("fp")
-	// DesktopLink.pair: scheme blaze, host pair, h (comma list), p, fp (64 hex), c, n.
+	// DesktopLink.pair: scheme blaze (Android parses it; kept), host pair, h (comma list), p, fp (64 hex), c, n.
 	if u.Scheme != "blaze" || u.Host != "pair" || len(fp) != 64 || q.Get("c") == "" || q.Get("h") == "" || q.Get("p") != "7377" || q.Get("n") == "" {
 		t.Fatalf("pairing link doesn't match DesktopLink.kt: %s", info.Link)
 	}
@@ -86,8 +86,8 @@ func TestPairFlow(t *testing.T) {
 			t.Fatalf("ping fields for DesktopLink.ping: %v", pg)
 		}
 	}
-	// devices.json is what about_blaze reads.
-	if b, err := os.ReadFile(filepath.Join(os.Getenv("BLAZE_HOME"), "pair", "devices.json")); err != nil || !strings.Contains(string(b), "Galaxy A12") || strings.Contains(string(b), tok) {
+	// devices.json is what about_argus reads.
+	if b, err := os.ReadFile(filepath.Join(os.Getenv("ARGUS_HOME"), "pair", "devices.json")); err != nil || !strings.Contains(string(b), "Galaxy A12") || strings.Contains(string(b), tok) {
 		t.Fatalf("devices.json: %s %v", b, err)
 	}
 	// phone polls inbox; PC asks
@@ -125,7 +125,7 @@ func TestPairFlow(t *testing.T) {
 // A phone task's approval is asked on the phone: the confirm shows up in the task's
 // long-poll and the phone's answer (POST /v1/confirm) unblocks the tool.
 func TestPhoneTaskConfirm(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	a := NewApp()
 	a.pair = newPairHub(a)
 	tk := &phoneTask{id: "t1", device: "d1", status: "running", changed: make(chan struct{}), created: time.Now()}
@@ -154,10 +154,10 @@ func TestPhoneTaskConfirm(t *testing.T) {
 	}
 }
 
-// about_blaze gives real pairing steps and the live paired-phone list now that the PC side is in.
-func TestAboutBlazeLinkInBuild(t *testing.T) {
+// about_argus gives real pairing steps and the live paired-phone list now that the PC side is in.
+func TestAboutArgusLinkInBuild(t *testing.T) {
 	a := selfTestApp(t)
-	home := os.Getenv("BLAZE_HOME")
+	home := os.Getenv("ARGUS_HOME")
 	_ = os.MkdirAll(filepath.Join(home, "pair"), 0o700)
 	_ = os.WriteFile(filepath.Join(home, "pair", "devices.json"), []byte(`[{"id":"d1","name":"Galaxy A12","token_hash":"x","paired_at":"2026-10-12T10:00:00Z"}]`), 0o600)
 	a.pair = newPairHub(a)

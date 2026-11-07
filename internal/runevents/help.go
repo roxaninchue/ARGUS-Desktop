@@ -18,7 +18,7 @@ var (
 	slugName    = regexp.MustCompile(`\b[a-z0-9]+(?:-[a-z0-9]+)+\b`) // data-analyst, csv-pro (names, not words)
 	parens      = regexp.MustCompile(`\([^)]*\)|\[[^\]]*\]`)
 	viaWho      = regexp.MustCompile(`(?i)\b(via|on|using|with|through)\s+[A-Z][\w.-]*(\s+[\w.-]+)?\s*$`)
-	leadAsk     = regexp.MustCompile(`(?i)^(please|pls|hey blaze|blaze|ok|okay|so|from now on|now|can you|could you|would you|will you|i need you to|i want you to|help me|go ahead and)[\s,]+`)
+	leadAsk     = regexp.MustCompile(`(?i)^(please|pls|hey argus|argus|ok|okay|so|from now on|now|can you|could you|would you|will you|i need you to|i want you to|help me|go ahead and)[\s,]+`)
 	nonVerb     = regexp.MustCompile(`(?i)^(what|who|whom|whose|why|how|when|where|which|is|are|was|were|am|do|does|did|can|could|would|will|should|shall|may|might|i|i'm|im|my|we|our|you|your|it|its|the|a|an|this|that|these|those|there|here|hi|hello|hey|thanks|thank)\b`)
 	alreadyHelp = regexp.MustCompile(`^(Getting help|Saving what I learned|Saving your rule)\b`)
 	trailPrep   = regexp.MustCompile(`(?i)(\s+(with|via|on|using|through|by|for|to|from|and))+$`)

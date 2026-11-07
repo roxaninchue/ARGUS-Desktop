@@ -1,10 +1,10 @@
-// Package cloudsync is Blaze Desktop's client for Blaze cloud sync (Blaze Gateway /v1/sync,
-// gateway 0.4.0+): the end-to-end encrypted sync Blaze Android uses for chats, memory,
-// settings and designs. Desktop and Blaze CLI share one ~/.blaze on a PC, so one client here
+// Package cloudsync is Argus Desktop's client for Argus cloud sync (Argus Gateway /v1/sync,
+// gateway 0.4.0+): the end-to-end encrypted sync Argus Android uses for chats, memory,
+// settings and designs. Desktop and Argus CLI share one ~/.argus on a PC, so one client here
 // covers both. Not wired to the UI yet (see work/v1sync-design.md in the Desktop project).
 //
-// crypto.go and item.go are aligned with Blaze CLI internal/cloudsync (same API and golden
-// vectors). The wire format is the one in Blaze Android connect/SyncCrypto.kt and
+// crypto.go and item.go are aligned with Argus CLI internal/cloudsync (same API and golden
+// vectors). The wire format is the one in Argus Android connect/SyncCrypto.kt and
 // SyncMerge.kt; keep all three in step:
 //
 //	key   = PBKDF2-HMAC-SHA256(passphrase, salt, 600000, 32 bytes); the salt is random, kept on the gateway

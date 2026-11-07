@@ -10,7 +10,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 // QuickTargets orders the usable models for a tiny call: free-tier ones first, then
@@ -39,7 +39,7 @@ func QuickTargets(cfg *config.Config) []Target {
 
 // Quick asks for a short plain-text answer. It gives up after timeout.
 func Quick(ctx context.Context, cfg *config.Config, msgs []Message, timeout time.Duration) (string, error) {
-	if b := currentBackend(); b != nil { // v0.19 desktop: Blaze Cloud / Custom (backend.go)
+	if b := currentBackend(); b != nil { // v0.19 desktop: Argus Cloud / Custom (backend.go)
 		if t, err, ok := b.Quick(ctx, cfg, msgs, timeout); ok {
 			return t, err
 		}

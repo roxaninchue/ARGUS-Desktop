@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net"
 	"net/http"
@@ -195,7 +196,7 @@ func RejectMessage(err error) string {
 	case errors.Is(err, ErrSuperseded):
 		return "A newer sign-in for this connector replaced that one. Finish the newest browser tab."
 	case errors.Is(err, ErrStateMismatch):
-		return "That sign-in link doesn't match one Blaze started (state mismatch). Start Connect again."
+		return "That sign-in link doesn't match one " + brand.NAME + " started (state mismatch). Start Connect again."
 	case errors.Is(err, ErrExpired):
 		return "That sign-in took too long and expired. Start Connect again."
 	case errors.Is(err, ErrMissingRedirectURL):
@@ -225,7 +226,7 @@ type TokenError struct {
 
 // Temporary is whether the refusal is a passing failure (the network, a 5xx, a rate
 // limit, an answer that isn't a token response) rather than the provider saying no.
-// A temporary failure keeps the connection; Blaze tries again on the next call.
+// A temporary failure keeps the connection; Argus tries again on the next call.
 func (e *TokenError) Temporary() bool {
 	if e.Unreachable {
 		return true
@@ -305,7 +306,7 @@ func splitScopes(s string) []string {
 const LoopbackPort = 43117
 
 // SchemeCallback is the custom-protocol redirect for providers that allow one.
-const SchemeCallback = "blaze://connector/oauth_callback"
+const SchemeCallback = "argus://connector/oauth_callback"
 
 type loopback struct {
 	srv  *http.Server
@@ -327,7 +328,7 @@ func startLoopback(port int, handle func(raw string) (title, msg string, ok bool
 		if !ok {
 			mark = "#111110"
 		}
-		fmt.Fprintf(w, `<!doctype html><meta charset="utf-8"><title>Blaze</title><body style="font:15px/1.5 system-ui,sans-serif;background:#FBFBFA;color:#111110;display:grid;place-items:center;height:100vh;margin:0"><div style="max-width:440px;padding:32px;border:1px solid rgba(17,17,16,.18);background:#fff;box-shadow:inset 3px 0 0 %s"><div style="font:500 11px monospace;letter-spacing:.12em;text-transform:uppercase;color:%s">Blaze</div><h2 style="margin:8px 0 6px;font-weight:600">%s</h2><p style="margin:0;color:rgba(17,17,16,.6)">%s</p></div></body>`,
+		fmt.Fprintf(w, `<!doctype html><meta charset="utf-8"><title>`+brand.NAME+`</title><body style="font:15px/1.5 system-ui,sans-serif;background:#FBFBFA;color:#111110;display:grid;place-items:center;height:100vh;margin:0"><div style="max-width:440px;padding:32px;border:1px solid rgba(17,17,16,.18);background:#fff;box-shadow:inset 3px 0 0 %s"><div style="font:500 11px monospace;letter-spacing:.12em;text-transform:uppercase;color:%s">`+brand.NAME+`</div><h2 style="margin:8px 0 6px;font-weight:600">%s</h2><p style="margin:0;color:rgba(17,17,16,.6)">%s</p></div></body>`,
 			mark, mark, htmlEsc(title), htmlEsc(msg))
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) })

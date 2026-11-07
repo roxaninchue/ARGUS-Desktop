@@ -1,4 +1,4 @@
-// Package tools is everything Blaze can do on the PC: shell, files, code,
+// Package tools is everything Argus can do on the PC: shell, files, code,
 // git, web, background jobs, package installs, memory, skills and schedules.
 package tools
 
@@ -12,15 +12,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/sysinfo"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/sysinfo"
 )
 
 // Env is what tools need from the host: the PC profile and a way to ask the user.
 type Env struct {
 	Info    *sysinfo.Info
-	Root    string // the folder Blaze was started in (the "project")
+	Root    string // the folder Argus was started in (the "project")
 	Yolo    bool
 	Confirm func(title, detail string) bool
 	Status  func(line string) // one-line progress ("Running: npm test")
@@ -30,8 +30,8 @@ type Env struct {
 	// Ctx ends with the turn: Stop cancels it and a running command is killed (with its
 	// children) at once. nil = never cancelled.
 	Ctx context.Context
-	// Phone sends a request to the phone paired over Blaze Link and returns its answer
-	// (nil when this host has no Blaze Link).
+	// Phone sends a request to the phone paired over Argus Link and returns its answer
+	// (nil when this host has no Argus Link).
 	Phone func(task string) string
 	// Approve asks the user on screen and is never auto-approved (Autopilot, auto-approve):
 	// for messages sent in the user's name. nil = use Confirm.

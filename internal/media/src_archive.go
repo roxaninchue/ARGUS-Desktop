@@ -313,7 +313,7 @@ func (s *archiveSource) Name() string        { return s.name }
 func (s *archiveSource) Kinds() []string     { return s.kinds }
 func (s *archiveSource) SetupNeeded() string { return "" }
 func (s *archiveSource) Browsable() bool     { return true }
-func (s *archiveSource) UserAgent() string   { return blazeUA }
+func (s *archiveSource) UserAgent() string   { return argusUA }
 func (s *archiveSource) Search(kind, query, next string) (Page, error) {
 	page, _ := strconv.Atoi(next)
 	if page < 1 {

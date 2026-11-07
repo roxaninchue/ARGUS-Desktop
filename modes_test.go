@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 func modeApp(t *testing.T, work, appr string) *App {
 	t.Helper()
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	a := NewApp()
 	a.prefs.Composer = ComposerPrefs{WorkMode: work, Approval: appr, Migrated: true}
 	a.prefs.Composer.defaults()
@@ -236,7 +236,7 @@ func TestModesPersist(t *testing.T) {
 }
 
 func TestFirstRunStartsSafe(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	a := NewApp()
 	a.prefs.Composer.Approval = "autopilot" // whatever was there before the migration
 	a.migrateComposer()

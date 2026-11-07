@@ -1,12 +1,12 @@
-// Package router is BlazeRouter: a free AI gateway built into Blaze Desktop, a native
+// Package router is ArgusRouter: a free AI gateway built into Argus Desktop, a native
 // Go port of the core of OmniRoute (github.com/diegosouzapw/OmniRoute, MIT).
 //
 // It runs a local server on 127.0.0.1 (port 20128, or the next free one) with one
 // OpenAI-compatible endpoint that routes each request across the user's providers:
 // combos with fallback chains and routing strategies, a circuit breaker, retries,
 // rate-limit and quota detection, key rings, usage and request logs, prompt
-// compression, and a dashboard at /dashboard. It builds on Blaze's own model router
-// (internal/llm): the same keys (Blaze's shared key store, also Blaze CLI's), the
+// compression, and a dashboard at /dashboard. It builds on Argus's own model router
+// (internal/llm): the same keys (Argus's shared key store, also Argus CLI's), the
 // same health and cool-downs, the same usage counts.
 package router
 
@@ -17,25 +17,26 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Options connect the router to the app.
 type Options struct {
-	Config  func() *config.Config // Blaze's live config (keys, chain, chosen models)
+	Config  func() *config.Config // Argus's live config (keys, chain, chosen models)
 	Version string
 	// Changed runs after the dashboard changes keys, models or combos (the app refreshes its UI).
 	Changed func()
-	// ConnectOpenRouter runs Blaze's one-click OpenRouter sign-in; returns the model or an error.
+	// ConnectOpenRouter runs Argus's one-click OpenRouter sign-in; returns the model or an error.
 	ConnectOpenRouter func() (model string, err error)
-	// AddKey tests and saves a key the way Blaze always has (returns the model it will use).
+	// AddKey tests and saves a key the way Argus always has (returns the model it will use).
 	AddKey func(provider, key string) (model, note string, err error)
 }
 
@@ -53,7 +54,7 @@ type Router struct {
 	started time.Time
 }
 
-// New loads the settings (migrating Blaze's old model settings the first time) and
+// New loads the settings (migrating Argus's old model settings the first time) and
 // prepares the server without starting it.
 func New(opt Options) *Router {
 	r := &Router{opt: opt, log: openLog(), set: loadSettings()}
@@ -229,7 +230,7 @@ func (r *Router) Status() Status {
 	if !s.Running {
 		s.Level = "red"
 		if s.Note == "" {
-			s.Note = "BlazeRouter is off"
+			s.Note = brand.NAME + "Router is off"
 		}
 		return s
 	}
@@ -265,7 +266,7 @@ func plural(n int) string {
 // dashboard's token.
 func (r *Router) authorized(req *http.Request) bool {
 	k := strings.TrimSpace(strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer "))
-	for _, c := range []string{k, req.Header.Get("x-api-key"), req.Header.Get("x-goog-api-key"), req.URL.Query().Get("key"), req.Header.Get("X-Blaze-Token")} {
+	for _, c := range []string{k, req.Header.Get("x-api-key"), req.Header.Get("x-goog-api-key"), req.URL.Query().Get("key"), req.Header.Get("X-" + brand.NAME + "-Token")} {
 		c = strings.TrimSpace(c)
 		if c == "" {
 			continue
@@ -290,8 +291,8 @@ func localHost(host string) bool {
 func clientName(ua string) string {
 	low := strings.ToLower(ua)
 	for _, c := range []struct{ k, n string }{{"cursor", "Cursor"}, {"claude", "Claude Code"}, {"anthropic", "Anthropic SDK"}, {"cline", "Cline"}, {"roo", "Roo Code"},
-		{"continue", "Continue"}, {"aider", "Aider"}, {"opencode", "OpenCode"}, {"codex", "Codex"}, {"kilo", "Kilo Code"}, {"go-http-client", "Blaze"},
-		{"blaze", "Blaze"}, {"openai/python", "OpenAI Python"}, {"openai/js", "OpenAI JS"}, {"python", "Python"}, {"curl", "curl"}, {"node", "Node"},
+		{"continue", "Continue"}, {"aider", "Aider"}, {"opencode", "OpenCode"}, {"codex", "Codex"}, {"kilo", "Kilo Code"}, {"go-http-client", brand.NAME},
+		{"argus", brand.NAME}, {"openai/python", "OpenAI Python"}, {"openai/js", "OpenAI JS"}, {"python", "Python"}, {"curl", "curl"}, {"node", "Node"},
 		{"mozilla", "Browser"}} {
 		if strings.Contains(low, c.k) {
 			return c.n

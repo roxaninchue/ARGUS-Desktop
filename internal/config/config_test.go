@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/keystore"
+	"github.com/lacksonkapapahue/argus-desktop/internal/keystore"
 )
 
 type noKeychain struct{}
@@ -18,7 +18,7 @@ func (noKeychain) Delete(string) error        { return nil }
 
 func TestSaveKeepsDesktopFields(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("BLAZE_HOME", dir)
+	t.Setenv("ARGUS_HOME", dir)
 	path := filepath.Join(dir, "config.json")
 	in := `{"chain":[{"provider":"groq","model":"m"}],"persona":"old","model_for":{"groq":"x"},"default":{"provider":"auto","model":""},"keys":{"groq":"legacy"}}`
 	if err := os.WriteFile(path, []byte(in), 0o600); err != nil {
@@ -45,14 +45,14 @@ func TestSaveKeepsDesktopFields(t *testing.T) {
 
 func TestKeysGoToSharedStore(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("BLAZE_HOME", dir)
+	t.Setenv("ARGUS_HOME", dir)
 	t.Setenv("GROQ_API_KEY", "")
 	old := keystore.Keychain
 	keystore.Keychain = noKeychain{}
 	defer func() { keystore.Keychain = old }()
 	c := Load()
 	where, err := c.SetKey("groq", "gsk_1")
-	if err != nil || where != "~/.blaze/keys.json (owner-only)" {
+	if err != nil || where != "~/.argus/keys.json (owner-only)" {
 		t.Fatalf("%q %v", where, err)
 	}
 	if Load().Key("groq") != "gsk_1" {

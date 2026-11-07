@@ -7,7 +7,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/skillpack"
+	"github.com/lacksonkapapahue/argus-desktop/internal/skillpack"
 )
 
 func testPack() fstest.MapFS {
@@ -28,7 +28,7 @@ func TestSeedSkillsIntoFolderAndIndex(t *testing.T) {
 		t.Fatalf("seed: %+v %v", r, err)
 	}
 	if _, err := os.Stat(filepath.Join(d, "skills", "git-demo", "SKILL.md")); err != nil {
-		t.Fatal("not written to ~/.blaze/skills")
+		t.Fatal("not written to ~/.argus/skills")
 	}
 	if !strings.Contains(SkillsFor("open a pull request"), "git-demo") {
 		t.Fatal("seeded skill not in the prompt")
@@ -78,7 +78,7 @@ func TestWriteSkillEventsAndProtection(t *testing.T) {
 	if r := Run(&Env{}, "write_skill", `{"name":"deploy-homeglow","description":"Deploy HomeGlow","body":"1. pnpm build","tags":"deploy, shopify"}`); !strings.HasPrefix(r, "Saved skill") {
 		t.Fatal(r)
 	}
-	// Blaze improves a bundled skill: an edit, so the next seed must keep it.
+	// Argus improves a bundled skill: an edit, so the next seed must keep it.
 	if r := Run(&Env{}, "write_skill", `{"name":"git-demo","description":"Branch, commit, PR","body":"1. better way"}`); !strings.HasPrefix(r, "Updated skill") {
 		t.Fatal(r)
 	}
@@ -90,7 +90,7 @@ func TestWriteSkillEventsAndProtection(t *testing.T) {
 		t.Fatalf("rewrite: %s", b)
 	}
 	if r, _ := SeedSkills(testPack()); len(r.Edited) != 1 || r.Changed() {
-		t.Fatalf("seed overwrote Blaze's improvement: %+v", r)
+		t.Fatalf("seed overwrote Argus's improvement: %+v", r)
 	}
 	b2, _ := os.ReadFile(filepath.Join(d, "skills", "deploy-homeglow", "SKILL.md"))
 	if !strings.Contains(string(b2), "tags: [deploy, shopify]") {

@@ -13,7 +13,7 @@ import (
 	"testing"
 )
 
-// fakeGateway is an in-memory copy of Blaze Gateway src/sync.ts (0.8.35): meta, push with
+// fakeGateway is an in-memory copy of Argus Gateway src/sync.ts (0.8.35): meta, push with
 // base_rev conflicts and an account-wide seq, pull pages by seq, tombstones, wipe. It records
 // every request body so tests can assert the server only ever sees ciphertext.
 type fakeGateway struct {

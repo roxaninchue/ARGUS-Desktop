@@ -1,4 +1,4 @@
-// Package learn decides when Blaze should save something on its own: the rules
+// Package learn decides when Argus should save something on its own: the rules
 // added to the system prompt, the cheap end-of-turn check that decides whether a
 // reflection call is worth making, the filter every auto-saved fact must pass,
 // and the parser for the reflection's answer. It has no I/O so it is easy to test
@@ -8,6 +8,7 @@ package learn
 import (
 	"encoding/json"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"sort"
 	"strings"
@@ -36,7 +37,7 @@ MEMORY & SKILLS (learn as you go; nobody has to ask)
 // Turn is what the end-of-turn check looks at.
 type Turn struct {
 	User        string   // the user's message(s) this turn
-	Reply       string   // Blaze's final answer
+	Reply       string   // Argus's final answer
 	Tools       []string // tool names called this turn, in order
 	SavedMemory bool     // remember/forget was called this turn
 	SavedSkill  bool     // write_skill was called this turn
@@ -239,7 +240,7 @@ var (
 	secretRe    = regexp.MustCompile(`(?i)(sk-[a-z0-9_-]{8,}|sk-ant-|aiza[0-9a-z_-]{20,}|gh[pousr]_[a-z0-9]{16,}|xox[abpr]-|AKIA[0-9A-Z]{12,}|-----BEGIN|\bpassword\s*(is|:|=)|\bpasscode\b|\bpin\s*(is|:|=)|\bcvv\b|\bseed phrase\b|\b(one[- ]time|otp|2fa|verification) code\b)`)
 	longDigitRe = regexp.MustCompile(`\d[\d -]{11,}\d`) // card, account and ID numbers
 	transientRe = regexp.MustCompile(`(?i)\b(right now|at the moment|just now|this time|this turn|this chat|this conversation|today|tonight|this morning|this afternoon|for now|currently (?:running|open|broken|failing))\b`)
-	taskRe      = regexp.MustCompile(`(?i)^(the user (asked|wants|wanted|requested|is asking)|user asked|asked (me|blaze) to|blaze (ran|did|fixed|created))`)
+	taskRe      = regexp.MustCompile(`(?i)^(the user (asked|wants|wanted|requested|is asking)|user asked|asked (me|argus) to|argus (ran|did|fixed|created))`)
 )
 
 // Accept cleans a fact a reflection proposed and says whether to keep it.
@@ -289,7 +290,7 @@ type Reflection struct {
 // related ("#12 text"), skills the existing skill names.
 func Prompt(t Turn, d Decision, known []string, skills []string) string {
 	var b strings.Builder
-	b.WriteString("You maintain the long-term memory of Blaze, a personal assistant. Read the last exchange and decide what is worth keeping for future conversations. Most turns have nothing: then return empty lists.\n\n")
+	b.WriteString("You maintain the long-term memory of " + brand.NAME + ", a personal assistant. Read the last exchange and decide what is worth keeping for future conversations. Most turns have nothing: then return empty lists.\n\n")
 	b.WriteString("Rules:\n- A memory is one short sentence about the user, their setup, preferences, projects or people, with its context. Keep the user's certainty; never generalise one occurrence into a habit.\n- Never save secrets, one-off task details, or things only true today.\n- If a new fact changes a saved one below, set replaces to its id (\"#12\") instead of adding a duplicate. Skip facts already saved.\n- At most 2 memories.\n")
 	if d.Skill {
 		b.WriteString("- A skill is a reusable method: save one only if the user taught a method or this is a repeated multi-step workflow worth replaying. name kebab-case; description says when to use it; body = numbered steps with the exact commands/checks and pitfalls (under 40 lines). Don't duplicate an existing skill.\n")
@@ -307,7 +308,7 @@ func Prompt(t Turn, d Decision, known []string, skills []string) string {
 	if len(t.Tools) > 0 {
 		b.WriteString("TOOLS USED: " + strings.Join(t.Tools, ", ") + "\n\n")
 	}
-	b.WriteString("BLAZE ANSWERED:\n" + clip(t.Reply, 1600) + "\n")
+	b.WriteString(brand.UPPER + " ANSWERED:\n" + clip(t.Reply, 1600) + "\n")
 	return b.String()
 }
 

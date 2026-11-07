@@ -1,6 +1,6 @@
-// Package postkit makes and checks Blaze post kits (v0.19.11): from a photo or an idea, one hook,
+// Package postkit makes and checks Argus post kits (v0.19.11): from a photo or an idea, one hook,
 // three hashtags, alt text, a caption per chosen platform and crop rectangles, in exactly the
-// client-neutral shape of blaze.postkit/1 (postkit.schema.json, the copy Blaze Site publishes at
+// client-neutral shape of argus.postkit/1 (postkit.schema.json, the copy Argus Site publishes at
 // blazeinchue.pages.dev/schemas/postkit-1.json). Desktop, Mobile, CLI and the gateway post-kit
 // tool all produce this shape. Kits are copy-out only: nothing here ever posts.
 //
@@ -27,7 +27,7 @@ import (
 )
 
 // SchemaID is the value of every kit's "schema" field.
-const SchemaID = "blaze.postkit/1"
+const SchemaID = "argus.postkit/1"
 
 // SchemaJSON is the published JSON Schema the validator follows (kept byte-identical to Site's).
 //
@@ -90,7 +90,7 @@ type Platform struct {
 	Hook   bool   `json:"hook,omitempty"`   // the caption opens with the shared hook
 }
 
-// Platforms in the order the picker shows them (limits from x-blaze-rules).
+// Platforms in the order the picker shows them (limits from x-argus-rules).
 var Platforms = []Platform{
 	{ID: "x", Name: "X", Limit: 280, Inline: true, Hook: true},
 	{ID: "instagram", Name: "Instagram", Limit: 2200, Inline: true, Hook: true},
@@ -268,7 +268,7 @@ func Trim(s string, limit int, length func(string) int) string {
 
 // ---------------- validation ----------------
 
-// Validate checks a kit against blaze.postkit/1 and its x-blaze-rules. It returns every problem
+// Validate checks a kit against argus.postkit/1 and its x-argus-rules. It returns every problem
 // found, in plain words ("platforms.x.caption is 301 characters, over 280"); none means valid.
 func Validate(k *Kit) []string {
 	var p []string
@@ -411,7 +411,7 @@ func Parse(b []byte) (*Kit, []string) {
 	dec.DisallowUnknownFields()
 	var k Kit
 	if err := dec.Decode(&k); err != nil {
-		return nil, append(p, "doesn't match blaze.postkit/1: "+err.Error())
+		return nil, append(p, "doesn't match argus.postkit/1: "+err.Error())
 	}
 	return &k, append(p, Validate(&k)...)
 }

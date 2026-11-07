@@ -69,12 +69,12 @@ func TestTwoAppsShareKeychainAndFallback(t *testing.T) {
 	for _, broken := range []bool{false, true} {
 		dir := t.TempDir()
 		kc := &fakeKC{broken: broken}
-		cli, desk := newStore(dir, kc), newStore(dir, kc) // two processes, same ~/.blaze
+		cli, desk := newStore(dir, kc), newStore(dir, kc) // two processes, same ~/.argus
 		where, err := cli.Set("groq", " gsk_test ")
 		if err != nil {
 			t.Fatal(err)
 		}
-		if broken != (where == "~/.blaze/keys.json (owner-only)") {
+		if broken != (where == "~/.argus/keys.json (owner-only)") {
 			t.Fatalf("broken=%v where=%q", broken, where)
 		}
 		if got := desk.Main("groq"); got != "gsk_test" {
@@ -134,7 +134,7 @@ func TestLegacyMigrationKeepsEverything(t *testing.T) {
 	if kc.m["mistral"] != "mis_keychain" {
 		t.Fatal("migration overwrote a newer keychain key")
 	}
-	// The legacy copy stays for older Blaze versions; other fields untouched.
+	// The legacy copy stays for older Argus versions; other fields untouched.
 	var raw map[string]any
 	b, _ := os.ReadFile(cfg)
 	_ = json.Unmarshal(b, &raw)
@@ -281,7 +281,7 @@ func TestSyncBetweenDevices(t *testing.T) {
 		t.Fatal(err)
 	}
 	pc.Set("anthropic", "not-synced-but-is-listed")
-	pc.Set("blaze-account:session", "never-synced")
+	pc.Set("argus-account:session", "never-synced")
 	r, err := pc.Sync(ctx, nil, srv.URL, "tok")
 	if err != nil || !r.Pushed || st.rev != 1 {
 		t.Fatalf("%+v %v rev=%d", r, err, st.rev)
@@ -290,7 +290,7 @@ func TestSyncBetweenDevices(t *testing.T) {
 	if err != nil || !reflect.DeepEqual(r.Pulled, []string{"anthropic", "gemini"}) || r.Pushed {
 		t.Fatalf("%+v %v", r, err)
 	}
-	if laptop.Main("gemini") != "AIza-pc" || laptop.Get("blaze-account:session") != "" {
+	if laptop.Main("gemini") != "AIza-pc" || laptop.Get("argus-account:session") != "" {
 		t.Fatal("wrong keys pulled")
 	}
 	// Remove on the laptop, the PC follows.

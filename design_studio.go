@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/studio"
+	"github.com/lacksonkapapahue/argus-desktop/internal/studio"
 )
 
 // StudioModes are the studio's modes, in rail order.

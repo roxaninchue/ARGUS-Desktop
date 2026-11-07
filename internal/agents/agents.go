@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -23,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Status of an agent.
@@ -372,7 +373,7 @@ func (m *Manager) run(ctx context.Context, a *Agent, gen int) {
 			if pending || (len(n.Dropped) > 0 && step < max-1) {
 				if len(n.Dropped) > 0 {
 					m.mu.Lock()
-					a.History = append(a.History, llm.Message{Role: "user", Content: "Blaze couldn't run " + strings.Join(n.Dropped, "; ") + ". Call the tool again with its exact name and a complete JSON object."})
+					a.History = append(a.History, llm.Message{Role: "user", Content: brand.NAME + " couldn't run " + strings.Join(n.Dropped, "; ") + ". Call the tool again with its exact name and a complete JSON object."})
 					m.mu.Unlock()
 				}
 				continue
@@ -433,7 +434,7 @@ func (m *Manager) run(ctx context.Context, a *Agent, gen int) {
 	errText = fmt.Sprintf("stopped after %d steps without finishing", max)
 }
 
-var badRe = regexp.MustCompile(`^(Error|exit [1-9]|Refused|Blaze couldn't)|did NOT approve`)
+var badRe = regexp.MustCompile(`^(Error|exit [1-9]|Refused|` + brand.NAME + ` couldn't)|did NOT approve`)
 
 func isBad(r string) bool { return badRe.MatchString(r) }
 
@@ -575,7 +576,7 @@ func (m *Manager) Resume(handle string) error {
 		m.mu.Unlock()
 		return fmt.Errorf("agent %q is %s", a.Handle, a.Status)
 	}
-	a.History = append(sanitizeTail(a.History), llm.Message{Role: "user", Content: "[Blaze] You were stopped before finishing (the app closed or the run was cut short). Check what's already done, then carry on with the task and finish with your report."})
+	a.History = append(sanitizeTail(a.History), llm.Message{Role: "user", Content: "[" + brand.NAME + "] You were stopped before finishing (the app closed or the run was cut short). Check what's already done, then carry on with the task and finish with your report."})
 	a.Status, a.Error, a.Ended = Queued, "", time.Time{}
 	a.Runs++
 	m.queue = append(m.queue, a.Handle)

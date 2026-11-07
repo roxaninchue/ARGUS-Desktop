@@ -1,9 +1,9 @@
 package main
 
-// v0.19 Home tab: Blaze Mobile's Home board on the desktop (internal/home). The web cards (weather,
+// v0.19 Home tab: Argus Mobile's Home board on the desktop (internal/home). The web cards (weather,
 // news, prices, sports, GitHub) use free keyless sources; Schedule, Deadlines and Pick-up cards are read on
 // this computer (sched, mind, the main chat, projects, recent folders). The board lives in a new file,
-// ~/.blaze/desktop/home.json.
+// ~/.argus/desktop/home.json.
 
 import (
 	"context"
@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/home"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/mind"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/sched"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/home"
+	"github.com/lacksonkapapahue/argus-desktop/internal/mind"
+	"github.com/lacksonkapapahue/argus-desktop/internal/sched"
 )
 
 var (
@@ -55,7 +55,7 @@ type HomeView struct {
 	Date     string `json:"date"`
 }
 
-// HomeBoard returns the board, seeding it on first open: from memory when Blaze knows enough, else the
+// HomeBoard returns the board, seeding it on first open: from memory when Argus knows enough, else the
 // generic starters (weather, top stories, schedule, pick up, "tell me what you're into").
 func (a *App) HomeBoard() HomeView {
 	s := homeBoard()

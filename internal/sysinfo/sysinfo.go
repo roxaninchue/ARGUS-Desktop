@@ -1,4 +1,4 @@
-// Package sysinfo detects the PC Blaze is running on: OS, hardware, shell,
+// Package sysinfo detects the PC Argus is running on: OS, hardware, shell,
 // package managers and installed developer tools. Everything is best-effort and
 // never fails: unknown values are left empty.
 package sysinfo
@@ -7,7 +7,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/hidecmd"
+	"github.com/lacksonkapapahue/argus-desktop/internal/hidecmd"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -38,7 +38,7 @@ type Info struct {
 	DiskFreeGB  float64           `json:"disk_free_gb"`
 }
 
-// Tools Blaze cares about, with the flag that prints a version.
+// Tools Argus cares about, with the flag that prints a version.
 var toolList = [][2]string{
 	{"git", "--version"}, {"python3", "--version"}, {"python", "--version"}, {"pip", "--version"},
 	{"node", "--version"}, {"npm", "--version"}, {"go", "version"}, {"java", "-version"},
@@ -59,7 +59,7 @@ func out(timeout time.Duration, name string, args ...string) string {
 }
 
 // macDevStubs are the /usr/bin programs macOS ships as stubs: running one without the
-// Command Line Tools (or, for java, without a JDK) pops up an "install" dialog. Blaze
+// Command Line Tools (or, for java, without a JDK) pops up an "install" dialog. Argus
 // never runs them just to read a version.
 var macDevStubs = map[string]bool{"git": true, "gcc": true, "make": true, "python3": true, "pip3": true, "clang": true, "cc": true, "java": true}
 

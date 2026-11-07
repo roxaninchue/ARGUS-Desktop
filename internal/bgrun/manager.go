@@ -39,7 +39,7 @@ type Entry struct {
 	Created time.Time `json:"created"`
 }
 
-// Store keeps the unfinished runs on disk, so a final that lands while Blaze is closed is
+// Store keeps the unfinished runs on disk, so a final that lands while Argus is closed is
 // shown in the right chat on the next start.
 type Store struct {
 	Path string

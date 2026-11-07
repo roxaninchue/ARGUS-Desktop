@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/longchat"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/longchat"
 )
 
 func TestLongContextShortChatAndIndex(t *testing.T) {
@@ -35,7 +35,7 @@ func TestLongContextShortChatAndIndex(t *testing.T) {
 }
 
 func TestAsideResult(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	big := strings.Repeat("a line of output\n", 1000)
 	if got := asideResult("run_shell", big); len(got) >= len(big) || !strings.Contains(got, "artifact:") {
 		t.Fatal("big shell output should be set aside")

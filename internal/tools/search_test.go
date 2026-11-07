@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// v0.19.13: DuckDuckGo answering with no results no longer ends the search (ported from Blaze CLI).
+// v0.19.13: DuckDuckGo answering with no results no longer ends the search (ported from Argus CLI).
 func TestWebSearchFallsBack(t *testing.T) {
 	old := searchGet
 	defer func() { searchGet = old }()

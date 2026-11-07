@@ -1,8 +1,8 @@
 package keystore
 
-// Syncing model keys with other devices (Blaze Android, another PC) through the Blaze
+// Syncing model keys with other devices (Argus Android, another PC) through the Argus
 // account. This file is identical in Blaze-cli and Blaze-dekstop; change both, and
-// keep the wire format in step with Blaze Android (connect/KeySync.kt) and the
+// keep the wire format in step with Argus Android (connect/KeySync.kt) and the
 // blaze-auth Worker (Blaze-dekstop cloud/src/keys.ts).
 //
 //	GET  /v1/keys   Authorization: Bearer <session>
@@ -32,6 +32,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"reflect"
@@ -40,11 +41,11 @@ import (
 	"time"
 )
 
-// ErrUnsupported means the Blaze service has no key sync yet (an older Worker).
-var ErrUnsupported = errors.New("key sync isn't available on Blaze's service yet")
+// ErrUnsupported means the Argus service has no key sync yet (an older Worker).
+var ErrUnsupported = errors.New("key sync isn't available on " + brand.NAME + "'s service yet")
 
 // ErrSignedOut means the session was rejected.
-var ErrSignedOut = errors.New("signed out of the Blaze account")
+var ErrSignedOut = errors.New("signed out of the " + brand.NAME + " account")
 
 const aad = "blaze-keys-v1"
 
@@ -83,7 +84,7 @@ func request(ctx context.Context, hc *http.Client, method, url, token string, bo
 		return 0, err
 	}
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "Blaze")
+	req.Header.Set("User-Agent", brand.NAME)
 	req.Header.Set("Authorization", "Bearer "+token)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
@@ -212,7 +213,7 @@ func Merge(local, remote map[string]Entry, now int64) (merged map[string]Entry, 
 	return merged, apply, push
 }
 
-// Sync merges this computer's model keys with the Blaze account's copy. base is the
+// Sync merges this computer's model keys with the Argus account's copy. base is the
 // blaze-auth URL, token the session. Safe to call often; it is a no-op when nothing
 // changed. ErrUnsupported means the service has no key sync yet.
 func (s *Store) Sync(ctx context.Context, hc *http.Client, base, token string) (*SyncResult, error) {
@@ -253,7 +254,7 @@ func (s *Store) Sync(ctx context.Context, hc *http.Client, base, token string) (
 				return nil, errors.New("key sync: the account's keys are unreadable")
 			}
 			if p.V > 1 {
-				return nil, errors.New("key sync: the account's keys were saved by a newer Blaze; update Blaze")
+				return nil, errors.New("key sync: the account's keys were saved by a newer " + brand.NAME + "; update " + brand.NAME)
 			}
 			if p.Keys != nil {
 				remote = p.Keys

@@ -10,10 +10,10 @@ import (
 
 func launchAgent() string {
 	home, _ := os.UserHomeDir()
-	return filepath.Join(home, "Library", "LaunchAgents", "com.blaze.desktop.plist")
+	return filepath.Join(home, "Library", "LaunchAgents", "com.argus.desktop.plist")
 }
 
-// setAutostart writes a LaunchAgent that starts Blaze hidden at login.
+// setAutostart writes a LaunchAgent that starts Argus hidden at login.
 func setAutostart(on bool) error {
 	p := launchAgent()
 	if !on {
@@ -29,7 +29,7 @@ func setAutostart(on bool) error {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>Label</key><string>com.blaze.desktop</string>
+	<key>Label</key><string>com.argus.desktop</string>
 	<key>ProgramArguments</key>
 	<array><string>%s</string><string>--background</string></array>
 	<key>RunAtLoad</key><true/>

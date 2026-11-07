@@ -39,8 +39,8 @@ func TestClean(t *testing.T) {
 }
 
 func TestCheck(t *testing.T) {
-	in := "Email ops@blaze.test or see https://blazeinchue.pages.dev/dl, then run `blaze up` with $BLAZE_TOKEN for {{user}}."
-	if err := Check("rewrite", in, "Write to ops@blaze.test, see https://blazeinchue.pages.dev/dl, run `blaze up` with $BLAZE_TOKEN for {{user}}."); err != nil {
+	in := "Email ops@argus.test or see https://blazeinchue.pages.dev/dl, then run `argus up` with $ARGUS_TOKEN for {{user}}."
+	if err := Check("rewrite", in, "Write to ops@argus.test, see https://blazeinchue.pages.dev/dl, run `argus up` with $ARGUS_TOKEN for {{user}}."); err != nil {
 		t.Fatalf("good rewrite rejected: %v", err)
 	}
 	if err := Check("rewrite", in, "Email the team or check the downloads page."); err == nil || !strings.Contains(err.Error(), "https://blazeinchue.pages.dev/dl") {

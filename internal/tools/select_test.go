@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/store"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/store"
 )
 
 func names(ts []llm.Tool) map[string]bool {
@@ -62,7 +62,7 @@ func schemaTokens(ts []llm.Tool) int {
 func TestTokenSavings(t *testing.T) {
 	testHome(t, t.TempDir())
 	d := DB()
-	subjects := []string{"HomeGlow", "Blaze Desktop", "the Android app", "the Shopify store", "Payoneer", "PayPal", "Coursera", "the CLI", "Kaggle", "TikTok ads"}
+	subjects := []string{"HomeGlow", "Argus Desktop", "the Android app", "the Shopify store", "Payoneer", "PayPal", "Coursera", "the CLI", "Kaggle", "TikTok ads"}
 	verbs := []string{"uses", "prefers", "deploys", "tests", "builds", "keeps notes on", "pays for", "checks", "reviews", "plans"}
 	things := []string{"pnpm instead of npm", "dark mode everywhere", "short Markdown answers", "a weekly sales report on Monday", "Go 1.26 with Wails v2", "vitest for unit tests", "prices rounded to cents", "Lusaka time (CAT)", "screenshots in CI", "a release every Friday"}
 	var md strings.Builder

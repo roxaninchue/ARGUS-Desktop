@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"strings"
@@ -29,7 +30,7 @@ func (g *Gateway) Plan(ctx context.Context) (string, error) {
 	}
 	req.Header.Set("Authorization", "Bearer "+tok)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "Blaze-Desktop")
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop")
 	hc := g.HC
 	if hc == nil {
 		hc = http.DefaultClient

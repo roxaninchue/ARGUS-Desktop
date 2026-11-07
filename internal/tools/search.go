@@ -1,6 +1,6 @@
 package tools
 
-// web_search backends (Desktop v0.19.13, same as Blaze CLI v0.14.15). DuckDuckGo's HTML page
+// web_search backends (Desktop v0.19.13, same as Argus CLI v0.14.15). DuckDuckGo's HTML page
 // was the only source; it often answers with a page that has no results (rate limiting,
 // bot checks), so web_search said "No results." and the model gave up or apologised. Now: DuckDuckGo with a short
 // timeout, then Bing's RSS, then DuckDuckGo Lite; a news-ish query ("latest", "news",

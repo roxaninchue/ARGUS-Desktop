@@ -69,7 +69,7 @@ func TestOSEngineReadsText(t *testing.T) {
 		t.Fatal(err)
 	}
 	low := strings.ToLower(txt)
-	if !strings.Contains(low, "blaze") || !strings.Contains(low, "404") {
+	if !strings.Contains(low, "argus") || !strings.Contains(low, "404") {
 		t.Fatalf("OCR read %q", txt)
 	}
 }

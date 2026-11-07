@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// TestNoConsoleWindow starts a console program from a GUI program, the way Blaze.exe does.
+// TestNoConsoleWindow starts a console program from a GUI program, the way Argus.exe does.
 // Through Hide it must get no console window; started plainly it gets one (which shows the
 // test can tell the difference).
 func TestNoConsoleWindow(t *testing.T) {

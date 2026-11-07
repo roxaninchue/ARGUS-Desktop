@@ -1,10 +1,11 @@
 package main
 
 import (
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun"
 )
 
 // v0.19.13 (Bug Diver review 2026-10-22, holes 3 and 4): a turn whose user plainly asked
@@ -18,7 +19,7 @@ var smallTalkWords = map[string]bool{
 	"cool": true, "nice": true, "great": true, "good": true, "morning": true, "evening": true,
 	"afternoon": true, "night": true, "bye": true, "goodbye": true, "you": true, "so": true,
 	"much": true, "very": true, "awesome": true, "perfect": true, "lol": true, "there": true,
-	"blaze": true, "gm": true, "gn": true, "np": true,
+	"argus": true, "gm": true, "gn": true, "np": true,
 }
 
 func smallTalk(s string) bool {
@@ -34,7 +35,7 @@ func smallTalk(s string) bool {
 	return true
 }
 
-var actionCue = regexp.MustCompile(`(?i)^\s*(please\s+|pls\s+|can you\s+|could you\s+|would you\s+|now\s+|then\s+|go ahead and\s+)*(run|execute|exec|create|add (a |an |the )?(file|line|section|function|test)|add .{1,60} to [\w./-]+\.\w+|make (a |an |me )?(file|folder|dir)|(make|build|create|generate|give me|produce) (a |an |me |the )?(\w+ ){0,2}(report|chart|graph|plot|pdf|spreadsheet)\b|(chart|plot|graph|analy[sz]e|clean up) [\w./-]+\.(csv|tsv|xlsx)|write (a |the |to )?(file|to)|edit|replace|rename|delete|remove|move|copy the file|read|open|cat|list|ls|show me (the )?(file|contents|readme)|search|look (for|up)|find|fetch|download|install|commit|push|remember|save|check (my |the )?(memory|weather)|recall|google|set (a |an |me )?(reminder|alarm|timer)|remind me|schedule|post (it |this |that )?(on|to)|send|email|text|take a screenshot|screenshot|update blaze|fix (the |this |my |a |that )?(failing |broken )?(tests?|build|bug|error|crash|script|code in|file)|build (and run|the project|the app|it)|compile|deploy|publish|upload|tweet|uninstall|restart)\b|\b(weather|forecast)\b.*\b(in|at|for|today|now|tomorrow)\b|\b(latest|today'?s|this week'?s|breaking)\b.*\bnews\b|\bnews\b.*\b(latest|today|this week)\b|\b(what (have|did) we (work|worked|do|done)|worked on (together|before|last)|last (session|time we|chat)|earlier (chat|conversation|session)|what do you remember)\b`)
+var actionCue = regexp.MustCompile(`(?i)^\s*(please\s+|pls\s+|can you\s+|could you\s+|would you\s+|now\s+|then\s+|go ahead and\s+)*(run|execute|exec|create|add (a |an |the )?(file|line|section|function|test)|add .{1,60} to [\w./-]+\.\w+|make (a |an |me )?(file|folder|dir)|(make|build|create|generate|give me|produce) (a |an |me |the )?(\w+ ){0,2}(report|chart|graph|plot|pdf|spreadsheet)\b|(chart|plot|graph|analy[sz]e|clean up) [\w./-]+\.(csv|tsv|xlsx)|write (a |the |to )?(file|to)|edit|replace|rename|delete|remove|move|copy the file|read|open|cat|list|ls|show me (the )?(file|contents|readme)|search|look (for|up)|find|fetch|download|install|commit|push|remember|save|check (my |the )?(memory|weather)|recall|google|set (a |an |me )?(reminder|alarm|timer)|remind me|schedule|post (it |this |that )?(on|to)|send|email|text|take a screenshot|screenshot|update argus|fix (the |this |my |a |that )?(failing |broken )?(tests?|build|bug|error|crash|script|code in|file)|build (and run|the project|the app|it)|compile|deploy|publish|upload|tweet|uninstall|restart)\b|\b(weather|forecast)\b.*\b(in|at|for|today|now|tomorrow)\b|\b(latest|today'?s|this week'?s|breaking)\b.*\bnews\b|\bnews\b.*\b(latest|today|this week)\b|\b(what (have|did) we (work|worked|do|done)|worked on (together|before|last)|last (session|time we|chat)|earlier (chat|conversation|session)|what do you remember)\b`)
 
 // actionIntent is true when the user plainly asked for an action.
 func actionIntent(s string) bool {
@@ -56,10 +57,10 @@ func claimsDone(text string) bool { return claimCue.MatchString(text) }
 const noProofNote = "Your last reply said the work was done, but no tool ran this turn, so nothing actually happened. Do it now with the tools, or tell the user plainly that you could not do it and why. Never say something was done without a tool result that shows it."
 
 // noProofLine ends a reply that still claims an action no tool backed.
-const noProofLine = "\n\n_Blaze didn't run any tool for this, so nothing was actually done._"
+const noProofLine = "\n\n_" + brand.NAME + " didn't run any tool for this, so nothing was actually done._"
 
 // questionCue is a turn that asks something ("what is…", "how do I…", "do you remember…")
-// rather than telling Blaze to do it. "can you / could you / please" turns are requests.
+// rather than telling Argus to do it. "can you / could you / please" turns are requests.
 var questionCue = regexp.MustCompile(`(?i)^\s*(what|what's|whats|how|why|who|whom|whose|when|where|which|is|are|am|do|does|did|was|were|should|shall|will|has|have|isn't|aren't|don't|doesn't)\b`)
 
 // bgAction decides whether a user turn goes the ack-and-background way: only a request to DO

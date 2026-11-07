@@ -1,6 +1,6 @@
 package main
 
-// v0.19 Blaze Music and Blaze Video, ported from Blaze Mobile (mediaapps/). The
+// v0.19 Argus Music and Argus Video, ported from Argus Mobile (mediaapps/). The
 // service is internal/media (library, Store, downloads, lyrics, subtitles, smarts);
 // this file binds it to the window (Media* methods, "media:*" events), serves files
 // to the webview (the asset server's Handler and a loopback server, see
@@ -9,10 +9,11 @@ package main
 // video_ops, media_download and jamendo_setup (same as mobile).
 //
 // Nothing here runs until the UI (music.js) or a tool first asks: mediaGet starts the
-// service lazily, so app.go needs no startup hook. State lives in ~/.blaze/media.
+// service lazily, so app.go needs no startup hook. State lives in ~/.argus/media.
 
 import (
 	"context"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -21,12 +22,12 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/media"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/mind"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/notify"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/media"
+	"github.com/lacksonkapapahue/argus-desktop/internal/mind"
+	"github.com/lacksonkapapahue/argus-desktop/internal/notify"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 var (
@@ -209,7 +210,7 @@ func (a *App) MediaDelete(key string, confirmed bool) string {
 	return ""
 }
 
-// MediaRename sets a track's title and artist (kept by Blaze; files aren't rewritten).
+// MediaRename sets a track's title and artist (kept by Argus; files aren't rewritten).
 func (a *App) MediaRename(key, title, artist string) bool {
 	return mediaGet().SetTags(key, strings.TrimSpace(title), strings.TrimSpace(artist))
 }
@@ -396,25 +397,25 @@ func (a *App) MediaIntro(series string, from, to int64) int64 {
 // ---- agent tools ----
 
 func init() {
-	tools.Register("music_play", "Blaze Music player on this PC (the music library from the user's Music folder and Blaze downloads): play songs by title, artist, album, playlist or mood (\"play something chill\", \"play Burna Boy\", playlist=\"Daily Mix 1\"), queue more, pause, resume, next, previous, stop, shuffle, repeat, volume, seek, or now (what's playing). Use it for any music playback request; it opens nothing and plays in Blaze.",
+	tools.Register("music_play", brand.NAME+" Music player on this PC (the music library from the user's Music folder and "+brand.NAME+" downloads): play songs by title, artist, album, playlist or mood (\"play something chill\", \"play Burna Boy\", playlist=\"Daily Mix 1\"), queue more, pause, resume, next, previous, stop, shuffle, repeat, volume, seek, or now (what's playing). Use it for any music playback request; it opens nothing and plays in "+brand.NAME+".",
 		[][3]string{{"action", "string", "play | queue | pause | resume | toggle | next | previous | stop | shuffle | repeat | volume | seek | now"},
 			{"query", "string", "what to play: words from a title / artist / album, or a mood like chill, focus, party, workout, sad, gospel"},
 			{"playlist", "string", "a playlist, daily mix or smart playlist name instead of query"},
 			{"shuffle", "boolean", "shuffle what plays"}, {"on", "boolean", "for shuffle"}, {"mode", "string", "repeat: off | all | one"},
 			{"level", "number", "volume 0-100"}, {"seconds", "number", "seek position"}},
 		[]string{"action"}, func(e *tools.Env, args map[string]any) string { return mediaGet().MusicPlay(args) })
-	tools.Register("music_ops", "Blaze Music's smart side. action: dj (on = true|false: Blaze DJ keeps playing songs the user loves), mixes (list daily mixes, smart playlists and playlists), play_list (name = a daily mix or smart playlist like \"Daily Mix 1\" / \"Most played\" / \"On repeat\", shuffle), wrapped (period = month|year|all: listening stats), eq (preset = "+strings.Join(media.EQOrder, " | ")+"), crossfade (seconds = 0|3|6|10), data_saver (on), sleep (minutes; 0 = off), import (url = a YouTube or Spotify playlist / album link: downloads every song and builds the playlist), fix_tags (cleans titles / artists of downloaded songs and fetches real covers).",
+	tools.Register("music_ops", brand.NAME+" Music's smart side. action: dj (on = true|false: "+brand.NAME+" DJ keeps playing songs the user loves), mixes (list daily mixes, smart playlists and playlists), play_list (name = a daily mix or smart playlist like \"Daily Mix 1\" / \"Most played\" / \"On repeat\", shuffle), wrapped (period = month|year|all: listening stats), eq (preset = "+strings.Join(media.EQOrder, " | ")+"), crossfade (seconds = 0|3|6|10), data_saver (on), sleep (minutes; 0 = off), import (url = a YouTube or Spotify playlist / album link: downloads every song and builds the playlist), fix_tags (cleans titles / artists of downloaded songs and fetches real covers).",
 		[][3]string{{"action", "string", "dj | mixes | play_list | wrapped | eq | crossfade | data_saver | sleep | import | fix_tags"}, {"on", "boolean", ""}, {"name", "string", ""},
 			{"shuffle", "boolean", ""}, {"period", "string", ""}, {"preset", "string", ""}, {"seconds", "integer", ""}, {"minutes", "integer", ""}, {"url", "string", ""}},
 		[]string{"action"}, func(e *tools.Env, args map[string]any) string { return mediaGet().MusicOps(args) })
-	tools.Register("video_ops", "Blaze Video (the video player on this PC; library = the user's Videos folder and Blaze downloads). action: play (query = a video title in the library), series (list series / episodes), subtitles (language = a language name or code, or \"off\"; for the video playing now), translate_subtitles (language: AI-translates the video's subtitles and turns them on), recap (a short recap of the video playing now, from its subtitles, up to where the user is), settings (autoplay / smart_downloads / data_saver true|false).",
+	tools.Register("video_ops", brand.NAME+" Video (the video player on this PC; library = the user's Videos folder and "+brand.NAME+" downloads). action: play (query = a video title in the library), series (list series / episodes), subtitles (language = a language name or code, or \"off\"; for the video playing now), translate_subtitles (language: AI-translates the video's subtitles and turns them on), recap (a short recap of the video playing now, from its subtitles, up to where the user is), settings (autoplay / smart_downloads / data_saver true|false).",
 		[][3]string{{"action", "string", "play | series | subtitles | translate_subtitles | recap | settings"}, {"query", "string", ""}, {"language", "string", ""},
 			{"autoplay", "boolean", ""}, {"smart_downloads", "boolean", ""}, {"data_saver", "boolean", ""}},
 		[]string{"action"}, func(e *tools.Env, args map[string]any) string { return mediaGet().VideoOps(args) })
-	tools.Register("media_download", "Download songs (into Blaze Music) or videos (into Blaze Video) from YouTube, many at once. Give every song/video the user named as one item (\"Artist - Title\" when known) as {\"query\":...}. Clear matches are queued right away; for items the tool isn't sure about it returns candidates: ask the user which one (or skip), then call again with items as {\"id\":\"<video id>\"}. quality: best, high (default), small; or for video a height like 720 / 480 / 1080. Audio comes as m4a unless format=opus.",
+	tools.Register("media_download", "Download songs (into "+brand.NAME+" Music) or videos (into "+brand.NAME+" Video) from YouTube, many at once. Give every song/video the user named as one item (\"Artist - Title\" when known) as {\"query\":...}. Clear matches are queued right away; for items the tool isn't sure about it returns candidates: ask the user which one (or skip), then call again with items as {\"id\":\"<video id>\"}. quality: best, high (default), small; or for video a height like 720 / 480 / 1080. Audio comes as m4a unless format=opus.",
 		[][3]string{{"items", "array", "[{\"query\":\"Artist - Title\"} or {\"id\":\"YouTube video id\"}]"}, {"kind", "string", "audio | video"}, {"quality", "string", ""}, {"format", "string", "m4a | opus"}},
 		[]string{"items"}, func(e *tools.Env, args map[string]any) string { return mediaGet().MediaDownload(args) })
-	tools.Register("jamendo_setup", "Save a Jamendo API client_id for Blaze Music's Jamendo Store (checked against Jamendo before it's saved). Get one free at "+media.JamendoDevPortal+": sign in or sign up (ask the user before creating an account), My applications, create an app (name Blaze Music, website https://blazeinchue.pages.dev), then copy its Client ID here.",
+	tools.Register("jamendo_setup", "Save a Jamendo API client_id for "+brand.NAME+" Music's Jamendo Store (checked against Jamendo before it's saved). Get one free at "+media.JamendoDevPortal+": sign in or sign up (ask the user before creating an account), My applications, create an app (name "+brand.NAME+" Music, website https://blazeinchue.pages.dev), then copy its Client ID here.",
 		[][3]string{{"client_id", "string", "The app's Client ID (8 hex characters)"}},
 		[]string{"client_id"}, func(e *tools.Env, args map[string]any) string {
 			return mediaGet().JamendoSet(tools.ArgS(args, "client_id"))

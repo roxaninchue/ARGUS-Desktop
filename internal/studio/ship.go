@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"io/fs"
 	"os"
@@ -21,7 +22,7 @@ import (
 )
 
 var staticExt = regexp.MustCompile(`(?i)\.(html?|css|js|mjs|json|svg|png|jpe?g|gif|webp|avif|ico|woff2?|ttf|otf|txt|xml|webmanifest|map|mp4|webm|mp3)$`)
-var skipShip = map[string]bool{".git": true, "node_modules": true, ".venv": true, "venv": true, "__pycache__": true, ".cache": true, ".blaze-worktrees": true, ".github": true, ".vscode": true, ".idea": true}
+var skipShip = map[string]bool{".git": true, "node_modules": true, ".venv": true, "venv": true, "__pycache__": true, ".cache": true, ".argus-worktrees": true, ".github": true, ".vscode": true, ".idea": true}
 
 // Runner runs a command in a folder and returns its combined output.
 type Runner func(ctx context.Context, dir, name string, args ...string) (string, error)
@@ -170,7 +171,7 @@ func Slug(s string) string {
 		s = strings.Trim(s[:58], "-")
 	}
 	if s == "" {
-		s = "blaze-site"
+		s = "argus-site"
 	}
 	return s
 }
@@ -236,7 +237,7 @@ func ShipGitHub(ctx context.Context, folder, dir string, run Runner) (string, er
 		{"init", "-q"},
 		{"checkout", "-q", "-b", "gh-pages"},
 		{"add", "-A"},
-		{"-c", "user.name=Blaze", "-c", "user.email=blaze@localhost", "commit", "-qm", "Publish with Blaze"},
+		{"-c", "user.name=" + brand.NAME, "-c", "user.email=argus@localhost", "commit", "-qm", "Publish with " + brand.NAME},
 		{"push", "-qf", remote, "gh-pages"},
 	}
 	for _, s := range steps {

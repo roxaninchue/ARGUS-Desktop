@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 func u(s string) llm.Message { return llm.Message{Role: "user", Content: s} }

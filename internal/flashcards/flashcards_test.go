@@ -6,7 +6,7 @@ import (
 )
 
 func TestAddDueReview(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	now := time.Date(2026, 11, 1, 9, 0, 0, 0, time.UTC)
 	Now = func() time.Time { return now }
 	defer func() { Now = time.Now }()

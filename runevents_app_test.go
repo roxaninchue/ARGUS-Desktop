@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun/bgruntest"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/runevents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun/bgruntest"
+	"github.com/lacksonkapapahue/argus-desktop/internal/privacy"
+	"github.com/lacksonkapapahue/argus-desktop/internal/runevents"
 )
 
 // 0.19.16: offline the message stays "Sending" and the create is retried with the SAME
@@ -47,7 +47,7 @@ func TestDeskOfflineRetrySameMessageNoDuplicate(t *testing.T) {
 	if _, ok := d.turn(context.Background(), "remind me to call mum at 9 tomorrow"); !ok {
 		t.Fatal("not handled as a run")
 	}
-	d.tap.waitFor(t, "blaze_msg")
+	d.tap.waitFor(t, "argus_msg")
 	bgRuns.Wait()
 	if len(api.ids) != 3 || api.ids[0] != api.ids[1] || api.ids[1] != api.ids[2] {
 		t.Fatalf("retries must reuse the client_msg_id: %v", api.ids)
@@ -55,7 +55,7 @@ func TestDeskOfflineRetrySameMessageNoDuplicate(t *testing.T) {
 	if created, _, _ := d.fake.Snapshot(); len(created) != 1 {
 		t.Fatalf("%d runs created, want 1", len(created))
 	}
-	if n := len(d.tap.find("blaze_msg")); n != 1 {
+	if n := len(d.tap.find("argus_msg")); n != 1 {
 		t.Fatalf("%d finals, want 1", n)
 	}
 	d.tap.mu.Lock()
@@ -91,7 +91,7 @@ func TestDeskOfflineRetrySameMessageNoDuplicate(t *testing.T) {
 
 // The chat chrome never carries a provider or model (the gateway's done event names them).
 func TestEmitScrubsProviderAndModel(t *testing.T) {
-	t.Setenv("BLAZE_DEV", "")
+	t.Setenv("ARGUS_DEV", "")
 	for _, c := range []struct {
 		ev string
 		d  any

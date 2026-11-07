@@ -16,9 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/keystore"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/keystore"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 	"github.com/zalando/go-keyring"
 )
 
@@ -54,7 +54,7 @@ func fakeProvider(t *testing.T, h http.HandlerFunc) (string, *httptest.Server) {
 
 func newTestRouter(t *testing.T, chain ...string) (*Router, *config.Config) {
 	t.Helper()
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	keystore.Keychain = &memKC{m: map[string]string{}}
 	retryBackoff = time.Millisecond
 	cfg := config.Load()
@@ -99,7 +99,7 @@ func TestFallbackOnRateLimit(t *testing.T) {
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "from b") {
 		t.Fatalf("want b's answer, got %d %s", rec.Code, rec.Body)
 	}
-	if got := rec.Header().Get("X-BlazeRouter-Provider"); got != b {
+	if got := rec.Header().Get("X-ArgusRouter-Provider"); got != b {
 		t.Fatalf("answered by %q, want %q", got, b)
 	}
 	if llm.CoolingFor(a, "m1") <= 0 {
@@ -209,8 +209,8 @@ func TestStreamErrorInFirstEventFallsBack(t *testing.T) {
 	})
 	r, _ := newTestRouter(t, a, b)
 	rec := post(t, r, "/v1/chat/completions", r.APIKey(), chatBody("auto", true))
-	if rec.Header().Get("X-BlazeRouter-Provider") != b || !strings.Contains(rec.Body.String(), `"ok"`) {
-		t.Fatalf("got %s: %s", rec.Header().Get("X-BlazeRouter-Provider"), rec.Body)
+	if rec.Header().Get("X-ArgusRouter-Provider") != b || !strings.Contains(rec.Body.String(), `"ok"`) {
+		t.Fatalf("got %s: %s", rec.Header().Get("X-ArgusRouter-Provider"), rec.Body)
 	}
 }
 
@@ -343,7 +343,7 @@ func TestAuthAndHost(t *testing.T) {
 	// The dashboard API takes the session token.
 	req = httptest.NewRequest("GET", "http://localhost:20128/api/state", nil)
 	req.Host = "localhost:20128"
-	req.Header.Set("X-Blaze-Token", r.Token())
+	req.Header.Set("X-Argus-Token", r.Token())
 	rec = httptest.NewRecorder()
 	r.Handler().ServeHTTP(rec, req)
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `"strategies"`) {
@@ -461,7 +461,7 @@ func TestCompression(t *testing.T) {
 
 func TestMigrationKeepsChainAndKeys(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("BLAZE_HOME", home)
+	t.Setenv("ARGUS_HOME", home)
 	keystore.Keychain = &memKC{m: map[string]string{}}
 	cfg := config.Load()
 	cfg.Chain = []config.Entry{{Provider: "groq", Model: "my-custom-model"}, {Provider: "gemini"}}
@@ -478,7 +478,7 @@ func TestMigrationKeepsChainAndKeys(t *testing.T) {
 	}
 	after, _ := os.ReadFile(home + "/config.json")
 	if string(before) != string(after) {
-		t.Fatal("migration must not rewrite config.json (shared with Blaze CLI)")
+		t.Fatal("migration must not rewrite config.json (shared with Argus CLI)")
 	}
 	if cfg.Key("groq") != "gsk_abc" {
 		t.Fatal("keys stay in the shared store")
@@ -514,7 +514,7 @@ func TestServerStartsAndFallsBackToNextPort(t *testing.T) {
 	}
 	p, _ := config.ProviderByID(config.RouterID)
 	if !strings.HasPrefix(p.BaseURL, r.URL()) {
-		t.Fatalf("Blaze's BlazeRouter provider should point at the server: %q vs %q", p.BaseURL, r.URL())
+		t.Fatalf("Argus's ArgusRouter provider should point at the server: %q vs %q", p.BaseURL, r.URL())
 	}
 	resp, err := http.Get(r.URL() + "/health")
 	if err != nil || resp.StatusCode != 200 {
@@ -545,7 +545,7 @@ func TestPlanModels(t *testing.T) {
 	if err != nil || pl.Targets[0].Provider != a {
 		t.Fatal("bare model id should find its provider", pl, err)
 	}
-	for _, m := range []string{"", "auto", "blazerouter/auto"} {
+	for _, m := range []string{"", "auto", "argusrouter/auto"} {
 		if pl, err := r.plan(m, false); err != nil || pl.Combo != "auto" {
 			t.Fatal(m, err)
 		}
@@ -560,7 +560,7 @@ func TestPlanModels(t *testing.T) {
 	if !found {
 		t.Fatal("models list should include provider/model")
 	}
-	// BlazeRouter never routes to itself.
+	// ArgusRouter never routes to itself.
 	cfg := r.cfg()
 	cfg.Chain = append(cfg.Chain, config.Entry{Provider: config.RouterID, Model: "auto"})
 	for _, tg := range r.autoTargets(cfg) {

@@ -1,6 +1,7 @@
 package bgrun
 
 import (
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"strings"
 	"unicode"
@@ -100,7 +101,7 @@ func (f Final) summary() string {
 }
 
 // NoToolLine ends an action reply that claims work no tool on this computer did.
-const NoToolLine = "_Blaze didn't run any tool for this, so nothing was actually done._"
+const NoToolLine = "_" + brand.NAME + " didn't run any tool for this, so nothing was actually done._"
 
 // replyClaim is a reply saying the work happened (the app's claim check, intent.go claimCue).
 var replyClaim = regexp.MustCompile(`(?i)(^\s*(done|all set|posted|sent|saved|created|finished|completed|fixed|published|deployed|uploaded|scheduled|deleted)\b|\b(i'?ve|i have|i just|successfully)\s+(now\s+)?(run|ran|created|written|wrote|saved|edited|updated|deleted|removed|moved|renamed|installed|posted|sent|emailed|scheduled|set|added|committed|pushed|downloaded|fixed|executed|remembered|noted|stored)\b|\b(has|have) been (successfully )?(created|saved|written|updated|deleted|removed|posted|sent|scheduled|set|added|committed|pushed|installed|fixed|published|deployed|uploaded|run|executed|noted|stored)\b|\bis (now )?saved\b|\bsaved\b.*\b(memory|for later|for next time)\b|\breminder (is )?set\b)`)
@@ -108,7 +109,7 @@ var replyClaim = regexp.MustCompile(`(?i)(^\s*(done|all set|posted|sent|saved|cr
 // DeviceFailedLine ends a done reply whose tool on this computer didn't work.
 const DeviceFailedLine = "_A step on this computer didn't work, so this may not be finished._"
 
-// Message is what the chat shows for the final, as one plain Blaze bubble.
+// Message is what the chat shows for the final, as one plain Argus bubble.
 func (f Final) Message() string {
 	if f.Kind != KindDone {
 		reason := strings.TrimSpace(f.Reason)
@@ -185,7 +186,7 @@ var leadDone = regexp.MustCompile(`(?i)^done(\s*✓|\s*[.!,:;\x{2014}\x{2013}-](
 // dropDone keeps "Done ✓ Done. The file…" from saying done twice.
 func dropDone(s string) string {
 	if !leadDone.MatchString(s) {
-		return s // nothing dropped: the reply stays exactly as written ("blaze-43-ok")
+		return s // nothing dropped: the reply stays exactly as written ("argus-43-ok")
 	}
 	t := leadDone.ReplaceAllString(s, "")
 	if strings.TrimSpace(t) == "" {
@@ -206,7 +207,7 @@ func dropDone(s string) string {
 	return string(r)
 }
 
-// Notification is the one desktop notification for the final, worded like a text from Blaze
+// Notification is the one desktop notification for the final, worded like a text from Argus
 // ("Done, reminder set for Fri 9:00").
 func (f Final) Notification() string {
 	if f.Kind != KindDone {
@@ -312,7 +313,7 @@ func IsAckLine(s string) bool {
 // ClaimsDone is true for a line that says something already happened.
 func ClaimsDone(s string) bool { return claimDone.MatchString(s) }
 
-// imperative is where a verb tells Blaze to do something: the start of the request (after
+// imperative is where a verb tells Argus to do something: the start of the request (after
 // "please", "can you"…) or a later clause ("…, and create out.txt", "then commit"). A verb inside
 // a search phrase ("search for how to run Go tests") is not a request to run anything.
 const imperative = `(^\s*(please\s+|pls\s+|can you\s+|could you\s+|would you\s+|now\s+|then\s+|go ahead and\s+)*|\b(and|then|also)\s+(also\s+)?(please\s+)?|[,;:]\s*(and\s+|then\s+)?(please\s+)?)`

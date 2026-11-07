@@ -14,8 +14,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/ocr"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/ocr"
 )
 
 // IsLocal reports whether a provider runs on this computer (Ollama, or a custom

@@ -9,6 +9,7 @@ package media
 
 import (
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"regexp"
@@ -143,7 +144,7 @@ type StoreError struct {
 func (e *StoreError) Error() string { return e.Msg }
 func serr(f string, a ...any) error { return &StoreError{Msg: fmt.Sprintf(f, a...)} }
 
-const blazeUA = "Blaze/1 (Desktop; +https://blazeinchue.pages.dev)"
+const argusUA = brand.NAME + "/1 (Desktop; +https://blazeinchue.pages.dev)"
 
 var client = &http.Client{Timeout: 30 * time.Second}
 
@@ -153,7 +154,7 @@ func httpGet(u, ua string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", orStr(ua, blazeUA))
+	req.Header.Set("User-Agent", orStr(ua, argusUA))
 	req.Header.Set("Accept", "application/json, text/html;q=0.9, */*;q=0.5")
 	r, err := client.Do(req)
 	if err != nil {

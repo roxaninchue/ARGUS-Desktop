@@ -31,7 +31,7 @@ func TestCarryDirtyThenApply(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(src, "index.html"), []byte("<h1>Draft</h1>\n<p>keep</p>\n"), 0o644)
 	_ = os.WriteFile(filepath.Join(src, "README.md"), []byte("hi there\n"), 0o644)
 
-	iso, err := Isolate(src, filepath.Join(t.TempDir(), "w"), "blaze/direction-a")
+	iso, err := Isolate(src, filepath.Join(t.TempDir(), "w"), "argus/direction-a")
 	if err != nil {
 		t.Fatal(err)
 	}

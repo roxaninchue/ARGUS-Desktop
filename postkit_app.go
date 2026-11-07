@@ -1,15 +1,16 @@
 package main
 
 // Post kit (v0.19.11, creators workflow C1): give a photo or an idea, choose platforms, and get a
-// full blaze.postkit/1 kit: hook, three hashtags, alt text, a caption per platform within its
+// full argus.postkit/1 kit: hook, three hashtags, alt text, a caption per platform within its
 // limit, and crops for 1:1, 4:5, 9:16 and 16:9. The words come from the same model as chat
-// (Blaze Cloud or the user's own, with Private vision respected); the rules, the crops and the
-// export happen on this computer (internal/postkit). Copy-out only: Blaze never posts.
+// (Argus Cloud or the user's own, with Private vision respected); the rules, the crops and the
+// export happen on this computer (internal/postkit). Copy-out only: Argus never posts.
 // Nothing here names a provider or a model.
 
 import (
 	"context"
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"image"
 	"os"
 	"path/filepath"
@@ -23,8 +24,8 @@ import (
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 	_ "golang.org/x/image/webp" // v0.19.13: WebP photos too
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/postkit"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/postkit"
 )
 
 // postkitComplete is the chat model call (a variable so tests can stand in for the model).
@@ -150,9 +151,9 @@ func (a *App) PostKitMake(req PostKitRequest) PostKitResult {
 		case ctx.Err() != nil:
 			return PostKitResult{Error: "That took too long. Try again in a moment."}
 		case strings.Contains(err.Error(), postkit.ErrModel.Error()):
-			return PostKitResult{Error: "Blaze couldn't reach the model right now. Try again in a moment."}
+			return PostKitResult{Error: brand.NAME + " couldn't reach the model right now. Try again in a moment."}
 		}
-		return PostKitResult{Error: "Blaze couldn't make a kit that follows every rule this time. Try again, or add a few words to the idea."}
+		return PostKitResult{Error: brand.NAME + " couldn't make a kit that follows every rule this time. Try again, or add a few words to the idea."}
 	}
 	return postKitResult(k, r.Photo, note)
 }
@@ -162,11 +163,11 @@ func postKitResult(k *postkit.Kit, photo, note string) PostKitResult {
 	return PostKitResult{Kit: k, JSON: string(js), Text: postkit.Text(k), Photo: photo, Note: note}
 }
 
-// PostKitCheck validates a kit (pasted JSON, or one from another Blaze app or the gateway tool).
+// PostKitCheck validates a kit (pasted JSON, or one from another Argus app or the gateway tool).
 func (a *App) PostKitCheck(js string) PostKitResult {
 	k, problems := postkit.Parse([]byte(js))
 	if k == nil {
-		return PostKitResult{Problems: problems, Error: "That isn't a Blaze post kit."}
+		return PostKitResult{Problems: problems, Error: "That isn't an " + brand.NAME + " post kit."}
 	}
 	res := postKitResult(k, "", "")
 	res.Problems = problems
@@ -208,7 +209,7 @@ func (a *App) PostKitExport(js, photo string) PostKitExportResult {
 func postKitExportTo(dir, js, photo string) PostKitExportResult {
 	k, problems := postkit.Parse([]byte(js))
 	if k == nil || len(problems) > 0 {
-		return PostKitExportResult{Error: "This kit doesn't match blaze.postkit/1, so it wasn't saved."}
+		return PostKitExportResult{Error: "This kit doesn't match argus.postkit/1, so it wasn't saved."}
 	}
 	files, saved, err := postkit.Export(dir, postkit.Slug(k.Idea, photo), k, photo)
 	if err != nil {

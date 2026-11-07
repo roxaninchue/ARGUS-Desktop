@@ -6,7 +6,7 @@ package main
 //   engine  whisper-cli from whisper.cpp: already on PATH (brew, pacman, …) or downloaded
 //           once from the official whisper.cpp release (Windows and Linux builds).
 //   model   a ggml Whisper model from Hugging Face, downloaded once after the user agrees
-//           (base, 142 MB, by default), kept in ~/.blaze/whisper.
+//           (base, 142 MB, by default), kept in ~/.argus/whisper.
 //   audio   recorded by the window (WebView microphone) and sent here as a WAV, or, where
 //           the WebView has no microphone (WebKitGTK), recorded here with pw-record,
 //           parecord, arecord, sox or ffmpeg.
@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"os"
@@ -31,7 +32,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 type whisperModel struct {
@@ -71,7 +72,7 @@ func exe(n string) string {
 	return n
 }
 
-// whisperBin finds whisper-cli: Blaze's own download first, then PATH.
+// whisperBin finds whisper-cli: Argus's own download first, then PATH.
 func whisperBin() string {
 	var found string
 	_ = filepath.WalkDir(filepath.Join(whisperDir(), "bin"), func(p string, d os.DirEntry, err error) error {
@@ -151,7 +152,7 @@ func (a *App) STTStatus() STTView {
 		v.EngineHow, v.EngineMB = "download", 10
 	case runtime.GOOS == "darwin" && haveCmd("brew"):
 		v.EngineHow = "brew"
-		v.Note = "Blaze installs whisper.cpp with Homebrew (brew install whisper-cpp)."
+		v.Note = brand.NAME + " installs whisper.cpp with Homebrew (brew install whisper-cpp)."
 	default:
 		v.EngineHow = "manual"
 		v.Note = manualNote()
@@ -164,7 +165,7 @@ func manualNote() string {
 	if runtime.GOOS == "darwin" {
 		return "Voice input needs whisper.cpp. Install Homebrew (brew.sh), then run: brew install whisper-cpp"
 	}
-	return "Voice input needs whisper.cpp, which has no ready-made build for this PC. Install it with your package manager (whisper.cpp / whisper-cpp) and Blaze will find whisper-cli."
+	return "Voice input needs whisper.cpp, which has no ready-made build for this PC. Install it with your package manager (whisper.cpp / whisper-cpp) and " + brand.NAME + " will find whisper-cli."
 }
 
 func haveCmd(n string) bool { return lookCmd(n) != "" }
@@ -267,7 +268,7 @@ func (a *App) fetchEngine(ctx context.Context) error {
 	name := releaseAsset()
 	a.sttProgress("engine", 0, 0, "Finding the latest whisper.cpp build…")
 	req, _ := http.NewRequestWithContext(ctx, "GET", "https://api.github.com/repos/ggml-org/whisper.cpp/releases?per_page=15", nil)
-	req.Header.Set("User-Agent", "Blaze-Desktop/"+version)
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop/"+version)
 	res, err := (&http.Client{Timeout: 30 * time.Second}).Do(req)
 	if err != nil {
 		return errors.New("Couldn't reach GitHub to download whisper.cpp. Check your connection and try again.")
@@ -318,7 +319,7 @@ func (a *App) fetchEngine(ctx context.Context) error {
 // fetch downloads url to dst with progress (via dst.part, so a cut download never counts).
 func (a *App) fetch(ctx context.Context, url, dst, stage, what string) error {
 	req, _ := http.NewRequestWithContext(ctx, "GET", url, nil)
-	req.Header.Set("User-Agent", "Blaze-Desktop/"+version)
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop/"+version)
 	res, err := (&http.Client{Timeout: 60 * time.Minute}).Do(req)
 	if err != nil {
 		return errors.New(what + " failed. Check your connection and try again.")
@@ -470,7 +471,7 @@ func (a *App) Transcribe(wavB64 string) Transcript {
 	if err != nil || len(b) < 1000 {
 		return Transcript{Error: "Nothing was recorded."}
 	}
-	f, err := os.CreateTemp("", "blaze-voice-*.wav")
+	f, err := os.CreateTemp("", "argus-voice-*.wav")
 	if err != nil {
 		return Transcript{Error: err.Error()}
 	}
@@ -588,7 +589,7 @@ func (a *App) RecStart() string {
 	}
 	// CreateTemp: a 0600 file with an unguessable name in the shared temp dir; the
 	// recorder truncates it in place and keeps the mode, so the voice stays private.
-	tf, err := os.CreateTemp("", "blaze-voice-*.wav")
+	tf, err := os.CreateTemp("", "argus-voice-*.wav")
 	if err != nil {
 		return "Couldn't start the microphone: " + err.Error()
 	}

@@ -1,4 +1,4 @@
-// Package chatpage pages the one continuous conversation for the UI (v0.19, like Blaze Mobile's endless
+// Package chatpage pages the one continuous conversation for the UI (v0.19, like Argus Mobile's endless
 // Chat): the chat opens on its last few turns and older turns load as you scroll up. Pages always start at
 // a user message, so a turn's assistant replies, tool calls and tool results stay together.
 //
@@ -10,7 +10,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Turns is the default page size in user turns; MaxMsgs caps a page's messages (tool-heavy turns).

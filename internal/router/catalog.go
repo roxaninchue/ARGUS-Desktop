@@ -1,22 +1,23 @@
 package router
 
-// The provider catalog. Blaze already knows the big free tiers (Gemini, Groq,
-// Cerebras, OpenRouter, Mistral, NVIDIA…); BlazeRouter adds the long tail of free
+// The provider catalog. Argus already knows the big free tiers (Gemini, Groq,
+// Cerebras, OpenRouter, Mistral, NVIDIA…); ArgusRouter adds the long tail of free
 // OpenAI-compatible providers ported from OmniRoute's free-tier catalog
 // (open-sse/config/freeModelCatalog.data.ts and providers/registry, MIT licence,
 // (c) diegosouzapw; see THIRD_PARTY_NOTICES.md). Only API-key providers that speak
 // the OpenAI format at a fixed address are taken, and none whose terms OmniRoute
-// flags "avoid". Every provider registered here uses Blaze's shared key store
-// (~/.blaze, the same as Blaze CLI), so a key is saved once for everything.
+// flags "avoid". Every provider registered here uses Argus's shared key store
+// (~/.argus, the same as Argus CLI), so a key is saved once for everything.
 
 import (
 	_ "embed"
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"sort"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 //go:embed omniroute_catalog.json
@@ -50,7 +51,7 @@ var (
 	free    = map[string]FreeInfo{}
 	names   = map[string]string{}
 	keyPage = map[string]string{}
-	// Free-tier notes for the providers Blaze already had (from the same catalog).
+	// Free-tier notes for the providers Argus already had (from the same catalog).
 	builtinFree = map[string]FreeInfo{
 		"gemini":     {Type: "recurring-uncapped", ToS: "ok", Note: "Flash family; per-project rate limits"},
 		"groq":       {Type: "recurring-daily", Monthly: 30000000, ToS: "caution", Note: "five per-model daily caps"},
@@ -138,15 +139,15 @@ func init() {
 		addModels(p.ID, p.Models)
 	}
 	config.Register(regs...)
-	// BlazeRouter itself, so Blaze's own chats can go through it (address set while it runs).
-	config.Register(config.Provider{ID: config.RouterID, Name: "BlazeRouter", DefaultModel: "auto", KeyHint: "(local)", Free: true})
-	// Free models OmniRoute lists for providers Blaze already knew: add any Blaze's table lacks.
+	// ArgusRouter itself, so Argus's own chats can go through it (address set while it runs).
+	config.Register(config.Provider{ID: config.RouterID, Name: brand.NAME + "Router", DefaultModel: "auto", KeyHint: "(local)", Free: true})
+	// Free models OmniRoute lists for providers Argus already knew: add any Argus's table lacks.
 	for id, ms := range c.Known {
 		addModels(id, ms)
 	}
 }
 
-// addModels adds catalog models Blaze's built-in table doesn't have yet (tools unknown).
+// addModels adds catalog models Argus's built-in table doesn't have yet (tools unknown).
 func addModels(provider string, ms []catModel) {
 	have := map[string]bool{}
 	for _, m := range llm.Catalog[provider] {
@@ -167,8 +168,8 @@ func Free(id string) (FreeInfo, bool) {
 	return f, ok
 }
 
-// routable lists the providers BlazeRouter can send to: every provider except the
-// keyless chat-only one and BlazeRouter itself, free tiers first.
+// routable lists the providers ArgusRouter can send to: every provider except the
+// keyless chat-only one and ArgusRouter itself, free tiers first.
 func routable() []config.Provider {
 	var out []config.Provider
 	for _, p := range config.All() {

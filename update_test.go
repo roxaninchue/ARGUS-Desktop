@@ -3,11 +3,11 @@ package main
 import "testing"
 
 func TestHasOSAsset(t *testing.T) {
-	win := []ghAsset{{Name: "Blaze-v0.19.2-windows-amd64-portable.exe"}}
+	win := []ghAsset{{Name: "Argus-v0.19.2-windows-amd64-portable.exe"}}
 	if !hasOSAsset(win, "windows") || hasOSAsset(win, "darwin") || hasOSAsset(win, "linux") {
 		t.Fatal("a Windows-only release is an update only on Windows")
 	}
-	all := []ghAsset{{Name: "Blaze-v0.18.0-macos-universal.dmg"}, {Name: "blaze-desktop_0.18.0_amd64.deb"}}
+	all := []ghAsset{{Name: "Argus-v0.18.0-macos-universal.dmg"}, {Name: "argus-desktop_0.18.0_amd64.deb"}}
 	if !hasOSAsset(all, "darwin") || !hasOSAsset(all, "linux") {
 		t.Fatal("mac and Linux files not found")
 	}

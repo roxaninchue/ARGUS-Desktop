@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 type QuotaRow struct {

@@ -2,7 +2,7 @@ package main
 
 // v0.7: the bundled skill library and proactive memory & skills.
 //
-//   - On start the embedded skills/ pack is seeded into ~/.blaze/skills
+//   - On start the embedded skills/ pack is seeded into ~/.argus/skills
 //     (internal/skillpack: idempotent, version-aware, never overwrites edits).
 //   - The system prompt carries learn.Rules: save durable facts silently, replace
 //     stale ones, write or improve skills when a workflow repeats or is taught.
@@ -25,10 +25,10 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/learn"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/skillpack"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/learn"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/skillpack"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 //go:embed all:skills
@@ -57,9 +57,9 @@ func (a *App) startLearning() {
 	if err == nil {
 		r, err := tools.SeedSkills(sub)
 		if err != nil {
-			fmt.Println("blaze: skills:", err)
+			fmt.Println("argus: skills:", err)
 		} else if r.Changed() {
-			fmt.Printf("blaze: skills: %d added, %d upgraded\n", len(r.Added), len(r.Upgraded))
+			fmt.Printf("argus: skills: %d added, %d upgraded\n", len(r.Added), len(r.Upgraded))
 		}
 	}
 	tools.SetOnLearn(func(ev tools.LearnEvent) {

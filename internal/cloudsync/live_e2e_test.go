@@ -11,27 +11,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/mind"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/store"
+	"github.com/lacksonkapapahue/argus-desktop/internal/mind"
+	"github.com/lacksonkapapahue/argus-desktop/internal/store"
 )
 
 // TestLiveE2E runs Desktop's real sync stack (Engine + MindStore + ConvFiles, 600k PBKDF2) against
 // the live gateway, one step at a time, with an independent Python "phone" in between
-// (work/e2e_sync_phone.py in the Desktop project). Skipped unless BLAZE_SYNC_E2E_DIR is set.
+// (work/e2e_sync_phone.py in the Desktop project). Skipped unless ARGUS_SYNC_E2E_DIR is set.
 //
-//	BLAZE_SYNC_E2E_DIR    the Desktop home kept across steps (mind.db, blaze.db, chats, state)
-//	BLAZE_SYNC_E2E_TOKEN  a Blaze session (bz_…) of a throwaway QA account
-//	BLAZE_SYNC_E2E_PASS   the sync passphrase
-//	BLAZE_SYNC_E2E_STEP   A (set up + 5 memories + 5 messages up), C (take the phone's 5+5, delete
+//	ARGUS_SYNC_E2E_DIR    the Desktop home kept across steps (mind.db, argus.db, chats, state)
+//	ARGUS_SYNC_E2E_TOKEN  an Argus session (bz_…) of a throwaway QA account
+//	ARGUS_SYNC_E2E_PASS   the sync passphrase
+//	ARGUS_SYNC_E2E_STEP   A (set up + 5 memories + 5 messages up), C (take the phone's 5+5, delete
 //	                      2+1 memories and a chat), E (take the phone's deletes)
-//	BLAZE_SYNC_E2E_BASE   gateway root (default https://blaze-gateway.blaze-app.workers.dev)
+//	ARGUS_SYNC_E2E_BASE   gateway root (default https://blaze-gateway.blaze-app.workers.dev)
 func TestLiveE2E(t *testing.T) {
-	dir := os.Getenv("BLAZE_SYNC_E2E_DIR")
+	dir := os.Getenv("ARGUS_SYNC_E2E_DIR")
 	if dir == "" {
-		t.Skip("set BLAZE_SYNC_E2E_DIR (and _TOKEN, _PASS, _STEP) for the live run")
+		t.Skip("set ARGUS_SYNC_E2E_DIR (and _TOKEN, _PASS, _STEP) for the live run")
 	}
-	tok, pass, step := os.Getenv("BLAZE_SYNC_E2E_TOKEN"), os.Getenv("BLAZE_SYNC_E2E_PASS"), os.Getenv("BLAZE_SYNC_E2E_STEP")
-	base := os.Getenv("BLAZE_SYNC_E2E_BASE")
+	tok, pass, step := os.Getenv("ARGUS_SYNC_E2E_TOKEN"), os.Getenv("ARGUS_SYNC_E2E_PASS"), os.Getenv("ARGUS_SYNC_E2E_STEP")
+	base := os.Getenv("ARGUS_SYNC_E2E_BASE")
 	if base == "" {
 		base = "https://blaze-gateway.blaze-app.workers.dev"
 	}
@@ -40,7 +40,7 @@ func TestLiveE2E(t *testing.T) {
 		t.Fatal("no run_id file")
 	}
 	chatID, delChat := "e2e"+run, "e2edel"+run
-	c := &Client{Base: base, Token: tok, UserAgent: "Blaze-Desktop/e2e"}
+	c := &Client{Base: base, Token: tok, UserAgent: "Argus-Desktop/e2e"}
 	ctx := context.Background()
 
 	_ = os.MkdirAll(filepath.Join(dir, "desktop", "chats"), 0o700)
@@ -48,13 +48,13 @@ func TestLiveE2E(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bd, err := store.Open(filepath.Join(dir, "blaze.db"))
+	bd, err := store.Open(filepath.Join(dir, "argus.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer md.Close()
 	defer bd.Close()
-	ms := &MindStore{Mind: md, Blaze: bd}
+	ms := &MindStore{Mind: md, Argus: bd}
 	conv := &ConvFiles{Dir: filepath.Join(dir, "desktop", "chats"), AliasPath: filepath.Join(dir, "cloudsync", "desktop-alias.json")}
 	st := LoadState(filepath.Join(dir, "cloudsync", "desktop-state.json"))
 
@@ -140,10 +140,10 @@ func TestLiveE2E(t *testing.T) {
 		got := 0
 		for _, x := range ph["memory_texts"].([]any) {
 			text := x.(string)
-			if m, ok := mindHas(md, text); ok && m.Mirror != 0 && blazeHas(bd, text) {
+			if m, ok := mindHas(md, text); ok && m.Mirror != 0 && argusHas(bd, text) {
 				got++
 			} else {
-				t.Errorf("phone memory missing in mind.db/blaze.db: %q", text)
+				t.Errorf("phone memory missing in mind.db/argus.db: %q", text)
 			}
 		}
 		ev["phone_memories_landed"] = got
@@ -198,7 +198,7 @@ func TestLiveE2E(t *testing.T) {
 		n := 0
 		for _, x := range ph["deleted_memory_texts"].([]any) {
 			text := x.(string)
-			if _, ok := mindHas(md, text); ok || blazeHas(bd, text) {
+			if _, ok := mindHas(md, text); ok || argusHas(bd, text) {
 				t.Errorf("phone-deleted line still here: %q", text)
 			} else {
 				n++
@@ -272,7 +272,7 @@ func mindHas(md *mind.DB, text string) (mind.Memory, bool) {
 	return mind.Memory{}, false
 }
 
-func blazeHas(bd *store.DB, text string) bool {
+func argusHas(bd *store.DB, text string) bool {
 	for _, m := range bd.Memories() {
 		if m.Text == text {
 			return true

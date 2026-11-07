@@ -4,9 +4,9 @@ Source: `cafe-sales-sept.csv` · cleaned copy: `cafe-sales-sept-clean.csv` · 55
 
 ## Summary
 
-<!-- blaze:summary -->
+<!-- argus:summary -->
 _The written summary appears here once a model is available. Everything else in this report was computed on this computer._
-<!-- /blaze:summary -->
+<!-- /argus:summary -->
 
 ## Total by Store
 

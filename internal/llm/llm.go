@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net"
 	"net/http"
@@ -16,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 type ToolCall struct {
@@ -138,7 +139,7 @@ func Chat(ctx context.Context, p config.Provider, key, model string, msgs []Mess
 	}
 	if p.ID == "openrouter" {
 		req.Header.Set("HTTP-Referer", "https://blazeinchue.pages.dev")
-		req.Header.Set("X-Title", "Blaze Desktop")
+		req.Header.Set("X-Title", brand.NAME+" Desktop")
 	}
 	resp, err := client.Do(req)
 	if err != nil {

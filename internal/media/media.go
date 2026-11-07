@@ -6,6 +6,7 @@ package media
 
 import (
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -25,7 +26,7 @@ type Prefs struct {
 	EQ             string           `json:"eq"`               // preset name, "Flat" = off
 	Crossfade      int              `json:"crossfade_s"`      // 0 = off
 	SleepFade      *bool            `json:"sleep_fade"`       // default on
-	DJ             bool             `json:"dj"`               // Blaze DJ keeps the music going
+	DJ             bool             `json:"dj"`               // Argus DJ keeps the music going
 	Autoplay       *bool            `json:"autoplay"`         // next episode (default on)
 	SmartDownloads bool             `json:"smart_downloads"`  // clear watched downloaded episodes after a day
 	DataSaver      bool             `json:"data_saver"`       // smallest streams (desktop: off by default; no metered detection)
@@ -44,7 +45,7 @@ type Media struct {
 
 	mu           sync.Mutex
 	prefs        Prefs
-	downloads    []Track // what Blaze downloaded (library.json)
+	downloads    []Track // what Argus downloaded (library.json)
 	scanned      []Track // the user's folders (scan.json cache)
 	playlists    []Playlist
 	recent       []string
@@ -72,7 +73,7 @@ type Media struct {
 	// Hooks set by the host app.
 	Emit     func(event string, data any)        // tell the UI (Wails events)
 	Ask      func(prompt string) (string, error) // one model call (recap, translation)
-	Remember func(subject, line string)          // keep the taste line in Blaze's memory
+	Remember func(subject, line string)          // keep the taste line in Argus's memory
 	Notify   func(title, body string)            // a desktop notification (download done)
 	Now      func() time.Time                    // tests
 	HomeDir  string                              // tests ("" = os.UserHomeDir)
@@ -140,7 +141,7 @@ func New(dir string) *Media {
 	return m
 }
 
-// Dir is ~/.blaze/media.
+// Dir is ~/.argus/media.
 func (m *Media) Dir() string { return m.dir }
 
 // CanMerge: YouTube's separate video + audio streams need ffmpeg on the desktop.
@@ -186,18 +187,18 @@ func (m *Media) home() string {
 	return h
 }
 
-// MusicDir and VideoDir are where downloads land (mobile: Music/Blaze/Music, Movies/Blaze/Videos).
-func (m *Media) MusicDir() string { return filepath.Join(m.home(), "Music", "Blaze", "Music") }
+// MusicDir and VideoDir are where downloads land (mobile: Music/Argus/Music, Movies/Argus/Videos).
+func (m *Media) MusicDir() string { return filepath.Join(m.home(), "Music", brand.NAME, "Music") }
 func (m *Media) VideoDir() string {
 	v := "Videos"
 	if runtime.GOOS == "darwin" {
 		v = "Movies"
 	}
-	return filepath.Join(m.home(), v, "Blaze", "Videos")
+	return filepath.Join(m.home(), v, brand.NAME, "Videos")
 }
 
 // Folders are the folders scanned: ~/Music and ~/Videos (or ~/Movies) unless turned
-// off, the user's own, and always Blaze's download folders.
+// off, the user's own, and always Argus's download folders.
 func (m *Media) Folders() []string {
 	m.mu.Lock()
 	p := m.prefs
@@ -391,7 +392,7 @@ func (m *Media) ExpectImport(videoID, playlistID string) {
 }
 
 // Delete removes a file from the disk and the library. Files in the user's own folders
-// need allowFolder (the UI asks first); Blaze's downloads don't.
+// need allowFolder (the UI asks first); Argus's downloads don't.
 func (m *Media) Delete(key string, allowFolder bool) error {
 	m.mu.Lock()
 	t, ok := m.findLocked(key)
@@ -400,7 +401,7 @@ func (m *Media) Delete(key string, allowFolder bool) error {
 		return serr("That isn't in the library.")
 	}
 	if t.Source != "download" && !allowFolder {
-		return serr("That file is in your own folders; Blaze only deletes it when you confirm.")
+		return serr("That file is in your own folders; " + brand.NAME + " only deletes it when you confirm.")
 	}
 	if t.Path != "" {
 		if err := os.Remove(t.Path); err != nil && !os.IsNotExist(err) {
@@ -726,5 +727,5 @@ func (m *Media) JamendoSet(id string) string {
 		return "Jamendo didn't accept that client_id. Check it on " + JamendoDevPortal + " (My applications) and try again."
 	}
 	m.jamendo.SetClientID(id)
-	return "Saved. The Jamendo Store in Blaze Music works now."
+	return "Saved. The Jamendo Store in " + brand.NAME + " Music works now."
 }

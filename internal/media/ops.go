@@ -9,6 +9,7 @@ package media
 import (
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/url"
 	"os"
@@ -167,11 +168,11 @@ func (m *Media) MusicPlay(a map[string]any) string {
 				return l.Name + " is empty."
 			}
 			m.send(Cmd{Op: action, Keys: l.Keys, Shuffle: argB(a, "shuffle")})
-			return verb(action) + " " + l.Name + " (" + itoa(len(l.Keys)) + " songs) in Blaze Music."
+			return verb(action) + " " + l.Name + " (" + itoa(len(l.Keys)) + " songs) in " + brand.NAME + " Music."
 		}
 		songs := m.Songs()
 		if len(songs) == 0 {
-			return "There are no songs in Blaze Music yet. Its library reads the Music folder (and folders added in Music › Folders). Offer to download songs with media_download, or import a playlist with music_ops import."
+			return "There are no songs in " + brand.NAME + " Music yet. Its library reads the Music folder (and folders added in Music › Folders). Offer to download songs with media_download, or import a playlist with music_ops import."
 		}
 		if query == "" && action == "play" {
 			if p := m.Player(); p.Kind == "audio" && p.Key != "" {
@@ -180,7 +181,7 @@ func (m *Media) MusicPlay(a map[string]any) string {
 			}
 			picks := m.DJ(25)
 			m.send(Cmd{Op: "play", Keys: keysOf(picks)})
-			return "Playing a Blaze mix of " + itoa(len(picks)) + " songs the user plays most."
+			return "Playing an " + brand.NAME + " mix of " + itoa(len(picks)) + " songs the user plays most."
 		}
 		found, why, ok := MatchMusic(songs, query)
 		if !ok {
@@ -203,7 +204,7 @@ func (m *Media) MusicPlay(a map[string]any) string {
 		if action == "queue" {
 			return "Added " + itoa(len(found)) + " song(s) " + why + " to the queue (first: " + first + ")."
 		}
-		return "Playing " + itoa(len(found)) + " song(s) " + why + " in Blaze Music, starting with " + first + "."
+		return "Playing " + itoa(len(found)) + " song(s) " + why + " in " + brand.NAME + " Music, starting with " + first + "."
 	case "pause", "resume", "toggle", "next", "previous", "prev", "stop":
 		op := action
 		if op == "previous" {
@@ -211,7 +212,7 @@ func (m *Media) MusicPlay(a map[string]any) string {
 		}
 		p := m.Player()
 		if p.Key == "" && action != "stop" {
-			return "Nothing is playing in Blaze yet. Use action=play."
+			return "Nothing is playing in " + brand.NAME + " yet. Use action=play."
 		}
 		m.send(Cmd{Op: op})
 		return map[string]string{"pause": "Paused.", "resume": "Playing.", "toggle": "Toggled play/pause.", "next": "Skipped to the next song.",
@@ -257,7 +258,7 @@ func (m *Media) MusicPlay(a map[string]any) string {
 func (m *Media) NowPlaying() string {
 	p := m.Player()
 	if p.Key == "" || time.Since(time.UnixMilli(p.Updated)) > 10*time.Minute {
-		return "Nothing is playing in Blaze Music or Video."
+		return "Nothing is playing in " + brand.NAME + " Music or Video."
 	}
 	st := "Paused"
 	if p.Playing {
@@ -306,13 +307,13 @@ func (m *Media) MusicOps(a map[string]any) string {
 		m.UpdatePrefs(func(p *Prefs) { p.DJ = on })
 		if !on {
 			m.send(Cmd{Op: "dj", Value: "off"})
-			return "Blaze DJ is off."
+			return brand.NAME + " DJ is off."
 		}
 		if len(m.Songs()) == 0 {
-			return "There are no songs in Blaze Music yet. Download some (media_download) or import a playlist first."
+			return "There are no songs in " + brand.NAME + " Music yet. Download some (media_download) or import a playlist first."
 		}
 		m.send(Cmd{Op: "dj", Value: "on", Keys: keysOf(m.DJ(10))})
-		return "Blaze DJ is on: it plays songs the user loves and keeps adding more when the queue runs out."
+		return brand.NAME + " DJ is on: it plays songs the user loves and keeps adding more when the queue runs out."
 	case "mixes":
 		var b []string
 		for _, l := range m.Mixes() {
@@ -322,7 +323,7 @@ func (m *Media) MusicOps(a map[string]any) string {
 			b = append(b, p.Name+": playlist ("+itoa(len(p.Keys))+" songs)")
 		}
 		if len(b) == 0 {
-			return "No mixes yet: they build from songs played in Blaze Music."
+			return "No mixes yet: they build from songs played in " + brand.NAME + " Music."
 		}
 		return strings.Join(b, "\n")
 	case "play_list":
@@ -445,7 +446,7 @@ func downloadTo(u, f string) error {
 }
 
 // ImportPlaylist: a YouTube playlist (every video) or a Spotify playlist / album (each
-// "Artist - Title" found on YouTube, clear matches only) → a Blaze playlist that fills
+// "Artist - Title" found on YouTube, clear matches only) → an Argus playlist that fills
 // as the songs download.
 func (m *Media) ImportPlaylist(link string, max int) string {
 	ytList, spList, spAlbum := YoutubePlaylistID(link), SpotifyPlaylistID(link), SpotifyAlbumID(link)
@@ -653,7 +654,7 @@ func (m *Media) MediaDownload(a map[string]any) string {
 	}
 	var b []string
 	if len(queued) > 0 {
-		b = append(b, fmt.Sprintf("Queued %d in Blaze %s (downloading now): %s.", len(queued), app, strings.Join(queued, "; ")))
+		b = append(b, fmt.Sprintf("Queued %d in "+brand.NAME+" %s (downloading now): %s.", len(queued), app, strings.Join(queued, "; ")))
 	}
 	if len(unsure) > 0 {
 		b = append(b, fmt.Sprintf("Not sure about %d; ask the user which one (or to skip), then call media_download again with {\"id\":...}:\n- %s", len(unsure), strings.Join(unsure, "\n- ")))
@@ -811,13 +812,13 @@ func (m *Media) Recap(key string, posMs int64, onID string) string {
 		return "Nothing has been said yet at this point."
 	}
 	if m.Ask == nil {
-		return "Blaze couldn't write a recap: no model is set up."
+		return brand.NAME + " couldn't write a recap: no model is set up."
 	}
 	out, err := m.Ask(RecapPrompt(t.Title, text))
 	if err != nil {
-		return "Blaze couldn't write a recap: " + err.Error()
+		return brand.NAME + " couldn't write a recap: " + err.Error()
 	}
-	return orStr(strings.TrimSpace(out), "Blaze couldn't write a recap right now. Try again in a moment.")
+	return orStr(strings.TrimSpace(out), brand.NAME+" couldn't write a recap right now. Try again in a moment.")
 }
 
 // TranslateSubs AI-translates a video's subtitles into language and saves the track.
@@ -834,7 +835,7 @@ func (m *Media) TranslateSubs(key, language, onID string, progress func(i, n int
 		return SubOption{}, "This video has no subtitles to translate. Load a .srt or .vtt file first."
 	}
 	if m.Ask == nil {
-		return SubOption{}, "Blaze couldn't translate: no model is set up."
+		return SubOption{}, brand.NAME + " couldn't translate: no model is set up."
 	}
 	bs := Batches(cues, 3000)
 	var out []Cue
@@ -875,7 +876,7 @@ func (m *Media) VideoOps(a map[string]any) string {
 			return "No video like \u201c" + argS(a, "query") + "\u201d in the library. Videos come from the user's Videos folder and the Video Store (downloads)."
 		}
 		m.send(Cmd{Op: "video", Keys: []string{v.Key}, Title: v.Title})
-		return "Playing \u201c" + v.Title + "\u201d in Blaze Video."
+		return "Playing \u201c" + v.Title + "\u201d in " + brand.NAME + " Video."
 	case "series":
 		s := Series(m.Videos())
 		if len(s) == 0 {
@@ -888,7 +889,7 @@ func (m *Media) VideoOps(a map[string]any) string {
 		return strings.Join(b, "\n")
 	case "subtitles":
 		if !live {
-			return "Blaze Video isn't playing anything. Play a video first."
+			return brand.NAME + " Video isn't playing anything. Play a video first."
 		}
 		want := orStr(argS(a, "language"), "off")
 		if strings.EqualFold(want, "off") {
@@ -914,7 +915,7 @@ func (m *Media) VideoOps(a map[string]any) string {
 		return "No " + want + " subtitles for this video. I can translate the ones it has (video_ops translate_subtitles)."
 	case "translate_subtitles":
 		if !live {
-			return "Blaze Video isn't playing anything. Play a video first."
+			return brand.NAME + " Video isn't playing anything. Play a video first."
 		}
 		o, msg := m.TranslateSubs(p.Key, argS(a, "language"), p.SubID, nil)
 		if o.ID != "" {
@@ -923,7 +924,7 @@ func (m *Media) VideoOps(a map[string]any) string {
 		return msg
 	case "recap":
 		if !live {
-			return "Blaze Video isn't playing anything. Play a video first."
+			return brand.NAME + " Video isn't playing anything. Play a video first."
 		}
 		return m.Recap(p.Key, p.PosMs, p.SubID)
 	case "settings":

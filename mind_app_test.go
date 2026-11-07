@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/mind"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/mind"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 func mindTestApp(t *testing.T) *App {
@@ -89,7 +89,7 @@ func TestMindIdleReviewMarksTurns(t *testing.T) {
 		t.Fatal("turns marked reviewed")
 	}
 	if r := d.Search("fees", "", 5); len(r) != 1 || r[0].Kind != "person" || r[0].Mirror == 0 {
-		t.Fatalf("memory saved and mirrored to blaze.db: %+v", r)
+		t.Fatalf("memory saved and mirrored to argus.db: %+v", r)
 	}
 	if a.maybeIdleReview(context.Background(), true) != 0 {
 		t.Fatal("nothing left to review")

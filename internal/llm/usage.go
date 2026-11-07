@@ -1,7 +1,7 @@
 package llm
 
 // Token usage per day and model, with a cost estimate where the price is known
-// (ported from the Android app's Usage.kt). Stored in ~/.blaze/desktop/usage.json.
+// (ported from the Android app's Usage.kt). Stored in ~/.argus/desktop/usage.json.
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 type usageRow struct {
@@ -86,7 +86,7 @@ func today() string { return time.Now().Format("2006-01-02") }
 // RecordUsage adds one model call. Uses the provider's counts when sent, else estimates.
 func RecordUsage(provider, model string, promptChars int, reply *Result) {
 	if provider == config.RouterID {
-		return // BlazeRouter records the real provider and model itself
+		return // ArgusRouter records the real provider and model itself
 	}
 	in, out := int64(Estimate(promptChars)), int64(0)
 	if reply != nil {

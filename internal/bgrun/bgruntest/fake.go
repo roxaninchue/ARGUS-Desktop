@@ -1,4 +1,4 @@
-// Package bgruntest is a fake Blaze gateway runs API for tests (no network).
+// Package bgruntest is a fake Argus gateway runs API for tests (no network).
 package bgruntest
 
 import (
@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun"
 )
 
 // Fake plays scripted views per run. A needs_device view repeats until tool results arrive.

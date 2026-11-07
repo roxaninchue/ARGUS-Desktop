@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // A chat of n user/assistant pairs (with a tool call every 5th turn), about 1.2k
@@ -135,7 +135,7 @@ func TestSearchChatFindsTurnFive(t *testing.T) {
 }
 
 func TestArtifactAsideAndReadBack(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	if Aside("small") != "small" {
 		t.Fatal("small results stay")
 	}

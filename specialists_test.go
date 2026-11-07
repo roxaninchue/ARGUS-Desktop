@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
 )
 
 // A specialist never has more permissions than the lead: a Plan specialist, or any

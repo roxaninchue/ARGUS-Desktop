@@ -13,6 +13,7 @@ package router
 
 import (
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -134,5 +135,5 @@ func cut(s string, head, tail int, what string) string {
 		t = t[i+1:]
 	}
 	removed := len(s) - len(h) - len(t)
-	return h + fmt.Sprintf("\n[… BlazeRouter left out %d characters %s …]\n", removed, what) + t
+	return h + fmt.Sprintf("\n[… "+brand.NAME+"Router left out %d characters %s …]\n", removed, what) + t
 }

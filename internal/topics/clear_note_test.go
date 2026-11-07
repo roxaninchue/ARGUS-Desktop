@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // v0.19.13 regression: after /clear (Opts.From), the active topic's state note that only covers

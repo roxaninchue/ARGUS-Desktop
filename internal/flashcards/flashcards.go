@@ -1,5 +1,5 @@
 // Package flashcards is the spaced-repetition deck behind the tutor skill and the
-// Learn view (v0.15+). Cards live in ~/.blaze/flashcards.json, shared by every Blaze
+// Learn view (v0.15+). Cards live in ~/.argus/flashcards.json, shared by every Argus
 // on this computer. Scheduling is a small SM-2: grade 0 (again) .. 3 (easy).
 package flashcards
 
@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 // Card is one flashcard.

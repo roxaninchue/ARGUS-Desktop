@@ -1,7 +1,7 @@
 package media
 
 // Lyrics (mobile Lyrics.kt + Extras.kt Lrc): LRCLIB (lrclib.net, free, no key; synced
-// when available), cached under ~/.blaze/media/lyrics so they work offline afterwards.
+// when available), cached under ~/.argus/media/lyrics so they work offline afterwards.
 // "Not found" is cached for a day.
 
 import (

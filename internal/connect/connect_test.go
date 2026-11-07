@@ -252,7 +252,7 @@ func testManager(t *testing.T, f *fakeProvider, rec *recorder) *Manager {
 }
 
 // connectFake runs the whole browser sign-in: Connect opens the "browser", which
-// follows the provider's redirect back to Blaze's loopback server.
+// follows the provider's redirect back to Argus's loopback server.
 func connectFake(t *testing.T, m *Manager, rec *recorder) {
 	t.Helper()
 	if err := m.SetField("fake", "client_id", "cid"); err != nil {
@@ -325,7 +325,7 @@ func TestOAuthLoopbackFlow(t *testing.T) {
 	}
 }
 
-func TestBlazeSchemeRouting(t *testing.T) {
+func TestArgusSchemeRouting(t *testing.T) {
 	f, rec := newFake(t), &recorder{}
 	m := testManager(t, f, rec)
 	m.cat["fake"].CustomScheme = true
@@ -335,9 +335,9 @@ func TestBlazeSchemeRouting(t *testing.T) {
 	m.Connect("fake")
 	u := <-rec.opened
 	if !strings.Contains(u, url.QueryEscape(SchemeCallback)) {
-		t.Fatalf("redirect should be blaze://: %s", u)
+		t.Fatalf("redirect should be argus://: %s", u)
 	}
-	// The provider redirects to blaze://…; the OS hands it to Blaze.
+	// The provider redirects to argus://…; the OS hands it to Argus.
 	c := &http.Client{CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	resp, err := c.Get(u)
 	if err != nil {
@@ -345,13 +345,13 @@ func TestBlazeSchemeRouting(t *testing.T) {
 	}
 	loc := resp.Header.Get("Location")
 	resp.Body.Close()
-	if !strings.HasPrefix(loc, "blaze://connector/oauth_callback?") || !m.HandleURL(loc) {
+	if !strings.HasPrefix(loc, "argus://connector/oauth_callback?") || !m.HandleURL(loc) {
 		t.Fatalf("not routed: %s", loc)
 	}
 	if m.Views().Connectors[0].Status != "connected" {
 		t.Fatal("scheme callback didn't connect")
 	}
-	if m.HandleURL("blaze://something/else") || m.HandleURL("https://x") {
+	if m.HandleURL("argus://something/else") || m.HandleURL("https://x") {
 		t.Fatal("routed a URL that isn't the callback")
 	}
 }
@@ -712,7 +712,7 @@ func TestMCPStreamableHTTP(t *testing.T) {
 			t.Fatal(err)
 		}
 		checkMCP(t, m, rec, v)
-		// The server forgets the session: Blaze re-initializes and retries once.
+		// The server forgets the session: Argus re-initializes and retries once.
 		f.expire.Store(true)
 		_ = m.SetToolMode("mcp:"+v.ID, "echo", "always")
 		if out := m.Run(context.Background(), "mcp__"+v.ID+"__echo", `{"text":"again"}`); out != "echo: again" {
@@ -743,7 +743,7 @@ func TestMCPLegacySSE(t *testing.T) {
 
 // The test binary doubles as a stdio MCP server.
 func TestMain(m *testing.M) {
-	if os.Getenv("BLAZE_FAKE_MCP") == "1" {
+	if os.Getenv("ARGUS_FAKE_MCP") == "1" {
 		sc := bufio.NewScanner(os.Stdin)
 		for sc.Scan() {
 			var msg rpcMsg
@@ -765,7 +765,7 @@ func TestMCPStdio(t *testing.T) {
 	if err != nil {
 		t.Skip(err)
 	}
-	t.Setenv("BLAZE_FAKE_MCP", "1")
+	t.Setenv("ARGUS_FAKE_MCP", "1")
 	rec := &recorder{}
 	m := mcpManager(t, rec)
 	v, err := m.AddMCP(MCPSpec{Name: "local", Transport: "stdio", Command: exe, Args: "-test.run=none"})

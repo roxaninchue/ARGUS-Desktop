@@ -1,12 +1,13 @@
-// Package sched registers Blaze jobs with the OS scheduler: Task Scheduler on
+// Package sched registers Argus jobs with the OS scheduler: Task Scheduler on
 // Windows, the user's crontab on Linux and macOS. Each entry runs
-// `blaze run-job <name>`, which logs to ~/.blaze/logs/<name>.log.
+// `argus run-job <name>`, which logs to ~/.argus/logs/<name>.log.
 package sched
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/hidecmd"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
+	"github.com/lacksonkapapahue/argus-desktop/internal/hidecmd"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 type Job struct {
@@ -67,7 +68,7 @@ var nameRe = regexp.MustCompile(`[^a-zA-Z0-9_-]+`)
 func exe() string {
 	p, err := os.Executable()
 	if err != nil {
-		return "blaze"
+		return "argus"
 	}
 	if r, err := filepath.EvalSymlinks(p); err == nil {
 		return r
@@ -161,7 +162,7 @@ func Add(j Job) string {
 		if win == nil {
 			return "Error: Windows Task Scheduler needs 'daily 07:00', 'hourly', 'every 30m', 'weekly mon 09:00' or 'boot', not a cron line."
 		}
-		a := append([]string{"/Create", "/F", "/TN", `Blaze\` + j.Name, "/TR", run}, win...)
+		a := append([]string{"/Create", "/F", "/TN", brand.NAME + `\` + j.Name, "/TR", run}, win...)
 		if out, err := hidecmd.Hide(exec.Command("schtasks", a...)).CombinedOutput(); err != nil {
 			return "Error: Task Scheduler refused: " + strings.TrimSpace(string(out))
 		}
@@ -170,7 +171,7 @@ func Add(j Job) string {
 			return "Error: crontab isn't installed. Install cron (e.g. sudo apt install cron) and try again."
 		}
 		lines := cronLines(j.Name)
-		lines = append(lines, fmt.Sprintf("%s %s # blaze:%s", cron, run, j.Name))
+		lines = append(lines, fmt.Sprintf("%s %s # argus:%s", cron, run, j.Name))
 		if err := writeCron(lines); err != nil {
 			return "Error: " + err.Error()
 		}
@@ -187,12 +188,12 @@ func Add(j Job) string {
 	return fmt.Sprintf("Scheduled %q (%s). Logs: %s", j.Name, j.When, filepath.Join(config.Dir(), "logs", j.Name+".log"))
 }
 
-// cronLines returns the current crontab without the named blaze entry.
+// cronLines returns the current crontab without the named argus entry.
 func cronLines(drop string) []string {
 	out, _ := exec.Command("crontab", "-l").Output()
 	var keep []string
 	for _, l := range strings.Split(string(out), "\n") {
-		if strings.TrimSpace(l) == "" || strings.HasSuffix(l, "# blaze:"+drop) {
+		if strings.TrimSpace(l) == "" || strings.HasSuffix(l, "# argus:"+drop) {
 			continue
 		}
 		keep = append(keep, l)
@@ -211,7 +212,7 @@ func writeCron(lines []string) error {
 
 func Remove(name string) string {
 	if runtime.GOOS == "windows" {
-		_ = hidecmd.Hide(exec.Command("schtasks", "/Delete", "/F", "/TN", `Blaze\`+name)).Run()
+		_ = hidecmd.Hide(exec.Command("schtasks", "/Delete", "/F", "/TN", brand.NAME+`\`+name)).Run()
 	} else if _, err := exec.LookPath("crontab"); err == nil {
 		_ = writeCron(cronLines(name))
 	}
@@ -241,7 +242,7 @@ func ListText() string {
 	for i, j := range js {
 		what := j.Command
 		if what == "" {
-			what = "blaze: " + j.Prompt
+			what = "argus: " + j.Prompt
 		}
 		last := "never ran"
 		if st, err := os.Stat(filepath.Join(config.Dir(), "logs", j.Name+".log")); err == nil {

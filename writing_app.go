@@ -1,17 +1,18 @@
 package main
 
 // Writing tools (v0.19.10): select text, then Rewrite in a tone or Translate, and accept or reject
-// the result. The text goes to the same model as chat (Blaze Cloud or the user's own), with a
+// the result. The text goes to the same model as chat (Argus Cloud or the user's own), with a
 // strict prompt. Long text is split on paragraphs, and every piece is checked (not empty, the
 // same links, placeholders and code, actually translated) and retried once before it's offered.
 
 import (
 	"context"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/writing"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/writing"
 )
 
 // WriteResult is what the Accept / Reject card shows.
@@ -94,9 +95,9 @@ func (a *App) writeOne(ctx context.Context, sys, mode, part string) (string, str
 		return res, "", nil
 	}
 	if last != nil && strings.Contains(last.Error(), "dropped") {
-		return "", "", errWrite("Blaze couldn't keep every link or placeholder in that text, so nothing was changed. Try a smaller selection.")
+		return "", "", errWrite(brand.NAME + " couldn't keep every link or placeholder in that text, so nothing was changed. Try a smaller selection.")
 	}
-	return "", "", errWrite("Blaze couldn't do that right now. Nothing was changed. Try again in a moment.")
+	return "", "", errWrite(brand.NAME + " couldn't do that right now. Nothing was changed. Try again in a moment.")
 }
 
 type errWrite string

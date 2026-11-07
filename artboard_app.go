@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/studio"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/studio"
 )
 
 // designsDir holds scratch designs, one folder each.
@@ -23,7 +23,7 @@ func designsDir() string { return filepath.Join(config.Dir(), "designs") }
 // DesignFormats lists the artboards New design offers.
 func (a *App) DesignFormats() []studio.Format { return studio.Formats }
 
-// NewDesign makes a scratch design (~/.blaze/designs/<name>/index.html) in a format,
+// NewDesign makes a scratch design (~/.argus/designs/<name>/index.html) in a format,
 // opens its folder as the current folder and previews it.
 func (a *App) NewDesign(formatID, name string) DesignView {
 	f, ok := studio.FormatByID(formatID)

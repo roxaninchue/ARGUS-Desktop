@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/studio"
+	"github.com/lacksonkapapahue/argus-desktop/internal/studio"
 )
 
 func init() {

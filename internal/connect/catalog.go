@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"net/url"
@@ -16,7 +17,7 @@ import (
 type Auth string
 
 const (
-	AuthOAuth  Auth = "oauth"  // browser sign-in, PKCE, loopback (or blaze://) callback
+	AuthOAuth  Auth = "oauth"  // browser sign-in, PKCE, loopback (or argus://) callback
 	AuthDevice Auth = "device" // a code to type on the provider's site (GitHub)
 	AuthToken  Auth = "token"  // paste a token (Notion, Slack)
 	AuthNone   Auth = "none"   // nothing to set up
@@ -43,7 +44,7 @@ type Connector struct {
 	Steps             []string
 	Console           string // the provider's developer console
 	ConsoleName       string
-	CustomScheme      bool // the provider accepts a blaze:// redirect
+	CustomScheme      bool // the provider accepts an argus:// redirect
 	AnyPort           bool // loopback may use any port (Google desktop clients)
 	SecretRequired    bool // the token exchange needs the client secret
 	Groups            []string
@@ -138,7 +139,7 @@ var Catalog = []*Connector{
 		Steps: []string{
 			"github.com › Settings › Developer settings › OAuth Apps › New OAuth App. Homepage and callback can be any URL (e.g. http://127.0.0.1).",
 			"On the app page, tick Enable Device Flow and save.",
-			"Paste the Client ID here (no secret needed), then Connect and type the code Blaze shows on github.com/login/device.",
+			"Paste the Client ID here (no secret needed), then Connect and type the code " + brand.NAME + " shows on github.com/login/device.",
 		},
 		Console: "https://github.com/settings/developers", ConsoleName: "GitHub Developer settings",
 		Groups: []string{"github"}, WhoAmI: githubWho,
@@ -151,7 +152,7 @@ var Catalog = []*Connector{
 		Steps: []string{
 			"developer.spotify.com › Dashboard › Create app. Tick Web API.",
 			fmt.Sprintf("Redirect URIs: add http://127.0.0.1:%d/callback (and %s if you pick that redirect below).", LoopbackPort, SchemeCallback),
-			"Save, then paste the Client ID here (Blaze uses PKCE, so no secret) and Connect.",
+			"Save, then paste the Client ID here (" + brand.NAME + " uses PKCE, so no secret) and Connect.",
 			"Playback control needs Spotify open on a device, and Spotify Premium.",
 		},
 		Console: "https://developer.spotify.com/dashboard", ConsoleName: "Spotify Developer Dashboard",
@@ -163,7 +164,7 @@ var Catalog = []*Connector{
 		Steps: []string{
 			"notion.so/my-integrations › New integration (Internal), pick your workspace.",
 			"Copy the Internal Integration Secret and paste it here.",
-			"In Notion, open each page Blaze may use › ••• › Connections › add your integration. Blaze only sees pages you share this way.",
+			"In Notion, open each page " + brand.NAME + " may use › ••• › Connections › add your integration. " + brand.NAME + " only sees pages you share this way.",
 		},
 		Console: "https://www.notion.so/my-integrations", ConsoleName: "Notion integrations",
 		Groups: []string{"notion"}, WhoAmI: notionWho,
@@ -292,7 +293,7 @@ func (c *call) do(method, u string, body any, hdr map[string]string) (int, []byt
 		}
 		req.Header.Set("Authorization", "Bearer "+c.token)
 		req.Header.Set("Accept", "application/json")
-		req.Header.Set("User-Agent", "Blaze-Desktop")
+		req.Header.Set("User-Agent", brand.NAME+"-Desktop")
 		if ct != "" {
 			req.Header.Set("Content-Type", ct)
 		}

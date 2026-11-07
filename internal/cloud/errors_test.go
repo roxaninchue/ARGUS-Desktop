@@ -44,7 +44,7 @@ func dnsFail() *http.Transport {
 func TestErrOfflineIsUnreachable(t *testing.T) {
 	for name, base := range map[string]string{
 		"refused": refusedURL(t),
-		"dns":     "http://blaze-auth.does-not-exist.invalid",
+		"dns":     "http://argus-auth.does-not-exist.invalid",
 	} {
 		c := New(base)
 		c.HC.Timeout = 5 * time.Second
@@ -129,7 +129,7 @@ func TestErr5xxJSONKeepsCode(t *testing.T) {
 		w.Write([]byte(`{"error":"mail_failed"}`))
 	})
 	_, err := c.Me(context.Background(), "tok")
-	if m := Message(err); m != "Blaze couldn't send the email. Try again in a moment." {
+	if m := Message(err); m != "Argus couldn't send the email. Try again in a moment." {
 		t.Fatalf("message %q", m)
 	}
 }

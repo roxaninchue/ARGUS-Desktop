@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 func TestUsageMeter(t *testing.T) {
@@ -26,9 +26,9 @@ func TestUsageMeter(t *testing.T) {
 			h.Set("X-Blaze-Requests-Used", "13")
 			h.Set("X-Blaze-Requests-Limit", "150")
 			h.Set("X-RateLimit-Remaining-Requests", "137")
-			h.Set("X-Blaze-Tokens-Used", "9120")
-			h.Set("X-Blaze-Tokens-Limit", "300000")
-			h.Set("X-Blaze-Tokens-Remaining", "290880")
+			h.Set("X-Argus-Tokens-Used", "9120")
+			h.Set("X-Argus-Tokens-Limit", "300000")
+			h.Set("X-Argus-Tokens-Remaining", "290880")
 			h.Set("X-Blaze-Quota-Reset", "2026-10-21T00:00:00Z")
 			h.Set("X-Blaze-Fast-Lane", "1")
 			fmt.Fprint(w, `{"choices":[{"message":{"role":"assistant","content":"ok"}}],"usage":{"prompt_tokens":600,"completion_tokens":100,"total_tokens":700}}`)

@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 func TestPrivateIDs(t *testing.T) {

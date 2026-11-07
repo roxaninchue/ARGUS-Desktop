@@ -2,6 +2,7 @@ package connect
 
 import (
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"strings"
 )
@@ -790,7 +791,7 @@ func slackTools() []*Tool {
 					}
 				}
 				if len(names) == 0 {
-					return "You're not in any channels Blaze can see.", nil
+					return "You're not in any channels " + brand.NAME + " can see.", nil
 				}
 				return strings.Join(names, ", "), nil
 			}},

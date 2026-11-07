@@ -13,6 +13,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -22,7 +23,7 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // ComposerPrefs live in desktop.json under "composer".
@@ -279,7 +280,7 @@ func (a *App) modeTools(all []llm.Tool) []llm.Tool {
 	return out
 }
 
-// planAllows: Blaze's read/scout tools, plus connector tools that only read.
+// planAllows: Argus's read/scout tools, plus connector tools that only read.
 func (a *App) planAllows(name string) bool {
 	return planTools[name] || (a.conn != nil && a.conn.ReadOnly(name))
 }
@@ -293,7 +294,7 @@ func (a *App) modeBlock(name, rawArgs string) string {
 	if why == "" {
 		return ""
 	}
-	return "Refused: Blaze is in PLAN mode (read and scout only) and " + why + ". Don't retry it. Finish investigating with read-only tools, then present the plan: the exact changes and commands you would run. The user switches to Build (Ctrl+Tab) to let you carry it out."
+	return "Refused: " + brand.NAME + " is in PLAN mode (read and scout only) and " + why + ". Don't retry it. Finish investigating with read-only tools, then present the plan: the exact changes and commands you would run. The user switches to Build (Ctrl+Tab) to let you carry it out."
 }
 
 // planBlock is why Plan refuses a call ("" = allowed), for the lead and its agents.
@@ -343,7 +344,7 @@ func catastrophicPath(p string) bool {
 		if rel, err := filepath.Rel(c, h); err == nil && !strings.HasPrefix(rel, "..") {
 			return true // a parent of the home folder
 		}
-		for _, d := range []string{".blaze", ".ssh", "Desktop", "Documents"} {
+		for _, d := range []string{".argus", ".ssh", "Desktop", "Documents"} {
 			if eqPath(c, filepath.Join(h, d)) {
 				return true
 			}

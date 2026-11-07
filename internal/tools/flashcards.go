@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/flashcards"
+	"github.com/lacksonkapapahue/argus-desktop/internal/flashcards"
 )
 
 // Flashcards for the tutor skill (v0.15): cards go to the Learn view, which schedules

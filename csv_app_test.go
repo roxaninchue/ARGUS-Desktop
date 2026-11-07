@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 func cafeCopy(t *testing.T) (dir, src string) {
@@ -121,7 +121,7 @@ func TestCSVSummaryFillsReport(t *testing.T) {
 		t.Fatalf("csv_summary: %s", got)
 	}
 	b, _ := os.ReadFile(md)
-	m := regexp.MustCompile(`(?s)<!-- blaze:summary -->\s*(.*?)\s*<!-- /blaze:summary -->`).FindStringSubmatch(string(b))
+	m := regexp.MustCompile(`(?s)<!-- argus:summary -->\s*(.*?)\s*<!-- /argus:summary -->`).FindStringSubmatch(string(b))
 	if m == nil || m[1] != text {
 		t.Errorf("markdown summary slot = %q", m)
 	}

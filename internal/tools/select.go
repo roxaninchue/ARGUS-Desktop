@@ -2,7 +2,7 @@ package tools
 
 // Tool selection (v0.5.1). Sending every tool's JSON schema on every turn costs
 // thousands of tokens, so a turn gets a small core set and the rest are indexed
-// in blaze.db: find_tools(query) searches that index and turns the matches on for
+// in argus.db: find_tools(query) searches that index and turns the matches on for
 // the rest of the conversation. Calling an extra tool by its exact name also
 // works and turns it on.
 
@@ -12,8 +12,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/store"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/store"
 )
 
 // core tools are sent every turn.
@@ -21,7 +21,7 @@ var core = map[string]bool{
 	"run_shell": true, "file_read": true, "file_write": true, "file_edit": true, "file_list": true, "file_search": true,
 	"web_search": true, "fetch_page": true, "git": true, "job_log": true,
 	"remember": true, "recall": true, "forget": true, "load_skill": true, "find_tools": true,
-	"notify": true, "open_view": true, "about_blaze": true, "memory_search": true, "memory_save": true, "memory_update": true, "search_chat": true, "read_turn": true, "read_artifact": true, "update_brief": true,
+	"notify": true, "open_view": true, "about_argus": true, "memory_search": true, "memory_save": true, "memory_update": true, "search_chat": true, "read_turn": true, "read_artifact": true, "update_brief": true,
 }
 
 // hidden tools still run when called but are never offered (old aliases).

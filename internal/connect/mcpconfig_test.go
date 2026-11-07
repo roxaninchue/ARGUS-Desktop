@@ -29,7 +29,7 @@ func servers(t *testing.T, p string) map[string]any {
 	return s
 }
 
-// The standard shape Blaze CLI writes is read as-is.
+// The standard shape Argus CLI writes is read as-is.
 func TestMCPConfigRead(t *testing.T) {
 	dir := t.TempDir()
 	cfg := filepath.Join(dir, "mcp.json")
@@ -88,7 +88,7 @@ func TestMCPConfigWriteThrough(t *testing.T) {
 	if err := m.SetMCPConfig(cfg); err != nil {
 		t.Fatal(err)
 	}
-	v, err := m.AddMCP(MCPSpec{Name: "Fake Tools", Transport: "http", URL: f.srv.URL + "/mcp", Token: "sekret", Headers: "X-Team: blaze\nbad line"})
+	v, err := m.AddMCP(MCPSpec{Name: "Fake Tools", Transport: "http", URL: f.srv.URL + "/mcp", Token: "sekret", Headers: "X-Team: argus\nbad line"})
 	if err != nil || v.Status != "ready" {
 		t.Fatalf("%v %+v", err, v)
 	}
@@ -105,13 +105,13 @@ func TestMCPConfigWriteThrough(t *testing.T) {
 	}
 	s := servers(t, cfg)
 	ft, _ := s["fake-tools"].(map[string]any)
-	if ft["url"] != f.srv.URL+"/mcp" || ft["headers"].(map[string]any)["X-Team"] != "blaze" || ft["type"] != nil || ft["command"] != nil {
+	if ft["url"] != f.srv.URL+"/mcp" || ft["headers"].(map[string]any)["X-Team"] != "argus" || ft["type"] != nil || ft["command"] != nil {
 		t.Fatalf("written entry: %v", ft)
 	}
 	if co, _ := s["cli-only"].(map[string]any); co["cliExtra"] == nil {
 		t.Fatal("another app's server lost its extra fields")
 	}
-	// Off for Blaze → "disabled": true; on again removes it.
+	// Off for Argus → "disabled": true; on again removes it.
 	_ = m.SetMCPEnabled(v.ID, false)
 	if servers(t, cfg)["fake-tools"].(map[string]any)["disabled"] != true {
 		t.Fatal("disabled not written")
@@ -143,7 +143,7 @@ func mustRead(t *testing.T, p string) []byte {
 	return b
 }
 
-// Another app (Blaze CLI) edits the file: Desktop follows on its next look.
+// Another app (Argus CLI) edits the file: Desktop follows on its next look.
 func TestMCPConfigFollowsOtherApp(t *testing.T) {
 	dir := t.TempDir()
 	cfg := filepath.Join(dir, "mcp.json")
@@ -194,16 +194,16 @@ func TestMCPConfigMigrates(t *testing.T) {
 }
 
 // env from the file reaches a local server (the fake server only answers when it
-// sees BLAZE_FAKE_MCP=1), and ${VAR} expands.
+// sees ARGUS_FAKE_MCP=1), and ${VAR} expands.
 func TestMCPConfigStdioEnv(t *testing.T) {
 	exe, err := os.Executable()
 	if err != nil {
 		t.Skip(err)
 	}
-	t.Setenv("BLAZE_TEST_ONE", "1")
+	t.Setenv("ARGUS_TEST_ONE", "1")
 	dir := t.TempDir()
 	cfg := filepath.Join(dir, "mcp.json")
-	b, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"local": map[string]any{"command": exe, "args": []string{"-test.run=none"}, "env": map[string]string{"BLAZE_FAKE_MCP": "${BLAZE_TEST_ONE}"}}}})
+	b, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"local": map[string]any{"command": exe, "args": []string{"-test.run=none"}, "env": map[string]string{"ARGUS_FAKE_MCP": "${ARGUS_TEST_ONE}"}}}})
 	os.WriteFile(cfg, b, 0o600)
 	m := mcpManager(t, &recorder{})
 	_ = m.SetMCPConfig(cfg)
@@ -211,7 +211,7 @@ func TestMCPConfigStdioEnv(t *testing.T) {
 	if err != nil || v.Status != "ready" || len(v.Tools) != 2 {
 		t.Fatalf("%v %+v", err, v)
 	}
-	if v.EnvKeys[0] != "BLAZE_FAKE_MCP" {
+	if v.EnvKeys[0] != "ARGUS_FAKE_MCP" {
 		t.Fatal(v.EnvKeys)
 	}
 }

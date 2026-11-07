@@ -1,41 +1,42 @@
 package main
 
-// v0.19 Blaze Cloud + Custom models (Settings › Models, the model chip).
+// v0.19 Argus Cloud + Custom models (Settings › Models, the model chip).
 //
-// By default every model call goes through Blaze Cloud (internal/cloudai): the Blaze gateway,
-// signed in with the Blaze account from Settings › Account (account.go), model blaze-auto plus a
+// By default every model call goes through Argus Cloud (internal/cloudai): the Argus gateway,
+// signed in with the Argus account from Settings › Account (account.go), model blaze-auto plus a
 // task hint per request. No provider keys. Custom is the user's own providers and keys (the
-// existing provider router over ~/.blaze/config.json and the keystore), with optional per-task
-// models and an opt-in "use Blaze Cloud as a backup".
+// existing provider router over ~/.argus/config.json and the keystore), with optional per-task
+// models and an opt-in "use Argus Cloud as a backup".
 
 import (
 	"context"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/persona"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
+	"github.com/lacksonkapapahue/argus-desktop/internal/persona"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudai"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // cloudModels routes every llm.CompleteWith / llm.Quick in this app (nil until startup).
 var cloudModels *cloudai.Router
 
-// cloudGateway is Blaze Cloud's gateway (the plan badge asks it for the account's plan).
+// cloudGateway is Argus Cloud's gateway (the plan badge asks it for the account's plan).
 var cloudGateway *cloudai.Gateway
 
 func (a *App) startCloudModels() {
-	// A fixed model keeps Custom, except BlazeRouter's own presets: those move to Blaze Cloud
-	// (v0.19.1), the way Blaze Mobile answers.
+	// A fixed model keeps Custom, except ArgusRouter's own presets: those move to Argus Cloud
+	// (v0.19.1), the way Argus Mobile answers.
 	viaRouter := a.cfg.Default != nil && a.cfg.Default.Provider == config.RouterID
 	choice := cloudai.LoadChoice(config.Dir(), !a.cfg.IsAuto() && !viaRouter)
 	if choice.Mode == cloudai.ModeCustom && viaRouter && len(choice.Overrides) == 0 && !choice.RouterMoved {
 		choice.Mode, choice.RouterMoved = cloudai.ModeCloud, true
 		_ = choice.Save()
 	}
-	gw := cloudai.NewGateway(cloudai.BaseFrom(choice.GatewayURL), a.blazeToken)
+	gw := cloudai.NewGateway(cloudai.BaseFrom(choice.GatewayURL), a.argusToken)
 	cloudGateway = gw
 	cloudModels = cloudai.NewRouter(choice, gw)
 	llm.SetBackend(cloudModels)
@@ -52,7 +53,7 @@ func (a *App) startCloudModels() {
 	}()
 }
 
-// CloudPrewarm opens the connection to Blaze Cloud ahead of Send (v0.19.1): called at start-up,
+// CloudPrewarm opens the connection to Argus Cloud ahead of Send (v0.19.1): called at start-up,
 // on the first key press in the composer and when the window comes back to the front. At most
 // once a minute; a GET of the gateway's public /health, no account token, no model call.
 func (a *App) CloudPrewarm() bool {
@@ -62,8 +63,8 @@ func (a *App) CloudPrewarm() bool {
 	return cloudModels.GW.Prewarm(context.Background())
 }
 
-// blazeToken is the signed-in Blaze account's session token ("" when signed out).
-func (a *App) blazeToken() string {
+// argusToken is the signed-in Argus account's session token ("" when signed out).
+func (a *App) argusToken() string {
 	if a.cloud == nil || a.cloud.sec == nil {
 		return ""
 	}
@@ -71,7 +72,7 @@ func (a *App) blazeToken() string {
 	return strings.TrimSpace(t)
 }
 
-// cloudModelsOn: Blaze Cloud answers by default.
+// cloudModelsOn: Argus Cloud answers by default.
 func cloudModelsOn() bool {
 	if cloudModels == nil {
 		return false
@@ -140,7 +141,7 @@ func (a *App) ModelsChoice() ModelsChoiceView {
 	return a.modelsChoice()
 }
 
-// SetModelsMode chooses Blaze Cloud ("cloud") or Custom ("custom").
+// SetModelsMode chooses Argus Cloud ("cloud") or Custom ("custom").
 func (a *App) SetModelsMode(mode string) ModelsChoiceView {
 	a.waitReady()
 	if cloudModels != nil && (mode == cloudai.ModeCloud || mode == cloudai.ModeCustom) {
@@ -150,7 +151,7 @@ func (a *App) SetModelsMode(mode string) ModelsChoiceView {
 	return a.modelsChoice()
 }
 
-// SetCloudFallback: when every Custom model fails, Blaze Cloud answers instead (and says so).
+// SetCloudFallback: when every Custom model fails, Argus Cloud answers instead (and says so).
 func (a *App) SetCloudFallback(on bool) ModelsChoiceView {
 	a.waitReady()
 	if cloudModels != nil {
@@ -165,7 +166,7 @@ func (a *App) SetCloudFallback(on bool) ModelsChoiceView {
 func (a *App) SetTaskModel(task, provider, model string) string {
 	a.waitReady()
 	if cloudModels == nil {
-		return "Blaze is still starting."
+		return brand.NAME + " is still starting."
 	}
 	provider, model = strings.TrimSpace(provider), strings.TrimSpace(model)
 	if provider != "" {
@@ -176,18 +177,18 @@ func (a *App) SetTaskModel(task, provider, model string) string {
 			return "Pick a model."
 		}
 		if (task == "chat" || task == "code") && !llm.CanUseTools(provider, model) {
-			return model + " can't call tools, so Blaze can't act with it. Pick one marked Tools."
+			return model + " can't call tools, so " + brand.NAME + " can't act with it. Pick one marked Tools."
 		}
 	}
 	ok := true
 	_ = cloudModels.Update(func(c *cloudai.Choice) { ok = c.SetOverride(task, provider, model) })
 	if !ok {
-		return "Blaze can pin chat, code or vision."
+		return brand.NAME + " can pin chat, code or vision."
 	}
 	return ""
 }
 
-// CloudStatus asks Blaze Cloud whether this account can use it (signed out, waiting list…).
+// CloudStatus asks Argus Cloud whether this account can use it (signed out, waiting list…).
 func (a *App) CloudStatus() cloudai.Status {
 	a.waitReady()
 	if cloudModels == nil {
@@ -203,7 +204,7 @@ var planVal string
 var planAt time.Time
 
 // AccountPlan is the signed-in account's plan for the badge under the avatar: basic, standard
-// or pro, "" when signed out or Blaze Cloud can't be reached. Cached for 10 minutes; force
+// or pro, "" when signed out or Argus Cloud can't be reached. Cached for 10 minutes; force
 // asks again (after an upgrade).
 func (a *App) AccountPlan(force bool) string {
 	planMu.Lock()

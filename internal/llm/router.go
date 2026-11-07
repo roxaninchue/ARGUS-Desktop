@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"sort"
@@ -25,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 type Health struct {
@@ -310,7 +311,7 @@ func fmtWait(d time.Duration) string {
 
 // CompleteWith routes one turn across the user's models.
 func CompleteWith(ctx context.Context, cfg *config.Config, msgs []Message, tools []Tool, o Opts) (*Result, error) {
-	if b := currentBackend(); b != nil { // v0.19 desktop: Blaze Cloud / Custom (backend.go)
+	if b := currentBackend(); b != nil { // v0.19 desktop: Argus Cloud / Custom (backend.go)
 		if r, err, ok := b.Complete(ctx, cfg, msgs, tools, o); ok {
 			return r, err
 		}
@@ -339,7 +340,7 @@ func complete(ctx context.Context, cfg *config.Config, msgs []Message, tools []T
 		// Images: models that can see go first. When none can, the image travels as a path.
 		var canSee bool
 		if list, canSee = visionFirst(list); !canSee && o.OnStatus != nil && !waited && !shrunk {
-			o.OnStatus("None of your models can see images, so Blaze sent the image as a file path")
+			o.OnStatus("None of your models can see images, so " + brand.NAME + " sent the image as a file path")
 		}
 	}
 	tokens := Estimate(chars(msgs, tools))

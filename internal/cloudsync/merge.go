@@ -5,7 +5,7 @@ import (
 	"sort"
 )
 
-// The merge rules, ported from Blaze Android connect/SyncMerge.kt (keep in step):
+// The merge rules, ported from Argus Android connect/SyncMerge.kt (keep in step):
 //
 //   - Every item: last writer wins by the item's own change time (Item.T, ms). A tie goes to the
 //     copy whose content sorts higher, so two devices always settle on the same one.

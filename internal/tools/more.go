@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"html"
 	"io"
 	"net/http"
@@ -14,13 +15,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/sched"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/sysinfo"
+	"github.com/lacksonkapapahue/argus-desktop/internal/sched"
+	"github.com/lacksonkapapahue/argus-desktop/internal/sysinfo"
 )
 
 var httpc = &http.Client{Timeout: 40 * time.Second}
 
-const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 BlazeCLI"
+const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 " + brand.NAME + "CLI"
 
 var (
 	reScript = regexp.MustCompile(`(?is)<(script|style|noscript|svg|head)[^>]*>.*?</(script|style|noscript|svg|head)>`)
@@ -198,7 +199,7 @@ func init() {
 			return "Opened " + t
 		})
 
-	register("run_code", "Run a Python, Node.js, shell or PowerShell snippet and return its output. Python packages go in a private venv (~/.blaze/venv); Node packages in ~/.blaze/node. Use for calculations, data work, scripts.",
+	register("run_code", "Run a Python, Node.js, shell or PowerShell snippet and return its output. Python packages go in a private venv (~/.argus/venv); Node packages in ~/.argus/node. Use for calculations, data work, scripts.",
 		[]prop{p("language", "string", "python, node, shell or powershell"), p("code", "string", "The code"), p("packages", "array", "Packages to install first, e.g. [\"requests\"]"), p("timeout_s", "integer", "Default 120")},
 		[]string{"language", "code"}, func(e *Env, a args) string { return runCode(e, a) })
 
@@ -259,8 +260,8 @@ func init() {
 			return fresh.Summary()
 		})
 
-	register("schedule", "Schedule a shell command or a Blaze prompt to run by itself (Windows Task Scheduler, cron on Linux/macOS). action=add|list|remove. when: 'daily 07:00', 'hourly', 'every 30m', 'weekly mon 09:00', 'once 2026-11-16 08:00' (one time, e.g. an assignment reminder), 'boot' or a cron line.",
-		[]prop{p("action", "string", "add, list or remove"), p("name", "string", "Short unique name"), p("when", "string", "Schedule"), p("command", "string", "Shell command to run"), p("prompt", "string", "Or: a prompt for Blaze to run")},
+	register("schedule", "Schedule a shell command or an "+brand.NAME+" prompt to run by itself (Windows Task Scheduler, cron on Linux/macOS). action=add|list|remove. when: 'daily 07:00', 'hourly', 'every 30m', 'weekly mon 09:00', 'once 2026-11-16 08:00' (one time, e.g. an assignment reminder), 'boot' or a cron line.",
+		[]prop{p("action", "string", "add, list or remove"), p("name", "string", "Short unique name"), p("when", "string", "Schedule"), p("command", "string", "Shell command to run"), p("prompt", "string", "Or: a prompt for "+brand.NAME+" to run")},
 		[]string{"action"}, func(e *Env, a args) string {
 			switch a.s("action") {
 			case "list":
@@ -272,7 +273,7 @@ func init() {
 				return sched.Remove(a.s("name"))
 			default:
 				j := sched.Job{Name: a.s("name"), When: a.s("when"), Command: a.s("command"), Prompt: a.s("prompt"), Dir: e.Shell.Cwd()}
-				if !e.ask("Schedule this?", j.Name+" · "+j.When+" · "+nonEmpty(j.Command, "blaze: "+j.Prompt)) {
+				if !e.ask("Schedule this?", j.Name+" · "+j.When+" · "+nonEmpty(j.Command, "argus: "+j.Prompt)) {
 					return "Not scheduled."
 				}
 				return sched.Add(j)

@@ -7,6 +7,7 @@ package router
 import (
 	"context"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"strings"
 )
@@ -68,7 +69,7 @@ func (r *Router) dispatchChaos(ctx context.Context, body map[string]any, pl Plan
 		var re *RouteError
 		if errors.As(x.err, &re) {
 			attempts = append(attempts, re.Attempts...)
-			msgs = append(msgs, strings.TrimPrefix(re.Msg, "BlazeRouter: no model could answer. "))
+			msgs = append(msgs, strings.TrimPrefix(re.Msg, brand.NAME+"Router: no model could answer. "))
 			if re.Code == 429 {
 				code = 429
 			}
@@ -79,5 +80,5 @@ func (r *Router) dispatchChaos(ctx context.Context, body map[string]any, pl Plan
 	if ctx.Err() != nil {
 		return nil, ctx.Err()
 	}
-	return nil, &RouteError{Code: code, Msg: "BlazeRouter: no model in the chaos panel could answer. " + strings.Join(msgs, "; "), Attempts: attempts}
+	return nil, &RouteError{Code: code, Msg: brand.NAME + "Router: no model in the chaos panel could answer. " + strings.Join(msgs, "; "), Attempts: attempts}
 }

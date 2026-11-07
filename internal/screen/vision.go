@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/ocr"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/ocr"
 )
 
 // Vision-capable fallbacks for providers whose default model can't see.
@@ -60,7 +60,7 @@ var vclient = &http.Client{Timeout: 60 * time.Second}
 // (OCR, size, colours) and only that text comes back.
 func Describe(ctx context.Context, cfg *config.Config, jpeg []byte, question string) (string, string, error) {
 	if cfg.PrivateVision {
-		f, err := os.CreateTemp("", "blaze-look-*.jpg")
+		f, err := os.CreateTemp("", "argus-look-*.jpg")
 		if err != nil {
 			return "", "", err
 		}

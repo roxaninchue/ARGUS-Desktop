@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 func sse(chunks ...string) string {
@@ -323,8 +323,8 @@ func TestBudgetHints(t *testing.T) {
 // second request must carry only clean history (Gemini answers 400 otherwise).
 func TestRouterNeverSendsBrokenHistory(t *testing.T) {
 	home := t.TempDir()
-	os.Setenv("BLAZE_HOME", home)
-	defer os.Unsetenv("BLAZE_HOME")
+	os.Setenv("ARGUS_HOME", home)
+	defer os.Unsetenv("ARGUS_HOME")
 	os.Setenv("GROQ_API_KEY", "gsk_test")
 	defer os.Unsetenv("GROQ_API_KEY")
 	calls := 0
@@ -375,8 +375,8 @@ func TestRouterNeverSendsBrokenHistory(t *testing.T) {
 // Pollinations is never used for a tool turn, even when nothing else is set up.
 func TestKeylessNeverForTools(t *testing.T) {
 	home := t.TempDir()
-	os.Setenv("BLAZE_HOME", home)
-	defer os.Unsetenv("BLAZE_HOME")
+	os.Setenv("ARGUS_HOME", home)
+	defer os.Unsetenv("ARGUS_HOME")
 	cfg := config.Load()
 	cfg.Chain = []config.Entry{{Provider: config.KeylessID, Model: "openai-fast"}}
 	var tl Tool

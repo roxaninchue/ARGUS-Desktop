@@ -17,13 +17,13 @@ import (
 //     push. Never pushed as a delete: a message that left this device's file (a trim) must never
 //     delete it elsewhere. A deleted chat is a "chat" tombstone.
 //
-// Roles travel as the phone names them: "USER" and "BLAZE". Desktop syncs user messages and
+// Roles travel as the phone names them: "USER" and "BLAZE" (the phone's wire value, kept; docs/RENAME-ARGUS.md). Desktop syncs user messages and
 // assistant replies with text; tool calls and tool results stay on this device, and the phone's
 // "STEP"/"ERROR" bubbles are not applied here.
 
 const (
 	RoleUser  = "USER"
-	RoleBlaze = "BLAZE"
+	RoleArgus = "BLAZE" // wire value shared with Argus Android sync; not renamed
 )
 
 // ChatMsg is one synced message. At is ms (0 = unknown, a message saved before times).
@@ -183,7 +183,7 @@ func (c *ChatHeadAdapter) Apply(it Item) error {
 			continue
 		}
 		role := optString(m, "role")
-		if role != RoleUser && role != RoleBlaze || optString(m, "text") == "" {
+		if role != RoleUser && role != RoleArgus || optString(m, "text") == "" {
 			continue
 		}
 		g := optString(m, "gid")
@@ -316,7 +316,7 @@ func (m *MessageAdapter) Apply(it Item) error {
 		return nil
 	}
 	c := msgFromData(gid, it.Data)
-	if c.Role != RoleUser && c.Role != RoleBlaze || c.Text == "" {
+	if c.Role != RoleUser && c.Role != RoleArgus || c.Text == "" {
 		return nil
 	}
 	if h, ok := m.Store.Head(chat); ok && h.ClearedAt > 0 && c.At > 0 && c.At <= h.ClearedAt {

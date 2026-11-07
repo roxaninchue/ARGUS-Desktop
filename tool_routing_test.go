@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 // v0.19.13 regression (strict e2e 2026-10-21, item "latest AI news"): run 1 called

@@ -7,8 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/persona"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
+	"github.com/lacksonkapapahue/argus-desktop/internal/persona"
+	"github.com/lacksonkapapahue/argus-desktop/internal/privacy"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,21 +22,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/router"
+	"github.com/lacksonkapapahue/argus-desktop/internal/router"
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/connect"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/longchat"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/sched"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/sysinfo"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudai"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/connect"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/longchat"
+	"github.com/lacksonkapapahue/argus-desktop/internal/sched"
+	"github.com/lacksonkapapahue/argus-desktop/internal/sysinfo"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
-// Prefs are desktop-only settings; models and keys are shared with the CLI in ~/.blaze.
+// Prefs are desktop-only settings; models and keys are shared with the CLI in ~/.argus.
 type Prefs struct {
 	Theme   string   `json:"theme"`  // system, light, dark
 	Folder  string   `json:"folder"` // current project folder
@@ -47,10 +48,10 @@ type Prefs struct {
 	NoUpdateCheck bool   `json:"no_update_check"` // don't look for updates on launch
 	SkipUpdate    string `json:"skip_update"`     // a release the user chose to skip, e.g. v0.3.0
 
-	CloudDailyCap int `json:"cloud_daily_cap"` // v0.19.9: most Blaze Cloud messages a day the user allows (0 = none)
+	CloudDailyCap int `json:"cloud_daily_cap"` // v0.19.9: most Argus Cloud messages a day the user allows (0 = none)
 
-	Background *bool  `json:"background,omitempty"` // closing the window keeps Blaze in the tray (default on)
-	Autostart  bool   `json:"autostart"`            // start Blaze (hidden) when the user signs in
+	Background *bool  `json:"background,omitempty"` // closing the window keeps Argus in the tray (default on)
+	Autostart  bool   `json:"autostart"`            // start Argus (hidden) when the user signs in
 	Hotkey     string `json:"hotkey"`               // global shortcut preset; "" = default, "off"
 	ShowSteps  bool   `json:"show_steps"`           // show every tool step instead of one status line
 	FoldCards  *bool  `json:"fold_cards,omitempty"` // fold long answers into expandable cards (default on)
@@ -91,7 +92,7 @@ type App struct {
 	cur     *session            // the chat on screen
 	pending map[string]chan int // confirm cards: 0 no, 1 yes, 2 always
 	conn    *connect.Manager
-	cloud   *cloudState // Blaze account + one-click connectors (account.go)
+	cloud   *cloudState // Argus account + one-click connectors (account.go)
 	convID  string      // the chat on screen (a.cur.id once it has one)
 	pv      *preview
 	ready   chan struct{} // closed when startup has finished
@@ -106,8 +107,8 @@ type App struct {
 	envs      map[string]*tools.Env // each sub-agent's own shell and approval gate
 	questions map[string]chan string
 
-	router *router.Router // BlazeRouter, the local AI gateway (router_app.go)
-	pair   *pairHub       // Blaze Link: phone pairing server (pair.go)
+	router *router.Router // ArgusRouter, the local AI gateway (router_app.go)
+	pair   *pairHub       // Argus Link: phone pairing server (pair.go)
 }
 
 func NewApp() *App {
@@ -147,17 +148,17 @@ func (a *App) startup(ctx context.Context) {
 	a.pv.start()
 	a.pv.load(a.prefs.Folder)
 	a.startStudio()
-	a.pair = newPairHub(a) // Blaze Link: starts its server only when a phone is paired
+	a.pair = newPairHub(a) // Argus Link: starts its server only when a phone is paired
 	a.newEnv()
 	a.startConnectors()
 	a.startCloud()
-	a.startCloudModels() // v0.19: Blaze Cloud by default, or Custom (cloudmodels_app.go)
+	a.startCloudModels() // v0.19: Argus Cloud by default, or Custom (cloudmodels_app.go)
 	a.startBgRuns()      // v0.19.14: ack now, work in background, report when done (runs_app.go)
 	a.startComposer()
 	a.startAgents()
 	a.startShell()
 	a.startNotify()
-	a.startRouter()      // BlazeRouter: local OpenAI-compatible gateway + dashboard (router_app.go)
+	a.startRouter()      // ArgusRouter: local OpenAI-compatible gateway + dashboard (router_app.go)
 	a.startLearning()    // bundled skills + proactive memory (learn_app.go)
 	a.startMind()        // one mind: journal, memories table, idle review (mind_app.go)
 	go tools.SyncIndex() // every tool is registered by now (init); index them for find_tools
@@ -661,7 +662,7 @@ func (a *App) run(ctx context.Context, s *session) {
 			if panicTap != nil {
 				panicTap(r)
 			}
-			a.temit(s, "error", fmt.Sprint("Blaze hit an internal error: ", r))
+			a.temit(s, "error", fmt.Sprint(brand.NAME+" hit an internal error: ", r))
 		}
 		if s.bg != nil {
 			return // a background shadow turn (runs_app.go): its final is delivered by localBg
@@ -720,19 +721,19 @@ func (a *App) run(ctx context.Context, s *session) {
 		if private {
 			sys += privateLine
 		}
-		// v0.19.8: the shared Blaze persona is the FIRST system message, byte-identical every turn
-		// (same voice in every Blaze app, and provider prompt caches hit); Desktop's own
+		// v0.19.8: the shared Argus persona is the FIRST system message, byte-identical every turn
+		// (same voice in every Argus app, and provider prompt caches hit); Desktop's own
 		// instructions, the user's first name and the local time follow in a second one.
 		msgs := append([]llm.Message{{Role: "system", Content: persona.System()}, {Role: "system", Content: sys + a.firstNameLine()}}, hist...)
 		// Connector tools join only when connected and enabled, and a group's tools
 		// only after the model loads it, so the list stays small.
-		// Blaze's own tools: the core set plus what find_tools turned on in this chat.
-		all := append(append(append(tools.Select(conv), a.conn.Tools()...), agents.MainTools()...), updateBlazeTool(), weatherTool())
+		// Argus's own tools: the core set plus what find_tools turned on in this chat.
+		all := append(append(append(tools.Select(conv), a.conn.Tools()...), agents.MainTools()...), updateArgusTool(), weatherTool())
 		if private {
 			// No specialists (they keep files) and nothing that saves memories or skills.
 			all = privateTools(append(append(tools.Select(conv), a.conn.Tools()...), weatherTool()))
 		}
-		known := append(append(append(tools.Names(), a.conn.Known()...), agents.MainToolNames...), "update_blaze", "get_weather")
+		known := append(append(append(tools.Names(), a.conn.Known()...), agents.MainToolNames...), "update_argus", "get_weather")
 		llm.PrimaryArg = primaryArgs(all)
 		a.temit(s, "thinking", step)
 		var partial strings.Builder // what streamed, kept if the reply breaks off
@@ -842,7 +843,7 @@ func (a *App) run(ctx context.Context, s *session) {
 		}
 		note = ""
 		if len(n.Dropped) > 0 {
-			note = "Blaze couldn't run " + strings.Join(n.Dropped, "; ") + ". Call the tool again with its exact name and a complete JSON object for the arguments."
+			note = brand.NAME + " couldn't run " + strings.Join(n.Dropped, "; ") + ". Call the tool again with its exact name and a complete JSON object for the arguments."
 			a.temit(s, "repair", map[string]any{"dropped": n.Dropped, "repairs": n.Repairs})
 		}
 		if len(n.Calls) == 0 {
@@ -923,7 +924,7 @@ func (a *App) run(ctx context.Context, s *session) {
 					out := a.agents.HandleLeadTool(tc.Function.Name, tc.Function.Arguments, agents.Lead{Conv: conv, Folder: s.dir(a.prefs.Folder), Mode: a.workMode(), MaxSteps: steps})
 					dispatched = dispatched || out.Dispatched != "" // agent tools never run in parallel
 					return out.Result
-				case tc.Function.Name == "update_blaze":
+				case tc.Function.Name == "update_argus":
 					return a.selfUpdate()
 				case tc.Function.Name == "get_weather":
 					return a.runWeather(ctx, tc.Function.Arguments)
@@ -1036,7 +1037,7 @@ ANSWER SHAPE
 }
 
 // replyExtras is the static RICH REPLIES and FOLLOW-UPS block (v0.17.1, the same rules as
-// Blaze Android v0.24.0 / v0.24.9): the app draws these as step-flow cards, pictures and diagrams,
+// Argus Android v0.24.0 / v0.24.9): the app draws these as step-flow cards, pictures and diagrams,
 // and the follow-up line as pills under the answer (frontend/dist/md.js, bubbles.js).
 func replyExtras() string {
 	return `
@@ -1049,9 +1050,9 @@ FOLLOW-UPS
 `
 }
 
-// defaultPersonality is Blaze's voice in chat turns (Settings › Behaviour › Personality).
+// defaultPersonality is Argus's voice in chat turns (Settings › Behaviour › Personality).
 const defaultPersonality = `PERSONALITY
-You are Blaze. Be warm, sharp, and one step ahead: an expert who happens to be easy to talk to.
+You are ` + brand.NAME + `. Be warm, sharp, and one step ahead: an expert who happens to be easy to talk to.
 - Answer first. Lead with the result or the most useful true thing; skip preamble and filler ("Great question", "I'd be happy to").
 - Take a side. When there are options, recommend one and say why in a sentence; give one backup only if it earns it.
 - Be specific. Real names, numbers, file paths and commands beat adjectives. Never invent facts; say plainly when you're unsure.
@@ -1063,7 +1064,7 @@ You are Blaze. Be warm, sharp, and one step ahead: an expert who happens to be e
 `
 
 // personality is the PERSONALITY block for chat turns (scheduled jobs don't use system()).
-// Default: Blaze's voice. Plain: none. Custom: the user's text (empty falls back to none).
+// Default: Argus's voice. Plain: none. Custom: the user's text (empty falls back to none).
 func (a *App) personality() string {
 	switch a.prefs.Personality {
 	case "plain":
@@ -1133,11 +1134,11 @@ func recentQuery(h []llm.Message) string {
 func (a *App) system(query string) string { return a.systemStable(query) + a.systemLive(query) }
 
 // systemStable is the part that stays the same across the steps of a turn and across turns:
-// rules, about Blaze, personality, design and studio rules, project, PC profile, connected
+// rules, about Argus, personality, design and studio rules, project, PC profile, connected
 // accounts, the skills picked for this request and the learning rules.
 func (a *App) systemStable(query string) string {
 	var b strings.Builder
-	b.WriteString(`You are Blaze, a capable assistant in a desktop app on the user's own computer. You act, not just advise: use your tools to run commands, read and edit files, write and run code, use git, search the web and install what's missing.
+	b.WriteString(`You are ` + brand.NAME + `, a capable assistant in a desktop app on the user's own computer. You act, not just advise: use your tools to run commands, read and edit files, write and run code, use git, search the web and install what's missing.
 
 RULES
 - Know before you ask: the PC profile below tells you the OS, shell, package managers and installed tools. Never ask what OS or shell they use.
@@ -1146,7 +1147,7 @@ RULES
 - Servers, watchers and long builds go in run_shell background=true; then job_log. open_url shows a local server or file to the user.
 - Missing program? install_tool (the user approves it).
 - Only your core tools are loaded each turn. MORE TOOLS below lists the rest by name: call find_tools(query) to turn them on (or call one by its exact name). Memories and skills are also picked per turn: recall(query) and load_skill(name) reach the rest. Never use sudo or admin rights without asking.
-- Work in parallel: when you need several things that don't depend on each other (read three files, search two queries, fetch a few pages, load two skills), ask for all of them in ONE reply. Blaze runs read-only calls at the same time, so a batch costs one wait instead of several. Calls that change things still run one by one, in your order.
+- Work in parallel: when you need several things that don't depend on each other (read three files, search two queries, fetch a few pages, load two skills), ask for all of them in ONE reply. ` + brand.NAME + ` runs read-only calls at the same time, so a batch costs one wait instead of several. Calls that change things still run one by one, in your order.
 - Skills combine. When a task falls between skills (a hand-drawn poster, a game with pixel sprites and music, a 3D walk-through of a floor plan), load every skill it touches and use each one for its own part. No single skill covers it and it is likely to come up again: after it works, save the combination with write_skill as a new skill that names the skills it builds on and holds only the glue (which part comes from which skill, in what order, and what was learned). Tell the user in one line.
 - Be honest about failures. Never claim something worked without checking.
 - Answers: short, direct, Markdown. Lead with the result.
@@ -1154,7 +1155,7 @@ RULES
 	b.WriteString(a.aboutYou())
 	if a.pair != nil {
 		if names := a.pair.deviceNames(); names != "" {
-			b.WriteString("\nPAIRED PHONE: " + names + " (Blaze for Android, over Blaze Link). For anything that lives on the phone (texts, WhatsApp, calls, contacts, notifications, alarms, its location), use phone_ask with the request in plain words. Sending a message always needs the user's approval on the phone.\n")
+			b.WriteString("\nPAIRED PHONE: " + names + " (" + brand.NAME + " for Android, over " + brand.NAME + " Link). For anything that lives on the phone (texts, WhatsApp, calls, contacts, notifications, alarms, its location), use phone_ask with the request in plain words. Sending a message always needs the user's approval on the phone.\n")
 		}
 	}
 	b.WriteString(a.personality())
@@ -1166,14 +1167,14 @@ RULES
 		b.WriteString("\nSTYLE\n" + a.cfg.Persona + "\n")
 	}
 	if m := a.modelName(); m != "" {
-		b.WriteString("\nYOU RUN ON " + m + " through Blaze's model router (it may fall back to another model when one is busy). If asked what model you are, say that. Never claim to be GPT-4 or any model you are not.\n")
+		b.WriteString("\nYOU RUN ON " + m + " through " + brand.NAME + "'s model router (it may fall back to another model when one is busy). If asked what model you are, say that. Never claim to be GPT-4 or any model you are not.\n")
 	}
 	b.WriteString(`
 DESIGN TAB
 - Build anything visual (pages, screens, components, logos) as real files in the project: plain HTML/CSS/SVG, or the project's own framework. The app previews them live in its Design tab and saves a version after each turn.
 - For a framework app, start its dev server with run_shell background=true; the app finds the localhost URL. Don't open_url it.
 - A message starting with [Continue] means your last reply was cut off (output limit, the user pressed Stop, an error, or the step limit). Carry on exactly where it stopped: no recap and no apology, don't repeat text already written, and if it broke mid-sentence or mid-code-block, resume there (reopen the code fence first). If tools were mid-way, check what already happened before redoing it.
-- A message starting with [Design edit] names one element (CSS selector + its HTML), or a 3D part ("Part: <id>" + its blaze-parts JSON). Change ONLY that element or part in the source file (for a part: its entry in the blaze-parts block, plus its build code only if the shape itself changes), keep everything else identical, then say in one line what changed.
+- A message starting with [Design edit] names one element (CSS selector + its HTML), or a 3D part ("Part: <id>" + its argus-parts JSON). Change ONLY that element or part in the source file (for a part: its entry in the argus-parts block, plus its build code only if the shape itself changes), keep everything else identical, then say in one line what changed.
 - 3D: any request for a 3D model or 3D design (a product, furniture, a printable part, a building, a character, a scene), including one to be made in 3D or CAD software, starts with a Three.js mockup in Design, built with the three-d-design skill (load it first). The mockup is the blueprint: the user picks and edits its parts in Design. If they named a program (Blender, FreeCAD, Fusion 360, OpenSCAD, SketchUp, Unity, …), build it there only after the mockup, from the same parts.
 - When asked for directions, make 2-3 clearly different options as separate files (e.g. design/option-a.html, option-b.html, option-c.html), each self-contained. (The Directions button runs them as live branches instead.)
 `)
@@ -1197,7 +1198,7 @@ DESIGN TAB
 }
 
 // systemLive is the part that changes while the user works: the current folder, the memory
-// block (it changes when Blaze saves a memory) and the clock. It goes last.
+// block (it changes when Argus saves a memory) and the clock. It goes last.
 func (a *App) systemLive(query string) string {
 	var b strings.Builder
 	b.WriteString("\nCurrent folder: " + a.env.Shell.Cwd() + "\n")
@@ -1272,10 +1273,10 @@ func (a *App) Doctor() []Check {
 		out = append(out, c)
 	}
 	if len(targets) > 0 && len(llm.Targets(a.cfg, true)) == 0 {
-		add("Tools", false, "None of your models can use tools, so Blaze can't act. Add a Gemini, Groq or Cerebras key.")
+		add("Tools", false, "None of your models can use tools, so "+brand.NAME+" can't act. Add a Gemini, Groq or Cerebras key.")
 	}
 	sh := tools.NewShell(a.info.Shell, a.info.ShellPath, a.info.Home)
-	add("Shell", strings.Contains(sh.Run("echo blaze-ok", 20*time.Second), "blaze-ok"), a.info.Shell+" · "+a.info.ShellPath)
+	add("Shell", strings.Contains(sh.Run("echo argus-ok", 20*time.Second), "argus-ok"), a.info.Shell+" · "+a.info.ShellPath)
 	for _, t := range []string{"git", "python", "node"} {
 		v, ok := a.info.Tools[t]
 		if t == "python" && !ok {
@@ -1298,7 +1299,7 @@ func (a *App) Doctor() []Check {
 		add("Window manager", ok, note)
 	}
 	d := a.desktopView()
-	add("Tray", d.Tray, map[bool]string{true: d.TrayNote, false: "Not running: " + orStr(d.TrayNote, "the tray didn't start") + ". Closing the window quits Blaze."}[d.Tray])
+	add("Tray", d.Tray, map[bool]string{true: d.TrayNote, false: "Not running: " + orStr(d.TrayNote, "the tray didn't start") + ". Closing the window quits " + brand.NAME + "."}[d.Tray])
 	if d.Hotkey == "off" {
 		add("Shortcut", true, "Off (Settings › Behaviour)")
 	} else {

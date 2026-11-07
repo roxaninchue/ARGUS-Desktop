@@ -4,16 +4,16 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
-// v0.19.13: every tool Blaze offers must have a schema strict validators accept. list_agents sent
-// "required": null, so Blaze Cloud upstreams answered 400 ("invalid JSON schema for tool
+// v0.19.13: every tool Argus offers must have a schema strict validators accept. list_agents sent
+// "required": null, so Argus Cloud upstreams answered 400 ("invalid JSON schema for tool
 // list_agents") and Desktop showed "busy" on most turns.
 func TestEveryToolSchemaIsStrictValid(t *testing.T) {
-	all := append(append(append(tools.All(), agents.MainTools()...), agents.SpecTools()...), updateBlazeTool(), weatherTool())
+	all := append(append(append(tools.All(), agents.MainTools()...), agents.SpecTools()...), updateArgusTool(), weatherTool())
 	for _, tl := range all {
 		checkToolSchema(t, tl)
 	}

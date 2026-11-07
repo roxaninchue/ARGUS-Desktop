@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/longchat"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/mind"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/longchat"
+	"github.com/lacksonkapapahue/argus-desktop/internal/mind"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 const longChatLine = "\nLONG CHATS\n- Older turns of this chat may be folded into a summary. If you need something older than the summary, call search_chat (then read_turn for the full message). Never ask the user to repeat something they already said.\n- A tool result that ends with artifact:<id> was set aside because it was long: read_artifact reads the lines you need.\n- update_brief keeps this project's pinned brief (purpose, rules, key files, in progress; under ~600 tokens). Update it when something lasting changes.\n"

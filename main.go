@@ -1,10 +1,11 @@
-// Blaze Desktop: Blaze, the Android assistant, as an app for Windows, macOS and Linux.
+// Argus Desktop: Argus, the Android assistant, as an app for Windows, macOS and Linux.
 package main
 
 import (
 	"context"
 	"embed"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"runtime"
 	"strings"
@@ -17,12 +18,12 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/sched"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/screen"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/sysinfo"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/sched"
+	"github.com/lacksonkapapahue/argus-desktop/internal/screen"
+	"github.com/lacksonkapapahue/argus-desktop/internal/sysinfo"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 //go:embed all:frontend/dist
@@ -49,7 +50,7 @@ func main() {
 		time.Sleep(2500 * time.Millisecond)
 	}
 	err := wails.Run(&options.App{
-		Title:            "Blaze",
+		Title:            brand.NAME,
 		Width:            1180,
 		Height:           780,
 		MinWidth:         760,
@@ -62,7 +63,7 @@ func main() {
 		StartHidden:      app.flags.background,
 		Frameless:        runtime.GOOS == "windows", // custom title-bar buttons in #top
 		SingleInstanceLock: &options.SingleInstanceLock{
-			UniqueId:               "com.blaze.desktop",
+			UniqueId:               "com.argus.desktop",
 			OnSecondInstanceLaunch: func(d options.SecondInstanceData) { go app.secondInstance(d.Args) },
 		},
 		DragAndDrop: &options.DragAndDrop{EnableFileDrop: true}, // files dropped on the window attach to the message
@@ -70,12 +71,12 @@ func main() {
 		Windows:     &windows.Options{Theme: windows.SystemDefault},
 		Mac: &mac.Options{
 			TitleBar: mac.TitleBarHiddenInset(),
-			About:    &mac.AboutInfo{Title: "Blaze", Message: "Blaze " + version, Icon: icon},
+			About:    &mac.AboutInfo{Title: brand.NAME, Message: brand.NAME + " " + version, Icon: icon},
 			OnUrlOpen: func(u string) {
 				go func() { app.waitReady(); app.routeURL(u) }()
 			},
 		},
-		Linux: &linux.Options{Icon: icon, ProgramName: "blaze"},
+		Linux: &linux.Options{Icon: icon, ProgramName: "argus"},
 	})
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -116,7 +117,7 @@ func runJob(name string) int {
 	defer env.Jobs.StopAll()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
 	defer cancel()
-	hist := []llm.Message{{Role: "system", Content: "You are Blaze running a scheduled job unattended on the user's PC. Do the task with your tools, then report the result briefly.\n\nPC PROFILE\n" + info.Summary()}, {Role: "user", Content: j.Prompt}}
+	hist := []llm.Message{{Role: "system", Content: "You are " + brand.NAME + " running a scheduled job unattended on the user's PC. Do the task with your tools, then report the result briefly.\n\nPC PROFILE\n" + info.Summary()}, {Role: "user", Content: j.Prompt}}
 	for step := 0; step < 30; step++ {
 		r, err := llm.Complete(ctx, cfg, hist, tools.All(), nil)
 		if err != nil {

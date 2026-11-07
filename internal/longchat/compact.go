@@ -1,10 +1,11 @@
 package longchat
 
 import (
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strconv"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // KeepTail is how many recent messages always go to the model word for word.
@@ -17,7 +18,7 @@ const FreeBudget = 12000
 // SummaryMax caps the state note (~800 tokens).
 const SummaryMax = 3200
 
-const SummarisePrompt = `You keep the state note of a long chat between a user and Blaze, an assistant that works on their computer. Update the note with the new turns below. Keep exactly these sections: Goal, Decisions (with why), Facts (names, numbers, paths and commands exactly), Open threads, Files touched. At most 800 tokens. Drop chit-chat and tool noise. Never invent anything. Reply with the note only.`
+const SummarisePrompt = `You keep the state note of a long chat between a user and ` + brand.NAME + `, an assistant that works on their computer. Update the note with the new turns below. Keep exactly these sections: Goal, Decisions (with why), Facts (names, numbers, paths and commands exactly), Open threads, Files touched. At most 800 tokens. Drop chit-chat and tool noise. Never invent anything. Reply with the note only.`
 
 // Tokens estimates a message list's prompt size (4 characters a token, plus calls).
 func Tokens(ms []llm.Message) int {

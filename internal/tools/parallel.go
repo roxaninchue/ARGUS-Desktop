@@ -1,7 +1,7 @@
 package tools
 
 // parallelSafe are tools that only read, with no approval prompt and no shared state,
-// so several of them from one model reply can run at the same time (the Blaze CLI's
+// so several of them from one model reply can run at the same time (the Argus CLI's
 // list, by Desktop names). Writes, commands, git, installs, schedules, anything that
 // asks for approval and system_info (it refreshes the shared PC profile) are left out:
 // they run one by one and end a run of reads.

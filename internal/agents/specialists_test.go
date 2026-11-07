@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 func write(t *testing.T, p, s string) {
@@ -38,7 +38,7 @@ func gitRepo(t *testing.T) string {
 	write(t, filepath.Join(dir, "a.txt"), "one\n")
 	write(t, filepath.Join(dir, "pkg", "b.txt"), "two\n")
 	// Pin line endings: Git for Windows defaults to core.autocrlf=true, which would turn
-	// these LF fixtures into CRLF on checkout. The tests check Blaze's logic, not git's.
+	// these LF fixtures into CRLF on checkout. The tests check Argus's logic, not git's.
 	for _, args := range [][]string{{"init", "-q"}, {"config", "core.autocrlf", "false"}, {"add", "-A"}, {"-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init"}} {
 		if _, err := git(dir, args...); err != nil {
 			t.Fatal(err)
@@ -50,11 +50,11 @@ func gitRepo(t *testing.T) string {
 func TestWorktreeIsolationApply(t *testing.T) {
 	repo := gitRepo(t)
 	dest := filepath.Join(t.TempDir(), "wt", "spec")
-	iso, err := Isolate(repo, dest, "blaze/spec")
+	iso, err := Isolate(repo, dest, "argus/spec")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if iso.Kind != "worktree" || iso.Branch != "blaze/spec" || iso.Workdir() != dest {
+	if iso.Kind != "worktree" || iso.Branch != "argus/spec" || iso.Workdir() != dest {
 		t.Fatalf("got %+v", iso)
 	}
 	// Work in the copy: the original stays untouched.
@@ -89,7 +89,7 @@ func TestWorktreeIsolationApply(t *testing.T) {
 	if _, err := os.Stat(dest); !os.IsNotExist(err) {
 		t.Fatal("worktree folder not removed")
 	}
-	if _, err := git(repo, "rev-parse", "--verify", "-q", "refs/heads/blaze/spec"); err == nil {
+	if _, err := git(repo, "rev-parse", "--verify", "-q", "refs/heads/argus/spec"); err == nil {
 		t.Fatal("branch not removed")
 	}
 }
@@ -97,11 +97,11 @@ func TestWorktreeIsolationApply(t *testing.T) {
 func TestWorktreeSubfolderAndParallelBranches(t *testing.T) {
 	repo := gitRepo(t)
 	root := t.TempDir()
-	a, err := Isolate(filepath.Join(repo, "pkg"), filepath.Join(root, "a"), "blaze/x")
+	a, err := Isolate(filepath.Join(repo, "pkg"), filepath.Join(root, "a"), "argus/x")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := Isolate(filepath.Join(repo, "pkg"), filepath.Join(root, "b"), "blaze/x")
+	b, err := Isolate(filepath.Join(repo, "pkg"), filepath.Join(root, "b"), "argus/x")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestCopyIsolationConflicts(t *testing.T) {
 	write(t, filepath.Join(src, "b.txt"), "b\n")
 	write(t, filepath.Join(src, "node_modules", "big.js"), "skip me")
 	dest := filepath.Join(t.TempDir(), "copy")
-	iso, err := Isolate(src, dest, "blaze/c")
+	iso, err := Isolate(src, dest, "argus/c")
 	if err != nil {
 		t.Fatal(err)
 	}

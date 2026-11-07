@@ -1,7 +1,7 @@
 package longchat
 
 // Topic state (v0.19, internal/topics): one JSON row per chat in a NEW table of
-// longchat.db. Additive only: older builds and Blaze CLI never read it, and a chat with
+// longchat.db. Additive only: older builds and Argus CLI never read it, and a chat with
 // no row simply starts a fresh topic state (its turns are re-read lexically, never with
 // model calls). The FTS index (chat_fts) is untouched: every turn stays searchable.
 
@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/topics"
+	"github.com/lacksonkapapahue/argus-desktop/internal/topics"
 )
 
 // topicSchema is created with the v0.18 schema in Open (all IF NOT EXISTS).

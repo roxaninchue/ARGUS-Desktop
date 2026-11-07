@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"strconv"
@@ -13,12 +14,12 @@ import (
 	"time"
 )
 
-// Client talks to the gateway's /v1/sync routes with a Blaze account session.
+// Client talks to the gateway's /v1/sync routes with an Argus account session.
 type Client struct {
 	Base  string // gateway root, e.g. https://blaze-gateway.blaze-app.workers.dev (no /v1)
-	Token string // Blaze account session (bz_…)
+	Token string // Argus account session (bz_…)
 	HTTP  *http.Client
-	// UserAgent defaults to "Blaze-Desktop" (Blaze CLI passes "Blaze-CLI").
+	// UserAgent defaults to "Argus-Desktop" (Argus CLI passes "Argus-CLI").
 	UserAgent string
 }
 
@@ -116,7 +117,7 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 	req.Header.Set("Accept", "application/json")
 	ua := c.UserAgent
 	if ua == "" {
-		ua = "Blaze-Desktop"
+		ua = brand.NAME + "-Desktop"
 	}
 	req.Header.Set("User-Agent", ua)
 	req.Header.Set("Authorization", "Bearer "+c.Token)

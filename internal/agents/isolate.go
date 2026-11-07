@@ -3,7 +3,7 @@ package agents
 // Isolation (v0.6.0): a Build-mode specialist that works on code gets its own copy of
 // the folder, so parallel specialists never trample each other or the user's files.
 //
-//   git repo   a git worktree on its own branch (blaze/<handle>), sharing the repo's
+//   git repo   a git worktree on its own branch (argus/<handle>), sharing the repo's
 //              objects: cheap on disk and instant to create.
 //   otherwise  a plain copy of the folder (heavy caches like node_modules skipped)
 //              with a manifest of what each file looked like, so Apply can tell what
@@ -19,8 +19,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/hidecmd"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/sysinfo"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
+	"github.com/lacksonkapapahue/argus-desktop/internal/hidecmd"
+	"github.com/lacksonkapapahue/argus-desktop/internal/sysinfo"
 	"io"
 	"io/fs"
 	"os"
@@ -65,7 +66,7 @@ var (
 )
 
 // skipDirs are never copied (rebuildable caches); the specialist reinstalls if needed.
-var skipDirs = map[string]bool{".git": true, "node_modules": true, ".venv": true, "venv": true, "__pycache__": true, ".next": true, ".cache": true, ".gradle": true, ".blaze-worktrees": true}
+var skipDirs = map[string]bool{".git": true, "node_modules": true, ".venv": true, "venv": true, "__pycache__": true, ".next": true, ".cache": true, ".gradle": true, ".argus-worktrees": true}
 
 // hideCmd keeps git from flashing a console window on Windows (set in proc_windows.go).
 var hideCmd = func(*exec.Cmd) {}
@@ -216,7 +217,7 @@ func (iso *Isolation) CarryDirty() error {
 	if _, err := git(iso.Path, "add", "-A"); err != nil {
 		return err
 	}
-	if _, err := git(iso.Path, "-c", "user.name=Blaze", "-c", "user.email=blaze@localhost", "commit", "-q", "--no-verify", "-m", "Uncommitted work at the start"); err != nil {
+	if _, err := git(iso.Path, "-c", "user.name="+brand.NAME, "-c", "user.email=argus@localhost", "commit", "-q", "--no-verify", "-m", "Uncommitted work at the start"); err != nil {
 		return err
 	}
 	base, err := git(iso.Path, "rev-parse", "HEAD")
@@ -452,9 +453,9 @@ func (iso *Isolation) Apply(message string) (string, error) {
 	}
 	if iso.Kind == "worktree" {
 		if strings.TrimSpace(message) == "" {
-			message = "Blaze specialist changes"
+			message = brand.NAME + " specialist changes"
 		}
-		_, _ = git(iso.Path, "-c", "user.name=Blaze", "-c", "user.email=blaze@localhost", "commit", "-q", "--no-verify", "-m", message)
+		_, _ = git(iso.Path, "-c", "user.name="+brand.NAME, "-c", "user.email=argus@localhost", "commit", "-q", "--no-verify", "-m", message)
 		patch, err := git(iso.Path, "diff", "--binary", iso.Base, "HEAD")
 		if err != nil {
 			return "", err

@@ -2,8 +2,8 @@ package main
 
 // v0.19.14: "ack now, work in background, report when done" (Site RUNS_ACK_CONTRACT, gateway 0.8.38).
 //
-// Blaze Cloud (work chats, not private, not Design): every turn is a Cloud run (POST /v1/runs with
-// the user's IANA tz). The 202's ack line shows at once as a plain Blaze bubble and the turn ends
+// Argus Cloud (work chats, not private, not Design): every turn is a Cloud run (POST /v1/runs with
+// the user's IANA tz). The 202's ack line shows at once as a plain Argus bubble and the turn ends
 // there, so the composer is free; the run keeps going on the gateway (also when the window
 // closes), this computer answers its device tool calls, and the final lands later as one plain
 // message. No ack (greetings, thanks, chat, questions): the normal typing state until the reply.
@@ -13,11 +13,12 @@ package main
 // or "Couldn't finish" message lands when it ends. Anything else runs as before.
 //
 // No "working" notices. A final that lands while the window isn't focused sends exactly one
-// desktop notification, worded like a text from Blaze; nothing while it is focused.
+// desktop notification, worded like a text from Argus; nothing while it is focused.
 
 import (
 	"context"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/runevents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
+	"github.com/lacksonkapapahue/argus-desktop/internal/runevents"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -27,21 +28,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/notify"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/persona"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudai"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/notify"
+	"github.com/lacksonkapapahue/argus-desktop/internal/persona"
+	"github.com/lacksonkapapahue/argus-desktop/internal/privacy"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 // bgRuns follows Cloud runs and delivers every final (runs and local) exactly once.
 var bgRuns *bgrun.Manager
 
-// Test ports: the gateway's runs API, "is Blaze Cloud on", the device tool runner and the clock
+// Test ports: the gateway's runs API, "is Argus Cloud on", the device tool runner and the clock
 // of polls. nil means the real thing.
 var (
 	runsAPIOverride bgrun.API
@@ -77,7 +78,7 @@ func (a *App) SetTimeZone(tz string) {
 	}
 }
 
-// windowFocused: Blaze's window is on screen and focused.
+// windowFocused: Argus's window is on screen and focused.
 func (a *App) windowFocused() bool {
 	a.sh.mu.Lock()
 	v := a.sh.visible
@@ -125,18 +126,18 @@ func (a *App) runsAPI() bgrun.API {
 	if cloudModels == nil || cloudModels.GW == nil {
 		return nil
 	}
-	return &bgrun.HTTP{Base: cloudModels.GW.Base, Token: a.blazeToken, HC: cloudModels.GW.HC}
+	return &bgrun.HTTP{Base: cloudModels.GW.Base, Token: a.argusToken, HC: cloudModels.GW.HC}
 }
 
-// runsOn: Blaze Cloud answers and Cloud runs aren't switched off (BLAZE_RUNS=0).
+// runsOn: Argus Cloud answers and Cloud runs aren't switched off (ARGUS_RUNS=0).
 func (a *App) runsOn() bool {
 	if runsOnOverride != nil {
 		return runsOnOverride()
 	}
-	if os.Getenv("BLAZE_RUNS") == "0" {
+	if os.Getenv(brand.UPPER+"_RUNS") == "0" {
 		return false
 	}
-	return cloudModelsOn() && a.blazeToken() != ""
+	return cloudModelsOn() && a.argusToken() != ""
 }
 
 // startBgRuns sets up the follower and picks up runs left from the last session.
@@ -213,7 +214,7 @@ func (a *App) emitRun(conv string, evs ...runevents.Ev) {
 
 var lastResume atomic.Int64
 
-// resumeRuns: GET /v1/runs and pick up our unfinished runs (finals that landed while Blaze was
+// resumeRuns: GET /v1/runs and pick up our unfinished runs (finals that landed while Argus was
 // away, device tool calls waiting for this computer). every throttles repeated calls.
 func (a *App) resumeRuns(every time.Duration) {
 	m := a.ensureBgRuns()
@@ -231,7 +232,7 @@ func (a *App) resumeRuns(every time.Duration) {
 }
 
 func (a *App) runsAPIOK() bool {
-	return runsAPIOverride != nil || a.blazeToken() != ""
+	return runsAPIOverride != nil || a.argusToken() != ""
 }
 
 // bgCtx lives as long as the app (background follows).
@@ -280,7 +281,7 @@ func (a *App) bgTurn(ctx context.Context, s *session, in agents.Input) bool {
 }
 
 // runRequest is the run's messages and tools: the same system prompt and history as a classic
-// turn, Blaze's own tools (they run on this computer when the gateway asks).
+// turn, Argus's own tools (they run on this computer when the gateway asks).
 func (a *App) runRequest(ctx context.Context, s *session) ([]llm.Message, []llm.Tool) {
 	a.mu.Lock()
 	full := append([]llm.Message(nil), s.hist...)
@@ -298,11 +299,11 @@ func (a *App) runRequest(ctx context.Context, s *session) ([]llm.Message, []llm.
 	if a.conn != nil {
 		all = append(all, a.conn.Tools()...)
 	}
-	all = append(all, updateBlazeTool(), weatherTool())
+	all = append(all, updateArgusTool(), weatherTool())
 	return msgs, a.modeTools(all)
 }
 
-// cloudRun is one Blaze Cloud turn as a Cloud run. false: the gateway couldn't take it (an older
+// cloudRun is one Argus Cloud turn as a Cloud run. false: the gateway couldn't take it (an older
 // gateway, too large, unreachable), so the classic loop answers instead.
 // intent is the app's own read of the request (bgAction): it is an action, so when the gateway
 // sends no ack line (live 0.19.14: "Run this command and tell me its output" came back without
@@ -358,7 +359,7 @@ func (a *App) cloudRun(ctx context.Context, s *session, last, intent string) boo
 	m.Track(e)
 	if ack != "" {
 		a.emitRun(s.id, runevents.For(cr, e.ClientMsgID).Ack()...)
-		// The promise, at once, as a plain Blaze bubble. The turn ends here: the composer is free
+		// The promise, at once, as a plain Argus bubble. The turn ends here: the composer is free
 		// while the run works, and the final lands as its own message.
 		a.showAck(s, ack)
 		a.finishTurn(s)
@@ -437,7 +438,7 @@ func dropAcks(h []llm.Message) []llm.Message {
 // the no-ack foreground follow (kept for a run with no ack at all) switch it off.
 var cloudLocalAck = true
 
-// showAck shows the ack as Blaze's bubble and keeps it in the chat.
+// showAck shows the ack as Argus's bubble and keeps it in the chat.
 func (a *App) showAck(s *session, line string) {
 	a.temit(s, "delta", line)
 	a.mu.Lock()
@@ -492,14 +493,14 @@ func (a *App) deliverFinal(e bgrun.Entry, f bgrun.Final) {
 	}
 	ev := map[string]any{"conv": e.Conv, "text": msg.Content, "kind": f.Kind, "run_id": e.RunID}
 	if eventTap != nil {
-		eventTap("blaze_msg", ev)
+		eventTap("argus_msg", ev)
 	}
-	a.emit("blaze_msg", ev)
+	a.emit("argus_msg", ev)
 }
 
 // insertFinal adds a background final to a chat's history. While a newer turn is running in that
 // chat, the final goes in before that turn's user message: appended after it, the running turn
-// (and any retry it builds from the history) would see the chat end on Blaze's "Done ✓" instead of
+// (and any retry it builds from the history) would see the chat end on Argus's "Done ✓" instead of
 // the user's question, and could answer the old task again (live 0.19.14 N3 run 1).
 func insertFinal(hist []llm.Message, msg llm.Message, running bool) []llm.Message {
 	if running {
@@ -525,9 +526,9 @@ func (a *App) notifyFinal(conv, text string) {
 		return
 	}
 	if isPrivate(conv) {
-		text = "Blaze answered in your private chat."
+		text = brand.NAME + " answered in your private chat."
 	}
-	_, _ = a.send(notify.Note{Title: "Blaze", Body: text, Kind: "task", Chat: conv})
+	_, _ = a.send(notify.Note{Title: brand.NAME, Body: text, Kind: "task", Chat: conv})
 }
 
 // notifyTap lets tests see the desktop notifications.
@@ -535,7 +536,7 @@ var notifyTap func(conv, text string)
 
 // ---------------- device tools ----------------
 
-var badResult = regexp.MustCompile(`^(Error|exit [1-9]|Refused|Blaze couldn't|Tool error)|did NOT approve`)
+var badResult = regexp.MustCompile(`^(Error|exit [1-9]|Refused|` + brand.NAME + ` couldn't|Tool error)|did NOT approve`)
 
 // toolFailed is a tool result that says it didn't work (same rule as the chat's step rows).
 func toolFailed(res string) bool { return badResult.MatchString(strings.TrimSpace(res)) }
@@ -555,7 +556,7 @@ func (a *App) deviceFor(conv string) bgrun.Device {
 			out = a.modeBlock(name, args)
 		case agents.IsMainTool(name):
 			out = "Error: background agents aren't available in Cloud runs."
-		case name == "update_blaze":
+		case name == "update_argus":
 			out = a.selfUpdate()
 		case name == "get_weather":
 			out = a.runWeather(ctx, args)
@@ -687,7 +688,7 @@ func (a *App) localBg(s *session, last string) bool {
 		sh.env = &e
 	}
 	a.mu.Unlock()
-	// A local run: this computer has the message at once, and the ack is Blaze reading it.
+	// A local run: this computer has the message at once, and the ack is Argus reading it.
 	a.emitRun(s.id, runevents.Accepted(&bgrun.Created{RunID: id}, ""))
 	trMu.Lock()
 	a.emitRun(s.id, tr.Ack()...)

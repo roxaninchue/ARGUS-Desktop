@@ -1,11 +1,11 @@
-// Package home is the desktop port of Blaze Mobile's Home board (v0.29+): widgets (a definition: what to
+// Package home is the desktop port of Argus Mobile's Home board (v0.29+): widgets (a definition: what to
 // show and how big) and their last fetched content, the free keyless web sources (Open-Meteo, Google News
 // RSS, CoinGecko, open.er-api.com, Yahoo's public chart, TheSportsDB, GitHub's public API), the
 // plain-words widget parser, category stacks and the greeting. Everything here is pure Go with an
 // injectable network so it is unit tested; the desktop-only cards (schedule, deadlines, recents) are built
 // from data the caller passes in (home_app.go reads sched, mind and prefs).
 //
-// Storage is one new file, ~/.blaze/desktop/home.json (store.go). Nothing existing changes.
+// Storage is one new file, ~/.argus/desktop/home.json (store.go). Nothing existing changes.
 package home
 
 import (
@@ -16,7 +16,7 @@ import (
 )
 
 // Widget types. Mobile's phone-only types (apps = Usage access, calendar = the phone's calendar provider)
-// are not ported; schedule (Blaze's timed jobs and reminders) and recents are desktop-only.
+// are not ported; schedule (Argus's timed jobs and reminders) and recents are desktop-only.
 const (
 	Weather   = "weather"
 	News      = "news"

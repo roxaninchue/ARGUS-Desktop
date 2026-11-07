@@ -1,4 +1,4 @@
-// Package persona is Blaze's shared voice (v0.19.8): the same system prompt in every Blaze app,
+// Package persona is Argus's shared voice (v0.19.8): the same system prompt in every Argus app,
 // published by the downloads site at https://blazeinchue.pages.dev/persona.json. It is sent as the
 // FIRST system message, byte-identical every turn (prompt caching); app instructions follow in a
 // second system message. A bundled copy of v1 is the fallback; the site's copy is cached on disk
@@ -10,6 +10,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"os"
@@ -102,7 +103,7 @@ func Refresh(ctx context.Context, dir string, hc *http.Client) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", "Blaze-Desktop")
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop")
 	resp, err := hc.Do(req)
 	if err != nil {
 		return err

@@ -286,7 +286,7 @@ func catastrophicPath(p string) bool {
 		if rel, err := filepath.Rel(c, h); err == nil && !strings.HasPrefix(rel, "..") {
 			return true // a parent of the home folder
 		}
-		for _, d := range []string{".blaze", ".ssh", "Desktop", "Documents"} {
+		for _, d := range []string{".argus", ".ssh", "Desktop", "Documents"} {
 			if eqPath(c, filepath.Join(h, d)) {
 				return true
 			}

@@ -2,7 +2,7 @@ package studio
 
 // Artboards (v0.9.0): "design anything". A design that isn't a web page (a slide, a
 // social post, a poster, an app screen, an email, an icon) is still one HTML file,
-// with a fixed frame declared in <meta name="blaze-artboard" content="<id> <W>x<H>">.
+// with a fixed frame declared in <meta name="argus-artboard" content="<id> <W>x<H>">.
 // The preview draws that frame scaled to fit, the critic and write-back work as for any
 // page, and Export renders it to PNG or PDF with the computer's own Chrome or Edge.
 
@@ -11,6 +11,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"html"
 	"os"
 	"os/exec"
@@ -55,7 +56,7 @@ func FormatByID(id string) (Format, bool) {
 	return Format{}, false
 }
 
-var boardMetaRe = regexp.MustCompile(`(?is)<meta\s+[^>]*name\s*=\s*["']blaze-artboard["'][^>]*>`)
+var boardMetaRe = regexp.MustCompile(`(?is)<meta\s+[^>]*name\s*=\s*["']argus-artboard["'][^>]*>`)
 var boardContentRe = regexp.MustCompile(`(?is)content\s*=\s*["']([^"']*)["']`)
 var boardSizeRe = regexp.MustCompile(`^(\d{2,5})x(\d{2,5})$`)
 
@@ -115,7 +116,7 @@ func Template(f Format, title string, b Brand) []byte {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="blaze-artboard" content="%s %dx%d">
+<meta name="argus-artboard" content="%s %dx%d">
 <title>%s</title>
 <style>
   :root { --bg: %s; --ink: %s; --accent: %s; }
@@ -133,7 +134,7 @@ func Template(f Format, title string, b Brand) []byte {
 
 // Prompt tells the model how to work inside an artboard.
 func (f Format) Prompt() string {
-	s := fmt.Sprintf("ARTBOARD: this design is a %s (%s), a fixed %d×%d px frame declared by <meta name=\"blaze-artboard\">. Keep that meta and keep html/body exactly %dpx × %dpx with overflow hidden; everything must fit inside, nothing scrolls. One self-contained HTML file: inline CSS, inline SVG for shapes and icons, real text (never images of text).", f.Name, f.Hint, f.W, f.H, f.W, f.H)
+	s := fmt.Sprintf("ARTBOARD: this design is a %s (%s), a fixed %d×%d px frame declared by <meta name=\"argus-artboard\">. Keep that meta and keep html/body exactly %dpx × %dpx with overflow hidden; everything must fit inside, nothing scrolls. One self-contained HTML file: inline CSS, inline SVG for shapes and icons, real text (never images of text).", f.Name, f.Hint, f.W, f.H, f.W, f.H)
 	if f.Print != "" {
 		s += fmt.Sprintf(" It will be printed on %s: keep @page { size: %s; margin: 0 }, keep text 8 mm or more from the edges, use solid colours that print well.", f.Print, f.Print)
 	}
@@ -174,7 +175,7 @@ var ErrNoBrowser = errors.New("export needs Google Chrome, Microsoft Edge, Chrom
 
 // FindBrowser locates a Chromium-based browser for headless rendering.
 func FindBrowser() string {
-	if p := os.Getenv("BLAZE_BROWSER"); p != "" {
+	if p := os.Getenv(brand.UPPER + "_BROWSER"); p != "" {
 		return p
 	}
 	var cands []string
@@ -222,7 +223,7 @@ func Export(ctx context.Context, url string, f Format, kind, out string) error {
 	if err := os.MkdirAll(filepath.Dir(out), 0o755); err != nil {
 		return err
 	}
-	prof, err := os.MkdirTemp("", "blaze-export-*")
+	prof, err := os.MkdirTemp("", "argus-export-*")
 	if err != nil {
 		return err
 	}

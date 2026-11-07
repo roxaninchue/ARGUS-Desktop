@@ -5,13 +5,14 @@ package main
 // summary is the model's: after csv_report the agent writes a short summary from the numbers it
 // was given and hands it to csv_summary, which puts it into the report (csvkit.Report.SetSummary)
 // and rewrites the Markdown and PDF. Tools run on this computer, so this works the same when
-// Blaze Cloud answers the turn. Until then the report says the summary is pending. Reachable two ways: the csv_report tool the agent calls, and the CSV
+// Argus Cloud answers the turn. Until then the report says the summary is pending. Reachable two ways: the csv_report tool the agent calls, and the CSV
 // button on a composer chip / the + menu (CSVReport).
 
 import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -22,9 +23,9 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/csvkit"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/csvkit"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 // CSVRequest is what the CSV view (or a chip's CSV button) asks for.
@@ -43,7 +44,7 @@ type CSVResult struct {
 	Error    string         `json:"error,omitempty"`
 }
 
-// csvCharts maps the ids handed out in chart URLs to the PNG/SVG files Blaze wrote, so the
+// csvCharts maps the ids handed out in chart URLs to the PNG/SVG files Argus wrote, so the
 // asset server only ever serves those files.
 var csvCharts = struct {
 	sync.Mutex
@@ -161,7 +162,7 @@ func (a *App) CSVOpen(p string) string {
 	ok := csvCharts.files[p]
 	csvCharts.Unlock()
 	if !ok {
-		return "That file isn't one Blaze wrote for a CSV report."
+		return "That file isn't one " + brand.NAME + " wrote for a CSV report."
 	}
 	var c *exec.Cmd
 	switch runtime.GOOS {

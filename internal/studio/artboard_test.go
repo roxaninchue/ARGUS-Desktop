@@ -29,10 +29,10 @@ func TestArtboardTemplateRoundTrip(t *testing.T) {
 	if _, ok := ParseArtboard([]byte("<html><head><title>x</title></head></html>")); ok {
 		t.Fatal("a web page isn't an artboard")
 	}
-	if f, ok := ParseArtboard([]byte(`<meta content="640x480" name='blaze-artboard'>`)); !ok || f.ID != "custom" || f.W != 640 {
+	if f, ok := ParseArtboard([]byte(`<meta content="640x480" name='argus-artboard'>`)); !ok || f.ID != "custom" || f.W != 640 {
 		t.Fatalf("custom size: %+v %v", f, ok)
 	}
-	if f, ok := ParseArtboard([]byte(`<meta name="blaze-artboard" content="slide">`)); !ok || f.W != 1920 || f.H != 1080 {
+	if f, ok := ParseArtboard([]byte(`<meta name="argus-artboard" content="slide">`)); !ok || f.W != 1920 || f.H != 1080 {
 		t.Fatalf("id only: %+v %v", f, ok)
 	}
 }

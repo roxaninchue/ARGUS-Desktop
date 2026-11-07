@@ -7,7 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/hidecmd"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
+	"github.com/lacksonkapapahue/argus-desktop/internal/hidecmd"
 	"io"
 	"net/http"
 	"net/url"
@@ -86,7 +87,7 @@ func (c *mcpClient) initialize(ctx context.Context, version string) error {
 	res, err := c.request(ctx, "initialize", map[string]any{
 		"protocolVersion": mcpProtocol,
 		"capabilities":    map[string]any{},
-		"clientInfo":      map[string]any{"name": "Blaze Desktop", "version": version},
+		"clientInfo":      map[string]any{"name": brand.NAME + " Desktop", "version": version},
 	})
 	if err != nil {
 		return err
@@ -383,7 +384,7 @@ func (p *streamPeer) deliver(data []byte) {
 			if m.Method == "ping" {
 				reply.Result = json.RawMessage("{}")
 			} else {
-				reply.Error = &rpcError{Code: -32601, Message: "Blaze doesn't support " + m.Method}
+				reply.Error = &rpcError{Code: -32601, Message: brand.NAME + " doesn't support " + m.Method}
 			}
 			b, _ := json.Marshal(reply)
 			go func() { _ = p.send(context.Background(), b) }()
@@ -631,7 +632,7 @@ func (r *ringBuf) String() string {
 }
 
 // mcpToolName is how a server's tool appears to the model: mcp__<server>__<tool>
-// (the convention Blaze CLI and other MCP hosts use; server ids never contain "_").
+// (the convention Argus CLI and other MCP hosts use; server ids never contain "_").
 func mcpToolName(server, tool string) string {
 	var b strings.Builder
 	for _, r := range tool {

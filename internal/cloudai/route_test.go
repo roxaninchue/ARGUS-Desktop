@@ -15,13 +15,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 const goodToken = "bz_abcdefghijklmnopqrstuvwxyz0123"
 
-// fakeGateway is the Blaze gateway's API surface: POST /v1/chat/completions, GET /v1/models.
+// fakeGateway is the Argus gateway's API surface: POST /v1/chat/completions, GET /v1/models.
 type fakeGateway struct {
 	mu     sync.Mutex
 	bodies []map[string]any
@@ -34,7 +34,7 @@ func (f *fakeGateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.URL.Path == "/v1/models" && r.Method == "GET":
 		if r.Header.Get("Authorization") != "Bearer "+goodToken {
 			w.WriteHeader(403)
-			io.WriteString(w, `{"error":{"message":"You're on the Blaze waiting list.","type":"permission_error","code":"waitlisted"}}`)
+			io.WriteString(w, `{"error":{"message":"You're on the Argus waiting list.","type":"permission_error","code":"waitlisted"}}`)
 			return
 		}
 		io.WriteString(w, `{"object":"list","data":[{"id":"blaze-auto"}]}`)
@@ -73,11 +73,11 @@ func newGW(t *testing.T, f *fakeGateway, token string) (*Gateway, func()) {
 }
 
 func TestBaseFrom(t *testing.T) {
-	t.Setenv("BLAZE_GATEWAY_URL", "")
+	t.Setenv("ARGUS_GATEWAY_URL", "")
 	if BaseFrom("") != DefaultBase || BaseFrom("https://x.dev/") != "https://x.dev/v1" || BaseFrom("https://x.dev/v1") != "https://x.dev/v1" {
 		t.Error("base")
 	}
-	t.Setenv("BLAZE_GATEWAY_URL", "http://127.0.0.1:9")
+	t.Setenv("ARGUS_GATEWAY_URL", "http://127.0.0.1:9")
 	if BaseFrom("https://x.dev") != "http://127.0.0.1:9/v1" {
 		t.Error("env wins")
 	}
@@ -92,7 +92,7 @@ func TestGatewayRequestShape(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Text != "Hello" || got.String() != "Hello" || r.Route != "Blaze Cloud" || r.Model != Model || r.Provider != ProviderID {
+	if r.Text != "Hello" || got.String() != "Hello" || r.Route != "Argus Cloud" || r.Model != Model || r.Provider != ProviderID {
 		t.Fatalf("result %+v / %q", r, got.String())
 	}
 	b := f.bodies[0]
@@ -146,8 +146,8 @@ func TestGatewayErrorsAndRetries(t *testing.T) {
 		want   string
 		calls  int
 	}{
-		{401, `{"error":{"message":"Your Blaze session has expired.","code":"invalid_api_key"}}`, Expired, 1},
-		{403, `{"error":{"message":"You're on the Blaze waiting list.","code":"waitlisted"}}`, Waitlisted, 1},
+		{401, `{"error":{"message":"Your Argus session has expired.","code":"invalid_api_key"}}`, Expired, 1},
+		{403, `{"error":{"message":"You're on the Argus waiting list.","code":"waitlisted"}}`, Waitlisted, 1},
 		{403, `{"error":{"message":"no","code":"access_rejected"}}`, Rejected, 1},
 		{429, `{"error":{"message":"Daily allowance used","code":"quota_exceeded"}}`, Allowance, 1},
 		{500, `{"error":{"message":"Something went wrong in the gateway","code":"internal_error"}}`, Busy, 3},
@@ -220,7 +220,7 @@ func TestCheckWaitlisted(t *testing.T) {
 func TestChoiceLoadSave(t *testing.T) {
 	dir := t.TempDir()
 	if c := LoadChoice(dir, false); !c.Cloud() {
-		t.Error("new users start on Blaze Cloud")
+		t.Error("new users start on Argus Cloud")
 	}
 	if c := LoadChoice(dir, true); c.Cloud() {
 		t.Error("a person who picked their own model keeps Custom")
@@ -284,7 +284,7 @@ func fakeProvider(status int, text string, seen *[]string) *httptest.Server {
 }
 
 func customCfg(t *testing.T, base string) *config.Config {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	cfg := config.Load()
 	cfg.CustomBase = base
 	cfg.Chain = []config.Entry{{Provider: config.Custom, Model: "my-model"}}
@@ -350,7 +350,7 @@ func TestCustomFailureNoSilentSwitch(t *testing.T) {
 		t.Fatalf("no silent switch: %v gw=%d", err, len(gwf.bodies))
 	}
 	line := llm.Plain(err)
-	if !strings.HasPrefix(line, "Your custom model couldn't answer") || !strings.Contains(line, "Blaze Cloud wasn't asked") {
+	if !strings.HasPrefix(line, "Your custom model couldn't answer") || !strings.Contains(line, "Argus Cloud wasn't asked") {
 		t.Errorf("line: %q", line)
 	}
 	var re *llm.RouteError
@@ -361,7 +361,7 @@ func TestCustomFailureNoSilentSwitch(t *testing.T) {
 	_ = rt.Update(func(c *Choice) { c.FallbackToCloud = true })
 	var status []string
 	r, err, _ := rt.Complete(context.Background(), cfg, user("hello"), nil, llm.Opts{OnStatus: func(s string) { status = append(status, s) }})
-	if err != nil || r.Text != "from cloud" || r.Note != "Your custom model couldn't answer, so Blaze Cloud did." || len(status) != 1 {
+	if err != nil || r.Text != "from cloud" || r.Note != "Your custom model couldn't answer, so Argus Cloud did." || len(status) != 1 {
 		t.Fatalf("fallback: %v %v %v", r, err, status)
 	}
 }

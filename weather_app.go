@@ -1,7 +1,7 @@
 package main
 
-// get_weather (v0.19.7, gateway 0.6.8): weather always comes from Blaze Cloud's /v1/weather, in chat
-// and on the Home card, so the two agree and Blaze never answers weather from a web search or a
+// get_weather (v0.19.7, gateway 0.6.8): weather always comes from Argus Cloud's /v1/weather, in chat
+// and on the Home card, so the two agree and Argus never answers weather from a web search or a
 // guess. Place names are turned into coordinates first; with no place, the PC's approximate
 // location is used.
 
@@ -10,12 +10,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/home"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudai"
+	"github.com/lacksonkapapahue/argus-desktop/internal/home"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // weatherLine goes at the end of every system prompt. v0.19.13: it also routes news and other
@@ -66,7 +67,7 @@ func (a *App) runWeather(ctx context.Context, raw string) string {
 func weatherErr(err error) string {
 	switch {
 	case errors.Is(err, cloudai.ErrSignedOut):
-		return "Weather is unavailable: sign in to your Blaze account (Settings › Account) to get weather. Don't guess or search for it."
+		return "Weather is unavailable: sign in to your " + brand.NAME + " account (Settings › Account) to get weather. Don't guess or search for it."
 	default:
 		return "Weather is unavailable right now (weather_unavailable). Tell the user; don't guess or search for it."
 	}
@@ -104,7 +105,7 @@ func weatherPlace(ctx context.Context, lat, lon *float64, place string) (float64
 	return p.Lat, p.Lon, p.Name, nil
 }
 
-// homeWeatherNow feeds the Home weather card the same Blaze Cloud numbers chat gets.
+// homeWeatherNow feeds the Home weather card the same Argus Cloud numbers chat gets.
 func homeWeatherNow(ctx context.Context, lat, lon float64, fahrenheit bool) (home.Current, error) {
 	units := "metric"
 	if fahrenheit {

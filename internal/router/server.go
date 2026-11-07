@@ -11,13 +11,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 const maxBody = 64 << 20
@@ -34,7 +35,7 @@ func (r *Router) Handler() http.Handler {
 	mux.HandleFunc("/v1/messages/count_tokens", r.handleCountTokens)
 	mux.HandleFunc("/v1beta/models/", r.handleGemini)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, req *http.Request) {
-		writeJSON(w, 200, map[string]any{"ok": true, "name": "BlazeRouter", "version": r.opt.Version})
+		writeJSON(w, 200, map[string]any{"ok": true, "name": brand.NAME + "Router", "version": r.opt.Version})
 	})
 	mux.HandleFunc("/api/", r.handleAPI)
 	mux.HandleFunc("/dashboard", func(w http.ResponseWriter, req *http.Request) { http.Redirect(w, req, "/dashboard/", http.StatusFound) })
@@ -48,7 +49,7 @@ func (r *Router) Handler() http.Handler {
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if !localHost(req.Host) {
-			http.Error(w, "BlazeRouter only answers requests addressed to this computer", http.StatusForbidden)
+			http.Error(w, brand.NAME+"Router only answers requests addressed to this computer", http.StatusForbidden)
 			return
 		}
 		api := strings.HasPrefix(req.URL.Path, "/v1") || req.URL.Path == "/chat/completions" || req.URL.Path == "/models"
@@ -62,7 +63,7 @@ func (r *Router) Handler() http.Handler {
 				return
 			}
 			if !r.authorized(req) {
-				msg := "BlazeRouter needs its API key: Authorization: Bearer <key>. Copy it from the dashboard (Blaze's top bar › BlazeRouter)."
+				msg := brand.NAME + "Router needs its API key: Authorization: Bearer <key>. Copy it from the dashboard (" + brand.NAME + "'s top bar › " + brand.NAME + "Router)."
 				switch {
 				case strings.HasPrefix(req.URL.Path, "/v1/messages"):
 					writeJSON(w, 401, anthropicError(401, msg))
@@ -114,10 +115,10 @@ func readBody(req *http.Request) (map[string]any, error) {
 func flush(w http.ResponseWriter) { _ = http.NewResponseController(w).Flush() }
 
 func routeHeaders(w http.ResponseWriter, up *upstream) {
-	w.Header().Set("X-BlazeRouter-Provider", up.t.Provider)
-	w.Header().Set("X-BlazeRouter-Model", up.t.Model)
+	w.Header().Set("X-"+brand.NAME+"Router-Provider", up.t.Provider)
+	w.Header().Set("X-"+brand.NAME+"Router-Model", up.t.Model)
 	if up.plan.Combo != "" {
-		w.Header().Set("X-BlazeRouter-Combo", up.plan.Combo)
+		w.Header().Set("X-"+brand.NAME+"Router-Combo", up.plan.Combo)
 	}
 }
 
@@ -147,7 +148,7 @@ func (r *Router) route(ctx context.Context, body map[string]any, stream bool) (*
 	asked := str(body["model"])
 	pl, err := r.plan(asked, len(list(body["tools"])) > 0)
 	if err != nil {
-		return nil, pl, fmt.Errorf("model %q isn't one BlazeRouter knows: use auto, a combo, or provider/model (GET /v1/models lists them): %w", asked, err)
+		return nil, pl, fmt.Errorf("model %q isn't one "+brand.NAME+"Router knows: use auto, a combo, or provider/model (GET /v1/models lists them): %w", asked, err)
 	}
 	saved := Compress(body, r.Settings().Compression)
 	up, err := r.dispatch(ctx, body, pl, stream)
@@ -296,7 +297,7 @@ type modelEntry struct {
 	Created int64  `json:"created"`
 	OwnedBy string `json:"owned_by"`
 	Name    string `json:"name,omitempty"`
-	Kind    string `json:"blazerouter_kind,omitempty"` // combo, model
+	Kind    string `json:"argusrouter_kind,omitempty"` // combo, model
 	Free    bool   `json:"free,omitempty"`
 	Tools   string `json:"tools,omitempty"`
 }
@@ -311,10 +312,10 @@ func (r *Router) ModelList() []modelEntry {
 		if p.ID != "auto" {
 			name = "Auto " + p.Name
 		}
-		out = append(out, modelEntry{ID: p.ID, Object: "model", Created: now, OwnedBy: "blazerouter", Name: name + ": " + p.Desc, Kind: "combo", Free: true})
+		out = append(out, modelEntry{ID: p.ID, Object: "model", Created: now, OwnedBy: "argusrouter", Name: name + ": " + p.Desc, Kind: "combo", Free: true})
 	}
 	for _, c := range r.Settings().Combos {
-		out = append(out, modelEntry{ID: c.ID, Object: "model", Created: now, OwnedBy: "blazerouter", Name: c.Name, Kind: "combo"})
+		out = append(out, modelEntry{ID: c.ID, Object: "model", Created: now, OwnedBy: "argusrouter", Name: c.Name, Kind: "combo"})
 	}
 	cfg := r.cfg()
 	for _, p := range routable() {
@@ -365,7 +366,7 @@ func (r *Router) handleEmbeddings(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	cfg := r.cfg()
-	asked := strings.TrimPrefix(str(body["model"]), "blazerouter/")
+	asked := strings.TrimPrefix(str(body["model"]), "argusrouter/")
 	var ts []Target
 	if ok, _ := isAuto(asked); ok {
 		for _, d := range embedDefaults {
@@ -433,13 +434,13 @@ func (r *Router) handleEmbeddings(w http.ResponseWriter, req *http.Request) {
 			in = llm.Estimate(len(raw))
 		}
 		r.log.add(Entry{Time: time.Now(), Asked: asked, Provider: t.Provider, Model: t.Model, Status: 200, Ms: time.Since(t0).Milliseconds(), In: in, Client: client, Format: "embeddings", Fallbacks: len(attempts), Route: attempts})
-		w.Header().Set("X-BlazeRouter-Provider", t.Provider)
+		w.Header().Set("X-"+brand.NAME+"Router-Provider", t.Provider)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
 		_, _ = w.Write(out)
 		return
 	}
-	err = &RouteError{Code: 502, Msg: "BlazeRouter: no embedding model could answer", Attempts: attempts}
+	err = &RouteError{Code: 502, Msg: brand.NAME + "Router: no embedding model could answer", Attempts: attempts}
 	r.logFail(asked, "", client, "embeddings", 502, err, false)
 	writeJSON(w, 502, oaError(502, err.Error()))
 }
@@ -532,7 +533,7 @@ func (r *Router) handleGemini(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if action != "generateContent" && action != "streamGenerateContent" {
-		writeJSON(w, 404, geminiError(404, "BlazeRouter supports generateContent and streamGenerateContent"))
+		writeJSON(w, 404, geminiError(404, brand.NAME+"Router supports generateContent and streamGenerateContent"))
 		return
 	}
 	in, err := readBody(req)

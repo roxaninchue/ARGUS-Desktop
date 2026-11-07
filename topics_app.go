@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/longchat"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/mind"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/topics"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/longchat"
+	"github.com/lacksonkapapahue/argus-desktop/internal/mind"
+	"github.com/lacksonkapapahue/argus-desktop/internal/topics"
 )
 
 // topicMu guards load → change → save of topic state (the turn and the background
@@ -224,7 +224,7 @@ func (a *App) topicCarryPass(chat string, id int, hist []llm.Message) {
 }
 
 // carryToMind keeps carried-over lines in the memory table too, so they surface in
-// every chat (and in Blaze CLI through the blaze.db mirror). mindSave dedupes, so a line
+// every chat (and in Argus CLI through the argus.db mirror). mindSave dedupes, so a line
 // the after-turn pass already saved is never kept twice. "important" lines are too loose
 // to keep forever: they stay in the chat's carry list only.
 func (a *App) carryToMind(st *topics.State, cs []topics.Carry) {

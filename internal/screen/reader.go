@@ -32,8 +32,8 @@ func (s *Snapshot) Age() time.Duration { return time.Since(s.At) }
 
 // Reader reads the screen with a small cache in front, so repeat calls are instant.
 type Reader struct {
-	Exe     string                    // the Blaze binary (helper); "" = os.Executable
-	Skip    int                       // our own pid: Blaze's windows are never read
+	Exe     string                    // the Argus binary (helper); "" = os.Executable
+	Skip    int                       // our own pid: Argus's windows are never read
 	OnRead  func(on bool, how string) // the privacy indicator: on while the screen is read
 	MaxText int                       // cap of the encoding (default 8000)
 
@@ -62,7 +62,7 @@ func (r *Reader) Last() *Snapshot {
 	return r.last
 }
 
-// Front is the frontmost window that isn't Blaze (cheap, in-process).
+// Front is the frontmost window that isn't Argus (cheap, in-process).
 func (r *Reader) Front() (Win, error) { return probe(r.Skip, 0) }
 
 // Read returns the frontmost window as compact text. A cached snapshot of the same
@@ -239,8 +239,8 @@ func (r *Reader) Caps(ctx context.Context) Caps {
 	return c
 }
 
-// BlazeInFront is true when Blaze's own window is the one in front.
-func (r *Reader) BlazeInFront() bool {
+// ArgusInFront is true when Argus's own window is the one in front.
+func (r *Reader) ArgusInFront() bool {
 	w, err := probe(0, 0)
 	return err == nil && w.PID == r.Skip
 }

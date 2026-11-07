@@ -2,19 +2,19 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudai"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 func testApp(t *testing.T) *App {
 	t.Helper()
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	a := NewApp()
 	a.cfg = config.Load()
 	close(a.ready)
@@ -24,7 +24,7 @@ func testApp(t *testing.T) *App {
 // A v0.2 config.json (Pollinations in the chain, no default) loads unchanged and routes safely.
 func TestOldConfigStillLoads(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("BLAZE_HOME", home)
+	t.Setenv("ARGUS_HOME", home)
 	old := `{"chain":[{"provider":"gemini","model":"gemini-3.8-flash"},{"provider":"pollinations","model":"openai-fast"}],"auto_approve":true,"setup_done":true,"max_steps":30,"persona":"short"}`
 	if err := os.WriteFile(filepath.Join(home, "config.json"), []byte(old), 0o600); err != nil {
 		t.Fatal(err)
@@ -90,9 +90,9 @@ func TestModelsMenuNeverOffersKeyless(t *testing.T) {
 	t.Setenv("GROQ_API_KEY", "gsk_test")
 	a.cfg.NoKeyless = false
 	items := a.Models()
-	// v0.19.13: the Blaze Cloud row (blaze-auto) leads, then BlazeRouter and the Auto chain (Custom mode).
+	// v0.19.13: the Argus Cloud row (blaze-auto) leads, then ArgusRouter and the Auto chain (Custom mode).
 	if len(items) < 4 || items[0].Provider != cloudai.ProviderID || items[0].Model != cloudai.Model || items[1].Provider != config.RouterID || items[2].Provider != config.Auto {
-		t.Fatalf("Blaze Cloud, BlazeRouter, then auto must lead: %+v", items)
+		t.Fatalf("Argus Cloud, ArgusRouter, then auto must lead: %+v", items)
 	}
 	for _, it := range items {
 		if it.Provider == config.KeylessID {
@@ -127,9 +127,9 @@ func TestTurnErrorIsPlain(t *testing.T) {
 	}
 }
 
-// v0.19.13: in Cloud mode the menu offers Blaze Cloud as blaze-auto only, plus the user's own keyed
-// providers; no BlazeRouter/Auto rows and no keyless/unkeyed Blaze-side providers.
-func TestModelsMenuCloudModeBlazeAutoOnly(t *testing.T) {
+// v0.19.13: in Cloud mode the menu offers Argus Cloud as blaze-auto only, plus the user's own keyed
+// providers; no ArgusRouter/Auto rows and no keyless/unkeyed Argus-side providers.
+func TestModelsMenuCloudModeArgusAutoOnly(t *testing.T) {
 	a := testApp(t)
 	t.Setenv("GROQ_API_KEY", "gsk_test")
 	old := cloudModels
@@ -139,7 +139,7 @@ func TestModelsMenuCloudModeBlazeAutoOnly(t *testing.T) {
 	cloudModels = cloudai.NewRouter(ch, cloudai.NewGateway(cloudai.BaseFrom(""), func() string { return "" }))
 	items := a.Models()
 	if len(items) == 0 || items[0].Provider != cloudai.ProviderID || items[0].Model != cloudai.Model || !items[0].Current {
-		t.Fatalf("Blaze Cloud (blaze-auto, current) must lead: %+v", items)
+		t.Fatalf("Argus Cloud (blaze-auto, current) must lead: %+v", items)
 	}
 	for _, it := range items[1:] {
 		if it.Provider == config.RouterID || it.Provider == config.Auto || it.Provider == config.KeylessID || it.Current {
@@ -155,6 +155,6 @@ func TestModelsMenuCloudModeBlazeAutoOnly(t *testing.T) {
 	}
 	a.SelectModel(cloudai.ProviderID, "")
 	if !cloudModelsOn() {
-		t.Fatal("picking the Blaze Cloud row must return to Cloud")
+		t.Fatal("picking the Argus Cloud row must return to Cloud")
 	}
 }

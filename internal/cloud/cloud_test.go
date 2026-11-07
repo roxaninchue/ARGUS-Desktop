@@ -138,7 +138,7 @@ func TestErrors(t *testing.T) {
 
 func TestBaseURL(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("BLAZE_CLOUD_URL", "")
+	t.Setenv("ARGUS_CLOUD_URL", "")
 	if BaseURL(dir) != DefaultBase {
 		t.Fatal("default")
 	}
@@ -146,7 +146,7 @@ func TestBaseURL(t *testing.T) {
 	if got := BaseURL(dir); got != "http://127.0.0.1:8787" {
 		t.Fatalf("file override: %q", got)
 	}
-	t.Setenv("BLAZE_CLOUD_URL", "https://x.example/")
+	t.Setenv("ARGUS_CLOUD_URL", "https://x.example/")
 	if got := BaseURL(dir); got != "https://x.example" {
 		t.Fatalf("env override: %q", got)
 	}

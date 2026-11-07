@@ -7,13 +7,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 )
 
-// HelperMain is the "__screen" mode of the Blaze binary. It prints one JSON
+// HelperMain is the "__screen" mode of the Argus binary. It prints one JSON
 // object (a Tree or a Shot) on stdout and exits.
 //
 //	__screen tree --skip <pid> [--max 600]
@@ -26,7 +27,7 @@ func HelperMain(args []string) int {
 	}
 	mode := args[0]
 	fs := flag.NewFlagSet("screen", flag.ContinueOnError)
-	skip := fs.Int("skip", 0, "pid whose windows are skipped (Blaze itself)")
+	skip := fs.Int("skip", 0, "pid whose windows are skipped ("+brand.NAME+" itself)")
 	max := fs.Int("max", 600, "most nodes to read")
 	full := fs.Bool("full", false, "the whole screen instead of the window")
 	region := fs.String("region", "", "x,y,w,h inside the window (or screen with --full)")
@@ -110,7 +111,7 @@ func HelperMain(args []string) int {
 // shallow skips the riskier deep text reads (terminal / editor contents).
 var shallow bool
 
-// helper runs the Blaze binary in "__screen" mode and decodes its answer into out.
+// helper runs the Argus binary in "__screen" mode and decodes its answer into out.
 func helper(ctx context.Context, exe string, timeout time.Duration, out any, args ...string) error {
 	if exe == "" {
 		e, err := os.Executable()

@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/mind"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/store"
+	"github.com/lacksonkapapahue/argus-desktop/internal/mind"
+	"github.com/lacksonkapapahue/argus-desktop/internal/store"
 )
 
 const testPass = "correct horse battery staple"
@@ -133,7 +133,7 @@ func newPhone(g *fakeGateway, key []byte) *phone {
 type desktop struct {
 	dir   string
 	mind  *mind.DB
-	blaze *store.DB
+	argus *store.DB
 	conv  *ConvFiles
 	ms    *MindStore
 	eng   *Engine
@@ -147,23 +147,23 @@ func newDesktop(t *testing.T, g *fakeGateway, key []byte) *desktop {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bd, err := store.Open(filepath.Join(dir, "blaze.db"))
+	bd, err := store.Open(filepath.Join(dir, "argus.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { md.Close(); bd.Close() })
-	d := &desktop{dir: dir, mind: md, blaze: bd}
+	d := &desktop{dir: dir, mind: md, argus: bd}
 	d.conv = &ConvFiles{Dir: filepath.Join(dir, "desktop", "chats"), AliasPath: filepath.Join(dir, "cloudsync", "gids.json")}
 	_ = os.MkdirAll(d.conv.Dir, 0o700)
-	d.ms = &MindStore{Mind: md, Blaze: bd}
+	d.ms = &MindStore{Mind: md, Argus: bd}
 	st := LoadState(filepath.Join(dir, "cloudsync", "state.json"))
 	d.eng = &Engine{API: g.client(), Key: key, State: st, Sleep: func(time.Duration) {},
 		Adapters: append([]Adapter{&MemoryAdapter{Store: d.ms}}, ChatAdapters(d.conv, st)...)}
 	return d
 }
 
-func (d *desktop) blazeHas(text string) bool {
-	for _, m := range d.blaze.Memories() {
+func (d *desktop) argusHas(text string) bool {
+	for _, m := range d.argus.Memories() {
 		if m.Text == text {
 			return true
 		}
@@ -271,7 +271,7 @@ type vectorFile struct {
 	}
 }
 
-// TestMobileGoldenVectors opens blobs sealed per Blaze Android SyncCrypto.kt with Android
+// TestMobileGoldenVectors opens blobs sealed per Argus Android SyncCrypto.kt with Android
 // org.json envelopes (testdata/mobile_vectors.json, made by an independent implementation of
 // the Kotlin spec, work/gen_mobile_vectors.py), plus the CLI's vectors from a straight JCE port.
 func TestMobileGoldenVectors(t *testing.T) {
@@ -325,8 +325,8 @@ func TestMobileGoldenVectors(t *testing.T) {
 			if optString(it.Data, "text") != `Remind me: the dentist is on Friday / 10:00 "sharp"` || optLong(it.Data, "at") != 1761130001000 {
 				t.Fatalf("msg %+v", it.Data)
 			}
-		case "msg_blaze":
-			if optString(it.Data, "role") != RoleBlaze || !strings.Contains(optString(it.Data, "text"), "✓") {
+		case "msg_argus":
+			if optString(it.Data, "role") != RoleArgus || !strings.Contains(optString(it.Data, "text"), "✓") {
 				t.Fatalf("msg %+v", it.Data)
 			}
 		}
@@ -367,7 +367,7 @@ func TestExportVectorsForMobile(t *testing.T) {
 	key, _ := hex.DecodeString("ef177144eec9420cbc1093d2a8b344a92bc506d0d4ec9c028dd19f8324d8c1e6")
 	items := []Item{
 		MemoryItem("profile", "home", "Lives in São Paulo; works at 9:00!", "work", 1761130000123),
-		{Kind: KindMessage, ID: "main:l0123456789abcdef", T: 1, Data: msgData(ChatMsg{GID: "l0123456789abcdef", Role: RoleBlaze, Text: "Noted </b> & done ✓"})},
+		{Kind: KindMessage, ID: "main:l0123456789abcdef", T: 1, Data: msgData(ChatMsg{GID: "l0123456789abcdef", Role: RoleArgus, Text: "Noted </b> & done ✓"})},
 		{Kind: KindChat, ID: "c-old", T: 5},
 	}
 	var vs []map[string]string
@@ -436,8 +436,8 @@ func TestMemoryBothWaysDeletesAndCiphertextOnly(t *testing.T) {
 	if !ok || m.Kind != "person" || m.Subject != "dentist" {
 		t.Fatalf("Desktop mind.db missing the phone's fact: %+v", dk.mind.All())
 	}
-	if !dk.blazeHas(phoneFact) || m.Mirror == 0 {
-		t.Fatal("blaze.db (Blaze CLI) missing the phone's fact")
+	if !dk.argusHas(phoneFact) || m.Mirror == 0 {
+		t.Fatal("argus.db (Argus CLI) missing the phone's fact")
 	}
 
 	deskFact := "Prefers replies in British English secret-token-DESKTOP"
@@ -450,12 +450,12 @@ func TestMemoryBothWaysDeletesAndCiphertextOnly(t *testing.T) {
 		t.Fatal("phone missing the Desktop fact")
 	}
 
-	// Deletes: phone → Desktop (mind.db and blaze.db), then Desktop → phone.
+	// Deletes: phone → Desktop (mind.db and argus.db), then Desktop → phone.
 	ph.mem.Remove(MemLine{Text: phoneFact})
 	run(t, ph.eng)
 	run(t, dk.eng)
-	if _, ok := dk.mindHas(phoneFact); ok || dk.blazeHas(phoneFact) {
-		t.Fatal("phone delete did not reach Desktop / blaze.db")
+	if _, ok := dk.mindHas(phoneFact); ok || dk.argusHas(phoneFact) {
+		t.Fatal("phone delete did not reach Desktop / argus.db")
 	}
 	dm, _ := dk.mindHas(deskFact)
 	_ = dk.ms.Remove(MemLine{Text: dm.Text})
@@ -524,7 +524,7 @@ func TestIdempotentRePull(t *testing.T) {
 	run(t, dk.eng)
 	count := func() (int, int, int) {
 		ms, _ := dk.conv.Messages("main")
-		return len(dk.mind.All()), len(dk.blaze.Memories()), len(ms)
+		return len(dk.mind.All()), len(dk.argus.Memories()), len(ms)
 	}
 	a, b, c := count()
 	if a != 3 || b != 3 || c != 1 {
@@ -625,7 +625,7 @@ func TestMessagesBothWaysNoEcho(t *testing.T) {
 	run(t, dk.eng)
 	run(t, ph.eng)
 	pm, _ := ph.chats.Messages("main")
-	if len(pm) != 2 || pm[0].Role != RoleUser || pm[1].Role != RoleBlaze || pm[1].Text != "The dentist at 10:00." {
+	if len(pm) != 2 || pm[0].Role != RoleUser || pm[1].Role != RoleArgus || pm[1].Text != "The dentist at 10:00." {
 		t.Fatalf("phone got %+v", pm)
 	}
 	if strings.Contains(g.allBodies(), "dentist") || strings.Contains(g.allBodies(), "calendar") {
@@ -663,7 +663,7 @@ func TestMessagesBothWaysNoEcho(t *testing.T) {
 	run(t, ph.eng)
 	pm, _ = ph.chats.Messages("main")
 	got := pm[len(pm)-1]
-	if got.Text != "I'll remind you Thursday at 20:00." || got.GID != LegacyGID(RoleBlaze, 0, got.Text) {
+	if got.Text != "I'll remind you Thursday at 20:00." || got.GID != LegacyGID(RoleArgus, 0, got.Text) {
 		t.Fatalf("phone got %+v", got)
 	}
 }

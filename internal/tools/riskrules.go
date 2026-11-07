@@ -5,7 +5,7 @@ package tools
 // miss them, but a page read by fetch_page or web_search can steer a model into any of
 // them. In Auto they ask first; Autopilot still approves them (they are not blocked).
 //
-// Self-contained on purpose (only regexp and strings) so Blaze Desktop can copy this file
+// Self-contained on purpose (only regexp and strings) so Argus Desktop can copy this file
 // as-is: riskyExtra(cmd) is the whole API. Like the rest of guard.go this is pattern
 // matching on the command text, not a sandbox.
 

@@ -9,6 +9,7 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"net/url"
@@ -20,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 // Cap is a tri-state capability: yes, no, or not known (allowed, learned at run time).
@@ -41,17 +42,17 @@ type ModelInfo struct {
 	Free    bool   `json:"free"`    // on the provider's free tier
 	Note    string `json:"note,omitempty"`
 	Live    bool   `json:"live"`  // seen in the provider's live list
-	Known   bool   `json:"known"` // in Blaze's built-in table
+	Known   bool   `json:"known"` // in Argus's built-in table
 }
 
 func m(id, name string, tools Cap, vision bool, ctx int, free bool, note string) ModelInfo {
 	return ModelInfo{ID: id, Name: name, Tools: tools, Vision: vision, Context: ctx, Free: free, Note: note, Known: true}
 }
 
-// Catalog is Blaze's built-in knowledge of each provider's main chat models.
+// Catalog is Argus's built-in knowledge of each provider's main chat models.
 var Catalog = map[string][]ModelInfo{
 	"gemini": {
-		m("gemini-3.8-flash", "Gemini 3.8 Flash", Yes, true, 1048576, true, "Blaze's default"),
+		m("gemini-3.8-flash", "Gemini 3.8 Flash", Yes, true, 1048576, true, brand.NAME+"'s default"),
 		m("gemini-2.5-pro", "Gemini 2.5 Pro", Yes, true, 1048576, true, "strongest, low free limits"),
 		m("gemini-2.5-flash", "Gemini 2.5 Flash", Yes, true, 1048576, true, ""),
 		m("gemini-2.5-flash-lite", "Gemini 2.5 Flash-Lite", Yes, true, 1048576, true, "fastest"),
@@ -72,7 +73,7 @@ var Catalog = map[string][]ModelInfo{
 		m("qwen-3-32b", "Qwen3 32B", Yes, false, 65536, true, ""),
 	},
 	"openrouter": {
-		m("openrouter/free", "OpenRouter free (auto pick)", Unknown, false, 0, true, "Blaze swaps in today's best free tool model"),
+		m("openrouter/free", "OpenRouter free (auto pick)", Unknown, false, 0, true, brand.NAME+" swaps in today's best free tool model"),
 	},
 	"mistral": {
 		m("mistral-small-latest", "Mistral Small", Yes, true, 131072, true, ""),

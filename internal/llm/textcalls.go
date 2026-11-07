@@ -10,7 +10,7 @@ import (
 // Some free models (nemotron, some qwen and llama builds) answer a tool call as
 // plain text instead of through tool_calls, for example
 //
-//	dispatch_agent: about_blaze
+//	dispatch_agent: about_argus
 //	{"topic": "crew"}
 //
 // or <tool_call>{"name":…,"arguments":…}</tool_call>, or a fenced JSON object.
@@ -23,8 +23,8 @@ var (
 	reFuncTag  = regexp.MustCompile(`(?s)<function=([A-Za-z0-9_.:\-]+)>\s*(.*?)\s*(?:</function>|$)`)
 	reParamTag = regexp.MustCompile(`(?s)<parameter=([A-Za-z0-9_\-]+)>\s*(.*?)\s*</parameter>`)
 	reFence    = regexp.MustCompile("(?s)```[a-zA-Z_]*\\s*\\n(.*?)\\n?\\s*```")
-	// A line that names a tool: "about_blaze", "dispatch_agent: about_blaze",
-	// "functions.about_blaze:", "call about_blaze", "about_blaze(" …
+	// A line that names a tool: "about_argus", "dispatch_agent: about_argus",
+	// "functions.about_argus:", "call about_argus", "about_argus(" …
 	reNameLine = regexp.MustCompile(`^\s*(?:[A-Za-z_][A-Za-z0-9_.\-]*\s*[:>]\s*)?(?:call\s+)?([A-Za-z_][A-Za-z0-9_.:\-]*?)\s*[:(]?\s*$`)
 )
 
@@ -304,7 +304,7 @@ func splitNameLine(line string, known []string) (string, string) {
 	}
 	n := ResolveName(g[1], known)
 	if n == "" {
-		// "dispatch_agent: about_blaze" names the tool second; with a mangled
+		// "dispatch_agent: about_argus" names the tool second; with a mangled
 		// first word ("ispatch_agent") the regexp still puts the tool in g[1].
 		return "", ""
 	}

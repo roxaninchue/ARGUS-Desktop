@@ -5,7 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
+	"github.com/lacksonkapapahue/argus-desktop/internal/privacy"
 )
 
 // Max is the longest pill line (runes).

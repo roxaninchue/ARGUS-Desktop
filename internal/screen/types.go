@@ -1,10 +1,10 @@
-// Package screen lets Blaze look at the user's screen, text first: the focused
+// Package screen lets Argus look at the user's screen, text first: the focused
 // window's accessibility tree (UI Automation on Windows, AX on macOS, AT-SPI on
 // Linux) in a compact encoding, with a downscaled screenshot as the fallback.
 //
 // The tree and the screenshot are taken in a short-lived helper process (the
-// Blaze binary run with "__screen"), so a hung or crashing accessibility
-// provider in another app can never freeze or crash Blaze itself. Cheap probes
+// Argus binary run with "__screen"), so a hung or crashing accessibility
+// provider in another app can never freeze or crash Argus itself. Cheap probes
 // (which window is in front, idle time, full screen) run in-process.
 package screen
 
@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-// Win is the window Blaze is looking at: the frontmost window that isn't Blaze's.
+// Win is the window Argus is looking at: the frontmost window that isn't Argus's.
 type Win struct {
 	ID         uint64 `json:"id"`
 	PID        int    `json:"pid"`

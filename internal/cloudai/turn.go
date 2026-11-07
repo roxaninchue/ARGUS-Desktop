@@ -1,13 +1,13 @@
 package cloudai
 
-// v0.19.1 (Blaze Mobile 0.45.1 TurnModel.kt): one route for the whole turn. Each step of a turn
+// v0.19.1 (Argus Mobile 0.45.1 TurnModel.kt): one route for the whole turn. Each step of a turn
 // is its own gateway request, so after a rate limit or a health mark step 2 could land on another
 // model than step 1, with other tool habits and a cold prompt cache. Every request of a turn now
 // carries:
 //
 //   - X-Blaze-Turn: <id>, the same id for every step of the turn;
 //   - X-Blaze-Prefer: provider/model, the route that answered the turn's first step, tried first
-//     while it is healthy (Blaze Gateway 0.6.1; the gateway still falls back on an error).
+//     while it is healthy (Argus Gateway 0.6.1; the gateway still falls back on an error).
 //
 // Both are plain headers: a gateway that doesn't read them ignores them.
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Input is one thing that starts a main-agent turn: a user message, a background

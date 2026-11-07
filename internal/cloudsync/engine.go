@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// One sync round, ported from Blaze Android connect/SyncEngine.kt (keep in step).
+// One sync round, ported from Argus Android connect/SyncEngine.kt (keep in step).
 //
 // A round: read the account's sync meta → pull every page after the saved cursor and apply what
 // changed elsewhere (merging where this device changed the same item) → push what changed here
@@ -207,7 +207,7 @@ func (e *Engine) stampOf(a Adapter, id string) string {
 func (e *Engine) take(r Remote) error {
 	a := e.byKind[r.Kind]
 	if a == nil {
-		return nil // a kind this device doesn't sync (settings, designs, a newer Blaze's)
+		return nil // a kind this device doesn't sync (settings, designs, a newer Argus's)
 	}
 	st, have := e.State.Get(r.Kind, r.ID)
 	if have && st.Rev >= r.Rev && !st.Skipped {

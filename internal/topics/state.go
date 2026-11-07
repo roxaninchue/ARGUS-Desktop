@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // SegOpts tunes Segment.

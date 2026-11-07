@@ -1,4 +1,4 @@
-// Package store is Blaze's local database (~/.blaze/blaze.db): memories, an index
+// Package store is Argus's local database (~/.argus/argus.db): memories, an index
 // of skills and an index of tools, each with an FTS5 full-text table so a turn
 // only pulls the rows it needs instead of pasting everything into the prompt.
 //
@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,10 +22,10 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
-// DB is an open blaze.db.
+// DB is an open argus.db.
 type DB struct {
 	sql  *sql.DB
 	Path string
@@ -37,12 +38,12 @@ var (
 	defErr error
 )
 
-// Default opens (once) config.Dir()/blaze.db, migrating an old memory.md on the
-// way. It reopens when the config dir changes (tests point BLAZE_HOME elsewhere).
+// Default opens (once) config.Dir()/argus.db, migrating an old memory.md on the
+// way. It reopens when the config dir changes (tests point ARGUS_HOME elsewhere).
 func Default() (*DB, error) {
 	defMu.Lock()
 	defer defMu.Unlock()
-	p := filepath.Join(config.Dir(), "blaze.db")
+	p := filepath.Join(config.Dir(), "argus.db")
 	if defDB != nil && defDB.Path == p {
 		return defDB, nil
 	}
@@ -50,7 +51,7 @@ func Default() (*DB, error) {
 		_ = defDB.Close()
 	}
 	_ = os.MkdirAll(config.Dir(), 0o700)
-	ownerOnly(p) // conversations/memory: 0600 even when ~/.blaze predates 0700
+	ownerOnly(p) // conversations/memory: 0600 even when ~/.argus predates 0700
 	defDB, defErr = Open(p)
 	if defErr == nil {
 		_, _ = defDB.ImportMarkdown(filepath.Join(config.Dir(), "memory.md"))
@@ -63,7 +64,7 @@ func Open(path string) (*DB, error) {
 	// The CLI opens the same file. busy_timeout waits up to 5 s for its write lock
 	// instead of failing; _txlock=immediate makes every BEGIN a BEGIN IMMEDIATE, so a
 	// transaction takes the write lock up front and never has to upgrade a read lock
-	// mid-way (the SQLITE_BUSY that broke a first run when both apps created blaze.db).
+	// mid-way (the SQLITE_BUSY that broke a first run when both apps created argus.db).
 	dsn := "file:" + filepath.ToSlash(path) + "?_pragma=busy_timeout(5000)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_txlock=immediate"
 	s, err := sql.Open("sqlite", dsn)
 	if err != nil {
@@ -73,7 +74,7 @@ func Open(path string) (*DB, error) {
 	d := &DB{sql: s, Path: path}
 	if err := d.migrate(); err != nil {
 		s.Close()
-		return nil, fmt.Errorf("blaze.db: %w", err)
+		return nil, fmt.Errorf("argus.db: %w", err)
 	}
 	return d, nil
 }
@@ -82,7 +83,7 @@ func (d *DB) Close() error { return d.sql.Close() }
 
 // CloseDefault closes the shared database Default opened, if any; the next Default
 // opens it again. Windows can't delete a file that is still open, so tests call it
-// before their temporary BLAZE_HOME is removed.
+// before their temporary ARGUS_HOME is removed.
 func CloseDefault() {
 	defMu.Lock()
 	defer defMu.Unlock()
@@ -129,14 +130,14 @@ var migrations = []string{
 	CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
 }
 
-// ErrNewerSchema means blaze.db was written by a newer Blaze (Desktop or CLI) than
+// ErrNewerSchema means argus.db was written by a newer Argus (Desktop or CLI) than
 // this one. Desktop leaves the file untouched and runs without memory.
-var ErrNewerSchema = errors.New("your memory was saved by a newer version of Blaze. Please update Blaze to use memory")
+var ErrNewerSchema = errors.New("your memory was saved by a newer version of " + brand.NAME + ". Please update " + brand.NAME + " to use memory")
 
 // SchemaVersion is the newest schema this build knows.
 func SchemaVersion() int { return len(migrations) }
 
-// migrate mirrors Blaze CLI's internal/store (v0.6.0): refuse a newer schema, run each
+// migrate mirrors Argus CLI's internal/store (v0.6.0): refuse a newer schema, run each
 // migration under the write lock and re-read user_version there, then check the tables.
 func (d *DB) migrate() error {
 	var v int

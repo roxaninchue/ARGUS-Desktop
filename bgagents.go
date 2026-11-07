@@ -4,7 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
+	"github.com/lacksonkapapahue/argus-desktop/internal/privacy"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,10 +13,10 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 // Background agents (v0.4.7): the main chat hands long work to sub-agents and keeps
@@ -289,7 +290,7 @@ func (a *App) agentQuestion(ctx context.Context, handle, raw string) string {
 	case <-ctx.Done():
 		return "The agent was stopped before the user answered."
 	case <-a.ctx.Done():
-		return "Blaze closed before the user answered."
+		return brand.NAME + " closed before the user answered."
 	}
 }
 
@@ -314,7 +315,7 @@ func (a *App) AgentDiscard(handle string) string { return errText(a.agents.Disca
 // same as the lead's apply_specialist, for when the user decides themselves.
 func (a *App) SpecialistReview(handle, action string) string {
 	if action == "apply" && a.workMode() == "plan" {
-		return "Blaze is in Plan mode: switch to Build to apply changes."
+		return brand.NAME + " is in Plan mode: switch to Build to apply changes."
 	}
 	msg, err := a.agents.ApplySpecialist(handle, action)
 	if err != nil {

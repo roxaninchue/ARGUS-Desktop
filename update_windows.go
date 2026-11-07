@@ -7,7 +7,7 @@ import (
 	"syscall"
 )
 
-// detached starts a process with no console window that outlives Blaze.
+// detached starts a process with no console window that outlives Argus.
 func detached(name string, args ...string) *exec.Cmd {
 	c := exec.Command(name, args...)
 	c.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000} // CREATE_NO_WINDOW

@@ -37,7 +37,7 @@ func ArgPath(e *Env, a map[string]any, k string) string {
 	return expand(e, args(a).s(k))
 }
 
-// Inside says whether path is in the project folder or Blaze's data folder, where tools may
+// Inside says whether path is in the project folder or Argus's data folder, where tools may
 // write without asking.
 func (e *Env) Inside(path string) bool { return inside(e.Root, path) || inside(dataDir(""), path) }
 

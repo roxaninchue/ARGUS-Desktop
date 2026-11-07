@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os/exec"
 	"runtime"
 	"strings"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/godbus/dbus/v5"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/notify"
+	"github.com/lacksonkapapahue/argus-desktop/internal/notify"
 )
 
 // First-run onboarding (v0.19.14): two steps, sign in and an optional folder, then a chat
@@ -68,14 +69,14 @@ func (a *App) FinishOnboarding() {
 // OnboardNotifyTest sends one native notification so the OS asks for (or shows)
 // its permission. "" means it was handed to the OS. Since v0.19.14 it runs when the user
 // says yes to notifications at their first real need (PermAnswer), not during setup.
-// It probes and caches the working method (~/.blaze/notify.json) first, so the
+// It probes and caches the working method (~/.argus/notify.json) first, so the
 // onboarding test and every later notification use the same one.
 func (a *App) OnboardNotifyTest() string {
 	a.probeNotify()
-	_, err := a.send(notify.Note{Title: "Blaze", Body: "Notifications are on. Blaze only uses them for things that matter.", Kind: "test"})
+	_, err := a.send(notify.Note{Title: brand.NAME, Body: "Notifications are on. " + brand.NAME + " only uses them for things that matter.", Kind: "test"})
 	if err != nil {
 		// The direct per-OS call is the last resort (it also triggers macOS's permission prompt).
-		if err2 := sendNotification("Blaze", "Notifications are on. Blaze only uses them for things that matter."); err2 != nil {
+		if err2 := sendNotification(brand.NAME, "Notifications are on. "+brand.NAME+" only uses them for things that matter."); err2 != nil {
 			return err.Error()
 		}
 	}
@@ -121,7 +122,7 @@ func notifyDBus(title, body string) error {
 	}
 	defer conn.Close()
 	obj := conn.Object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
-	call := obj.Call("org.freedesktop.Notifications.Notify", 0, "Blaze", uint32(0), "blaze", title, body,
+	call := obj.Call("org.freedesktop.Notifications.Notify", 0, brand.NAME, uint32(0), "argus", title, body,
 		[]string{}, map[string]dbus.Variant{}, int32(6000))
 	if call.Err != nil {
 		return errors.New("no notification service is running (install mako, dunst or swaync on a tiling desktop): " + call.Err.Error())

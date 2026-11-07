@@ -2,6 +2,7 @@ package home
 
 import (
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"strings"
 	"time"
@@ -62,7 +63,7 @@ var (
 	reFeed      = regexp.MustCompile(`^https?://\S+\.(xml|rss)\b|/feed/?$|/rss/?$`)
 )
 
-// Parse understands the common asks; ok=false means "let Blaze work it out".
+// Parse understands the common asks; ok=false means "let Argus work it out".
 func Parse(text string) (Spec, bool) {
 	t := strings.TrimRight(strings.TrimSpace(text), ".!?")
 	l := strings.ToLower(t)
@@ -170,7 +171,7 @@ var (
 	reStudy      = regexp.MustCompile(`(?i)\b(student|university|college|exam|assignment|semester)\b`)
 )
 
-// FromMemories seeds a board from what Blaze remembers when it is confident (≥2 hits), else nil.
+// FromMemories seeds a board from what Argus remembers when it is confident (≥2 hits), else nil.
 func FromMemories(texts []string) []Spec {
 	var out []Spec
 	add := func(s Spec) {
@@ -275,7 +276,7 @@ func scheduleLines(jobs []Job, now time.Time) []Line {
 func ScheduleData(jobs []Job, now time.Time) Data {
 	lines := scheduleLines(jobs, now)
 	if len(lines) == 0 {
-		return Data{Headline: "Schedule", Change: "Nothing scheduled. Ask Blaze, e.g. “every weekday at 9, brief me”.", Action: "ask:Set up a morning briefing for me every weekday at 9"}
+		return Data{Headline: "Schedule", Change: "Nothing scheduled. Ask " + brand.NAME + ", e.g. “every weekday at 9, brief me”.", Action: "ask:Set up a morning briefing for me every weekday at 9"}
 	}
 	return Data{Headline: "Next up", Value: lines[0].T, Change: lines[0].S, Lines: lines[1:]}
 }
@@ -302,7 +303,7 @@ func DeadlinesData(jobs []Job, memories []string, now time.Time) Data {
 		}
 	}
 	if len(lines) == 0 {
-		return Data{Headline: "Deadlines", Change: "No deadlines yet. Tell Blaze about one, e.g. “my report is due Friday”.", Action: "ask:Help me track my deadlines"}
+		return Data{Headline: "Deadlines", Change: "No deadlines yet. Tell " + brand.NAME + " about one, e.g. “my report is due Friday”.", Action: "ask:Help me track my deadlines"}
 	}
 	return Data{Headline: "Deadlines", Value: lines[0].T, Change: lines[0].S, Lines: lines[1:]}
 }
@@ -312,14 +313,14 @@ type Recent struct {
 	Title, Sub, Kind, Target string // Kind: chat, project, folder
 }
 
-// RecentsData lists where the user left off. Lines carry "blaze:<kind>:<target>" links the UI opens.
+// RecentsData lists where the user left off. Lines carry "argus:<kind>:<target>" links the UI opens.
 func RecentsData(items []Recent) Data {
 	var lines []Line
 	for _, r := range items {
 		if strings.TrimSpace(r.Title) == "" {
 			continue
 		}
-		lines = append(lines, Line{T: r.Title, S: r.Sub, U: "blaze:" + r.Kind + ":" + r.Target, N: map[string]string{"chat": "Chat", "project": "Project", "folder": "Folder"}[r.Kind]})
+		lines = append(lines, Line{T: r.Title, S: r.Sub, U: "argus:" + r.Kind + ":" + r.Target, N: map[string]string{"chat": "Chat", "project": "Project", "folder": "Folder"}[r.Kind]})
 	}
 	if len(lines) == 0 {
 		return Data{Headline: Label(Recents), Change: "Nothing yet. Your chats, projects and folders show up here."}
@@ -327,7 +328,7 @@ func RecentsData(items []Recent) Data {
 	return Data{Headline: Label(Recents), Lines: lines}
 }
 
-// CustomData is a Blaze-composed card: config "text", "value", "url" and "items" (one per line,
+// CustomData is an Argus-composed card: config "text", "value", "url" and "items" (one per line,
 // "title | sub | url").
 func CustomData(w Widget) Data {
 	d := Data{Headline: w.Title, Value: firstRunes(w.Opt("value"), 40), Change: firstRunes(w.Opt("text"), 600), Link: SafeURL(w.Opt("url"))}

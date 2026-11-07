@@ -2,8 +2,8 @@ package main
 
 /*
 #cgo LDFLAGS: -framework Cocoa -framework ApplicationServices
-void blazeOnMain(void);
-void blazeAskAccessibility(void);
+void argusOnMain(void);
+void argusAskAccessibility(void);
 */
 import "C"
 
@@ -19,18 +19,18 @@ var (
 func (a *App) startTray() {
 	start, _ := systray.RunWithExternalLoop(a.trayReady, nil)
 	trayStart, trayApp = start, a
-	C.blazeOnMain()
+	C.argusOnMain()
 }
 
-//export blazeTrayStart
-func blazeTrayStart() {
+//export argusTrayStart
+func argusTrayStart() {
 	if trayStart != nil {
 		trayStart()
 	}
 }
 
-//export blazeReopen
-func blazeReopen() {
+//export argusReopen
+func argusReopen() {
 	if trayApp != nil {
 		go trayApp.ShowMain()
 	}
@@ -43,5 +43,5 @@ func trayAvailable() bool { return true }
 // stopTray: never systray.Quit on a Mac, it stops NSApp.
 func stopTray() {}
 
-// askAccessibility shows macOS's own Accessibility prompt for Blaze.
-func askAccessibility() { C.blazeAskAccessibility() }
+// askAccessibility shows macOS's own Accessibility prompt for Argus.
+func askAccessibility() { C.argusAskAccessibility() }

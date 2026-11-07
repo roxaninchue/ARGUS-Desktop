@@ -1,6 +1,6 @@
 package cloudai
 
-// The usage meter (v0.19.9, gateway 0.7.0, the same contract as Blaze CLI's Honest meter): what the
+// The usage meter (v0.19.9, gateway 0.7.0, the same contract as Argus CLI's Honest meter): what the
 // account has used today and what is left, from the headers on every reply and from GET /v1/usage
 // (free). Only the caller's own numbers.
 
@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"strconv"
@@ -54,9 +55,9 @@ func QuotaFrom(h http.Header) *Quota {
 		RequestsUsed:  atoiOr(h.Get("X-Blaze-Requests-Used"), 0),
 		RequestsLimit: atoiOr(h.Get("X-Blaze-Requests-Limit"), 0),
 		RequestsLeft:  atoiOr(h.Get("X-RateLimit-Remaining-Requests"), 0),
-		TokensUsed:    atoiOr(h.Get("X-Blaze-Tokens-Used"), 0),
-		TokensLimit:   atoiOr(h.Get("X-Blaze-Tokens-Limit"), -1),
-		TokensLeft:    atoiOr(h.Get("X-Blaze-Tokens-Remaining"), -1),
+		TokensUsed:    atoiOr(h.Get("X-"+brand.NAME+"-Tokens-Used"), 0),
+		TokensLimit:   atoiOr(h.Get("X-"+brand.NAME+"-Tokens-Limit"), -1),
+		TokensLeft:    atoiOr(h.Get("X-"+brand.NAME+"-Tokens-Remaining"), -1),
 		ResetsAt:      h.Get("X-Blaze-Quota-Reset"),
 		At:            time.Now(),
 	}
@@ -107,7 +108,7 @@ func (g *Gateway) Usage(ctx context.Context) (*Quota, error) {
 		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+tok)
-	req.Header.Set("User-Agent", "Blaze-Desktop")
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop")
 	hc := g.HC
 	if hc == nil {
 		hc = http.DefaultClient
@@ -162,5 +163,5 @@ func (g *Gateway) Usage(ctx context.Context) (*Quota, error) {
 	return &c, nil
 }
 
-// ErrUnavailable: Blaze Cloud didn't answer the usage request.
+// ErrUnavailable: Argus Cloud didn't answer the usage request.
 var ErrUnavailable = errors.New("unavailable")

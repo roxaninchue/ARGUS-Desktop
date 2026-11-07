@@ -34,7 +34,7 @@ func writePNG(t *testing.T, p string, w, h int) {
 }
 
 func TestAttachKinds(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	d := t.TempDir()
 	txt := filepath.Join(d, "notes.md")
 	bin := filepath.Join(d, "a.bin")
@@ -99,7 +99,7 @@ func TestAttachKinds(t *testing.T) {
 }
 
 func TestAttachPasted(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	d := t.TempDir()
 	p := filepath.Join(d, "x.png")
 	writePNG(t, p, 40, 30)

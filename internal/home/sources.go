@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net"
 	"net/http"
@@ -23,7 +24,7 @@ func HTTPNet(lang string) Net {
 		if err != nil {
 			return 0, "", err
 		}
-		req.Header.Set("User-Agent", "Mozilla/5.0 (Desktop) BlazeHome/1.0")
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Desktop) "+brand.NAME+"Home/1.0")
 		if lang != "" {
 			req.Header.Set("Accept-Language", lang)
 		}
@@ -48,13 +49,13 @@ type Fetcher struct {
 	Loc     *time.Location // for match times
 	// Locate finds an approximate place for "use my location" (desktop has no GPS); nil = ask for a city.
 	Locate func(ctx context.Context) (Place, error)
-	// Now, when set, gives the current conditions from Blaze Cloud's weather (the same numbers the
+	// Now, when set, gives the current conditions from Argus Cloud's weather (the same numbers the
 	// chat's get_weather gets). The card then shows those, with their source and time; the days
 	// ahead still come from the forecast.
 	Now func(ctx context.Context, lat, lon float64, fahrenheit bool) (Current, error)
 }
 
-// Current is one weather reading from Blaze Cloud.
+// Current is one weather reading from Argus Cloud.
 type Current struct {
 	Temp      float64
 	Unit      string // "°C"

@@ -20,8 +20,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/studio"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/studio"
 )
 
 //go:embed picker.js
@@ -86,7 +86,7 @@ type preview struct {
 	folder string
 	state  DesignState
 
-	live    map[chan string]bool // hot-reload listeners (/__blaze/live)
+	live    map[chan string]bool // hot-reload listeners (/__argus/live)
 	lan     net.Listener         // the phone preview server, when on
 	lanPort int
 	token   string                     // the phone preview's secret
@@ -145,7 +145,7 @@ func versionFor(r *http.Request) int {
 
 func (p *preview) serve(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
-	if r.URL.Path == "/__blaze/picker.js" {
+	if r.URL.Path == "/__argus/picker.js" {
 		w.Header().Set("Content-Type", "text/javascript")
 		w.Write(pickerJS)
 		return
@@ -225,7 +225,7 @@ func (p *preview) serve(w http.ResponseWriter, r *http.Request) {
 }
 
 func inject(html []byte) []byte {
-	tag := []byte(`<script src="/__blaze/picker.js"></script>`)
+	tag := []byte(`<script src="/__argus/picker.js"></script>`)
 	if i := bytes.LastIndex(bytes.ToLower(html), []byte("</body>")); i >= 0 {
 		return append(append(append([]byte{}, html[:i]...), tag...), html[i:]...)
 	}
@@ -273,7 +273,7 @@ func (p *preview) proxy(w http.ResponseWriter, r *http.Request, target string) {
 }
 
 // threeD reports whether the previewed page is a 3D mockup (a Three.js page built from a
-// blaze-parts block, see the three-d-design skill). Those open in Design on their own
+// argus-parts block, see the three-d-design skill). Those open in Design on their own
 // unless the user chose Never, since picking and editing parts is the point of them.
 func (p *preview) threeD(st DesignState) bool {
 	if st.Target.Kind != "file" || st.Target.Path == "" {

@@ -8,13 +8,14 @@ package tools
 import (
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/store"
+	"github.com/lacksonkapapahue/argus-desktop/internal/store"
 )
 
 // Prompt budget for memories: up to MemMatches matches, within MemBudget tokens.
@@ -24,7 +25,7 @@ const (
 	SkillLimit = 8
 )
 
-// DB is the open database, or nil when it can't be opened (Blaze still runs, without memory).
+// DB is the open database, or nil when it can't be opened (Argus still runs, without memory).
 func DB() *store.DB {
 	d, err := store.Default()
 	if err != nil {
@@ -33,11 +34,11 @@ func DB() *store.DB {
 	return d
 }
 
-// UpdateNotice is the "please update Blaze" note when blaze.db was written by a
-// newer Blaze (the file is left untouched and Blaze runs without memory), else "".
+// UpdateNotice is the "please update Argus" note when argus.db was written by a
+// newer Argus (the file is left untouched and Argus runs without memory), else "".
 func UpdateNotice() string {
 	if _, err := store.Default(); errors.Is(err, store.ErrNewerSchema) {
-		return "Your memory was saved by a newer version of Blaze. Please update Blaze to use it; nothing was changed."
+		return "Your memory was saved by a newer version of " + brand.NAME + ". Please update " + brand.NAME + " to use it; nothing was changed."
 	}
 	return ""
 }
@@ -47,7 +48,7 @@ func noDBMsg() string {
 	if n := UpdateNotice(); n != "" {
 		return "Error: " + n + " Tell the user."
 	}
-	return "Error: Blaze's memory database can't be opened."
+	return "Error: " + brand.NAME + "'s memory database can't be opened."
 }
 
 // Memory returns every saved fact as Markdown lines (for the Settings textarea).
@@ -151,7 +152,7 @@ func skillFiles() []skillFile {
 	return out
 }
 
-// scanSkills reads ~/.blaze/skills/*/SKILL.md (same format as the Android app).
+// scanSkills reads ~/.argus/skills/*/SKILL.md (same format as the Android app).
 func scanSkills() []store.Skill {
 	var out []store.Skill
 	for _, f := range skillFiles() {
@@ -359,7 +360,7 @@ func init() {
 	register("use_skill", "Same as load_skill.", []prop{p("name", "string", "Skill name")}, []string{"name"},
 		func(e *Env, a args) string { return loadSkill(a.s("name")) })
 
-	register("write_skill", "Create or rewrite a reusable skill (~/.blaze/skills/<name>/SKILL.md) so the next task of that kind goes faster. Use when a multi-step workflow repeats, the user teaches a method, or you found a better way for an existing skill (load_skill it first, then write the whole improved body under the same name).",
+	register("write_skill", "Create or rewrite a reusable skill (~/.argus/skills/<name>/SKILL.md) so the next task of that kind goes faster. Use when a multi-step workflow repeats, the user teaches a method, or you found a better way for an existing skill (load_skill it first, then write the whole improved body under the same name).",
 		[]prop{p("name", "string", "kebab-case name, e.g. deploy-homeglow"), p("description", "string", "When to use it, one line"), p("body", "string", "Markdown: numbered steps, exact commands, checks, pitfalls"), p("tags", "string", "Optional comma-separated tags")},
 		[]string{"name", "description", "body"},
 		func(e *Env, a args) string {

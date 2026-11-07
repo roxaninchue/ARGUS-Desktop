@@ -25,7 +25,7 @@ func TestValidatorFollowsSchema(t *testing.T) {
 		Properties map[string]json.RawMessage `json:"properties"`
 		Rules      struct {
 			Limits map[string]int `json:"limits"`
-		} `json:"x-blaze-rules"`
+		} `json:"x-argus-rules"`
 	}
 	if err := json.Unmarshal(SchemaJSON, &s); err != nil {
 		t.Fatal(err)
@@ -96,9 +96,9 @@ func TestValidatorFollowsSchema(t *testing.T) {
 }
 
 func goodKit() *Kit {
-	return &Kit{Schema: SchemaID, Language: "en", Idea: "Sunset run, see https://blaze.test/run",
+	return &Kit{Schema: SchemaID, Language: "en", Idea: "Sunset run, see https://argus.test/run",
 		Hook: "The sunset made me run faster", Hashtags: []string{"#sunset", "#run", "#Lusaka"}, AltText: "A runner on a red dirt road at sunset",
-		Platforms: map[string]Post{"x": {Caption: "The sunset made me run faster\n\nhttps://blaze.test/run\n\n#sunset #run #Lusaka"}},
+		Platforms: map[string]Post{"x": {Caption: "The sunset made me run faster\n\nhttps://argus.test/run\n\n#sunset #run #Lusaka"}},
 		Crops:     Crops(1200, 800, &Focus{X: 0.5, Y: 0.5}), Source: &Source{Width: 1200, Height: 800, Focus: &Focus{X: 0.5, Y: 0.5}}}
 }
 
@@ -107,7 +107,7 @@ func TestValidate(t *testing.T) {
 		t.Fatalf("good kit: %v", p)
 	}
 	bad := map[string]func(k *Kit){
-		"schema":           func(k *Kit) { k.Schema = "blaze.postkit/2" },
+		"schema":           func(k *Kit) { k.Schema = "argus.postkit/2" },
 		"language":         func(k *Kit) { k.Language = "english!" },
 		"hook empty":       func(k *Kit) { k.Hook = "" },
 		"hook 13 words":    func(k *Kit) { k.Hook = "one two three four five six seven eight nine ten eleven twelve thirteen" },
@@ -120,7 +120,7 @@ func TestValidate(t *testing.T) {
 		"no platforms":     func(k *Kit) { k.Platforms = map[string]Post{} },
 		"unknown platform": func(k *Kit) { k.Platforms["myspace"] = Post{Caption: "hi"} },
 		"x over 280": func(k *Kit) {
-			k.Platforms["x"] = Post{Caption: strings.Repeat("word ", 56) + "https://blaze.test/run"}
+			k.Platforms["x"] = Post{Caption: strings.Repeat("word ", 56) + "https://argus.test/run"}
 		},
 		"dropped link": func(k *Kit) { k.Platforms["x"] = Post{Caption: "The sunset made me run faster"} },
 		"no crops":     func(k *Kit) { k.Crops = nil },
@@ -129,7 +129,7 @@ func TestValidate(t *testing.T) {
 		"outside":      func(k *Kit) { k.Crops[0].X = 1000 },
 		"focus":        func(k *Kit) { k.Source.Focus.X = 1.5 },
 		"shorts title": func(k *Kit) {
-			k.Platforms["youtube_shorts"] = Post{Caption: strings.Repeat("a", 101) + " https://blaze.test/run"}
+			k.Platforms["youtube_shorts"] = Post{Caption: strings.Repeat("a", 101) + " https://argus.test/run"}
 		},
 	}
 	for name, mut := range bad {
@@ -142,7 +142,7 @@ func TestValidate(t *testing.T) {
 	// X counts a long link as 23: 250 letters + a 60-character link is 274, valid.
 	k := goodKit()
 	k.Idea = ""
-	k.Platforms["x"] = Post{Caption: strings.Repeat("a", 250) + " https://blaze.test/" + strings.Repeat("p", 40)}
+	k.Platforms["x"] = Post{Caption: strings.Repeat("a", 250) + " https://argus.test/" + strings.Repeat("p", 40)}
 	if p := Validate(k); len(p) > 0 {
 		t.Fatalf("X link weighting: %v", p)
 	}
@@ -166,7 +166,7 @@ func TestParseStrict(t *testing.T) {
 	if _, p := Parse(b3); len(p) == 0 || !strings.Contains(strings.Join(p, ";"), "alt_text is missing") {
 		t.Fatalf("missing alt_text: %v", p)
 	}
-	if _, p := Parse([]byte(`{"schema":"blaze.postkit/1","language":"en","hook":"h","hashtags":["#a","#b","#c"],"alt_text":"a","platforms":{"x":{"text":"hi"}},"crops":[{"ratio":"1:1","x":0,"y":0,"w":1,"h":1}]}`)); len(p) == 0 {
+	if _, p := Parse([]byte(`{"schema":"argus.postkit/1","language":"en","hook":"h","hashtags":["#a","#b","#c"],"alt_text":"a","platforms":{"x":{"text":"hi"}},"crops":[{"ratio":"1:1","x":0,"y":0,"w":1,"h":1}]}`)); len(p) == 0 {
 		t.Fatal("post without caption accepted")
 	}
 }
@@ -180,7 +180,7 @@ func TestTrim(t *testing.T) {
 		t.Fatalf("word cut: %q", got)
 	}
 	// Never inside a link: the cut falls before it.
-	if got := Trim("see https://blaze.test/a-long-path now", 20, Len); got != "see" {
+	if got := Trim("see https://argus.test/a-long-path now", 20, Len); got != "see" {
 		t.Fatalf("token cut: %q", got)
 	}
 	if got := Trim("ok", 10, Len); got != "ok" {
@@ -189,14 +189,14 @@ func TestTrim(t *testing.T) {
 	if got := Trim("ñandú ñandú ñandú", 11, Len); Len(got) > 11 || got != "ñandú ñandú" {
 		t.Fatalf("code points: %q", got)
 	}
-	if XLen("go https://blaze.test/"+strings.Repeat("x", 100)) != 26 {
+	if XLen("go https://argus.test/"+strings.Repeat("x", 100)) != 26 {
 		t.Fatal("XLen")
 	}
 }
 
 func TestTokens(t *testing.T) {
-	got := Tokens("Ping @blaze_app or mail hi@blaze.test, see https://blaze.test/x. Use {name} and {{city}} with `blaze up`.")
-	want := []string{"@blaze_app", "hi@blaze.test", "https://blaze.test/x", "{name}", "{{city}}", "`blaze up`"}
+	got := Tokens("Ping @argus_app or mail hi@argus.test, see https://argus.test/x. Use {name} and {{city}} with `argus up`.")
+	want := []string{"@argus_app", "hi@argus.test", "https://argus.test/x", "{name}", "{{city}}", "`argus up`"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("%q", got)
 	}
@@ -253,7 +253,7 @@ const ideaReply = "Sure! Here's your kit:\n```json\n" + `{
  "hashtags": ["digital detox", "#SlowLiving", "#digitaldetox", "#Lusaka!"],
  "alt_text": "A phone face down on a wooden table next to a cup of tea and an open notebook",
  "posts": {
-  "x": {"body": "Seven days, no feeds. I read 3 books, slept better and finally finished the garden. Here is everything I learned along the way, the good parts and the hard parts, and what I would do differently next time if I did it again. Join me @blaze_app"},
+  "x": {"body": "Seven days, no feeds. I read 3 books, slept better and finally finished the garden. Here is everything I learned along the way, the good parts and the hard parts, and what I would do differently next time if I did it again. Join me @argus_app"},
   "instagram": {"body": "Seven days without feeds.\n\nI read three books and slept better.\n#ignored #tags"},
   "reddit": {"title": "I took a week off my phone, here's what changed", "body": "Long story short: more sleep, more books."},
   "youtube_shorts": {"title": "A week without my phone", "body": "What happened when I put my phone away for seven days."}
@@ -261,7 +261,7 @@ const ideaReply = "Sure! Here's your kit:\n```json\n" + `{
 }` + "\n```"
 
 func ideaReq() Request {
-	return Request{Idea: "A week without my phone. Join me @blaze_app and read more at https://blaze.test/detox", Language: "en",
+	return Request{Idea: "A week without my phone. Join me @argus_app and read more at https://argus.test/detox", Language: "en",
 		Platforms: []string{"x", "instagram", "reddit", "youtube_shorts"}}
 }
 
@@ -291,7 +291,7 @@ func TestMakeIdea(t *testing.T) {
 		t.Fatalf("hashtags %v", k.Hashtags)
 	}
 	x := k.Platforms["x"].Caption
-	if XLen(x) > 280 || !strings.HasPrefix(x, k.Hook) || !strings.Contains(x, "https://blaze.test/detox") || !strings.Contains(x, "@blaze_app") {
+	if XLen(x) > 280 || !strings.HasPrefix(x, k.Hook) || !strings.Contains(x, "https://argus.test/detox") || !strings.Contains(x, "@argus_app") {
 		t.Fatalf("x caption (%d): %q", XLen(x), x)
 	}
 	ig := k.Platforms["instagram"].Caption
@@ -299,7 +299,7 @@ func TestMakeIdea(t *testing.T) {
 		t.Fatalf("instagram %q", ig)
 	}
 	rd := k.Platforms["reddit"]
-	if rd.Title == "" || strings.Contains(rd.Caption, "#") || !strings.Contains(rd.Caption, "https://blaze.test/detox") {
+	if rd.Title == "" || strings.Contains(rd.Caption, "#") || !strings.Contains(rd.Caption, "https://argus.test/detox") {
 		t.Fatalf("reddit %+v", rd)
 	}
 	yt := k.Platforms["youtube_shorts"]
@@ -437,13 +437,13 @@ func TestCaptionLimitsEveryPlatform(t *testing.T) {
 		ps = append(ps, p.ID)
 		posts[p.ID] = ReplyPost{Title: long[:500], Body: long}
 	}
-	r := Request{Idea: "Launch day {product} at https://blaze.test/l", Language: "en", Platforms: ps}
+	r := Request{Idea: "Launch day {product} at https://argus.test/l", Language: "en", Platforms: ps}
 	k := Assemble(r, &Reply{Hook: "Launch day is here", Hashtags: []string{"#a1", "#b2", "#c3"}, AltText: "x", Posts: posts})
 	if p := Validate(k); len(p) > 0 {
 		t.Fatalf("%v", p)
 	}
 	for _, id := range []string{"x", "threads", "instagram"} {
-		if !strings.Contains(k.Platforms[id].Caption, "{product}") || !strings.Contains(k.Platforms[id].Caption, "https://blaze.test/l") {
+		if !strings.Contains(k.Platforms[id].Caption, "{product}") || !strings.Contains(k.Platforms[id].Caption, "https://argus.test/l") {
 			t.Fatalf("%s lost a token", id)
 		}
 	}

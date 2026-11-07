@@ -1,7 +1,7 @@
 package router
 
-// The request log: the last requests through BlazeRouter, kept in memory and in
-// ~/.blaze/desktop/blazerouter-log.jsonl (trimmed to the newest maxLog on start).
+// The request log: the last requests through ArgusRouter, kept in memory and in
+// ~/.argus/desktop/argusrouter-log.jsonl (trimmed to the newest maxLog on start).
 // Only metadata is kept (who answered, tokens, time, errors), never prompts or replies.
 
 import (
@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 const maxLog = 1000
@@ -29,7 +29,7 @@ type Entry struct {
 	In        int       `json:"in"`
 	Out       int       `json:"out"`
 	Stream    bool      `json:"stream"`
-	Client    string    `json:"client,omitempty"`    // from the User-Agent: Cursor, Claude Code, Blaze…
+	Client    string    `json:"client,omitempty"`    // from the User-Agent: Cursor, Claude Code, Argus…
 	Format    string    `json:"format,omitempty"`    // openai, anthropic, gemini, embeddings
 	Saved     int       `json:"saved,omitempty"`     // characters compression removed
 	Fallbacks int       `json:"fallbacks,omitempty"` // targets skipped or failed before this one
@@ -43,7 +43,7 @@ type reqLog struct {
 	path string
 }
 
-func logPath() string { return filepath.Join(config.Dir(), "desktop", "blazerouter-log.jsonl") }
+func logPath() string { return filepath.Join(config.Dir(), "desktop", "argusrouter-log.jsonl") }
 
 func openLog() *reqLog {
 	l := &reqLog{path: logPath()}

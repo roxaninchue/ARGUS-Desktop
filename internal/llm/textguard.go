@@ -4,7 +4,7 @@ import "strings"
 
 // TextGuard sits between the stream and the screen so tool syntax a model
 // writes as text is never shown (v0.14.14). Prose passes through as it arrives;
-// a line that could start a text-form call ("about_blaze", "dispatch_agent:",
+// a line that could start a text-form call ("about_argus", "dispatch_agent:",
 // "{", "<tool_call>", a ```json fence) is held until it is clear. Once it is a
 // call, everything after it is held too, and the caller decides with Held()
 // once the step ends: run the recovered calls, or release the text.
@@ -144,7 +144,7 @@ func (g *TextGuard) judge(eol bool) verdict {
 		if !strings.Contains(tok, "_") && ResolveName(tok, g.Known) == "" {
 			return vPass
 		}
-		// "about_blaze …" / "dispatch_agent: about_blaze": wait for the line.
+		// "about_argus …" / "dispatch_agent: about_argus": wait for the line.
 		if i := strings.IndexByte(t, '{'); i >= 0 || eol {
 			head := strings.TrimRight(t, "\r\n")
 			if n, _ := splitNameLine(head, g.Known); n != "" {

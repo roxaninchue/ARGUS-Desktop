@@ -1,11 +1,12 @@
 package media
 
-// The smart side of Blaze Music (mobile MusicSmart.kt): smart playlists, daily mixes,
-// Wrapped, Blaze DJ's picks, equalizer presets, the fade curves, the tag fixer, iTunes
+// The smart side of Argus Music (mobile MusicSmart.kt): smart playlists, daily mixes,
+// Wrapped, Argus DJ's picks, equalizer presets, the fade curves, the tag fixer, iTunes
 // covers and playlist import parsing (YouTube and Spotify). Pure.
 
 import (
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"math"
 	"math/rand"
 	"regexp"
@@ -298,7 +299,7 @@ func MakeWrapped(ev []PlayEvent, songs []Track, from, to int64, label string, ho
 // WrappedText is Wrapped as a sentence for the agent.
 func WrappedText(w *Wrapped) string {
 	if w == nil {
-		return "Nothing played yet in this period. Wrapped counts songs you play in Blaze Music."
+		return "Nothing played yet in this period. Wrapped counts songs you play in " + brand.NAME + " Music."
 	}
 	var b strings.Builder
 	b.WriteString(w.Label + ": " + i64(w.Minutes) + " minutes, " + itoa(w.Plays) + " plays, " + itoa(w.Songs) + " songs, " + itoa(w.Artists) + " artists.\n")

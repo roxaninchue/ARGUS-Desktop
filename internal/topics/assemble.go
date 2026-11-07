@@ -2,11 +2,12 @@ package topics
 
 import (
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Rule goes in the system prompt whenever the topic view is used.
@@ -16,13 +17,13 @@ const Rule = `TOPICS
 - If the user refers to something you don't see here, it is in another topic or older: call search_chat (then read_turn) before answering. Never ask the user to repeat it.`
 
 // NotePrompt keeps one topic's state note (updated, never redone).
-const NotePrompt = `You keep the state note of ONE topic of a long chat between a user and Blaze, an assistant on their computer. Update the note with the new turns of this topic below. Keep exactly these sections: Goal, Decisions (with why), Facts (names, numbers, paths and commands exactly), Open threads. At most 600 tokens. Keep what is still true from the current note; drop chit-chat and tool noise. Never invent anything. Reply with the note only.`
+const NotePrompt = `You keep the state note of ONE topic of a long chat between a user and ` + brand.NAME + `, an assistant on their computer. Update the note with the new turns of this topic below. Keep exactly these sections: Goal, Decisions (with why), Facts (names, numbers, paths and commands exactly), Open threads. At most 600 tokens. Keep what is still true from the current note; drop chit-chat and tool noise. Never invent anything. Reply with the note only.`
 
 // JudgePrompt is the small model call for an ambiguous message.
 const JudgePrompt = `You sort a chat into topics. Given the topics so far and the user's new message, answer which topic the message continues, or "new" if it starts a different subject. A follow-up question about the same thing (a detail, a variation, a next step) continues that topic. Answer ONLY JSON: {"topic": <id number or "new">, "title": "<2-4 word title if new>"}`
 
 // CarryPrompt is the optional model pass over a topic being left.
-const CarryPrompt = `From these turns of one topic, list ONLY what must still be remembered when the chat moves on to other subjects: deadlines and dates, decisions and why, standing user preferences or rules, promises Blaze made that aren't done. Skip everything specific to the topic's details. Answer ONLY a JSON array, [] when nothing: [{"kind":"deadline|decision|preference|promise|important","text":"one line"}]`
+const CarryPrompt = `From these turns of one topic, list ONLY what must still be remembered when the chat moves on to other subjects: deadlines and dates, decisions and why, standing user preferences or rules, promises ` + brand.NAME + ` made that aren't done. Skip everything specific to the topic's details. Answer ONLY a JSON array, [] when nothing: [{"kind":"deadline|decision|preference|promise|important","text":"one line"}]`
 
 // NoteMax caps a topic note (~700 tokens).
 const NoteMax = 2800

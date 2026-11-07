@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -13,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Host is what the connectors need from the app.
@@ -23,7 +24,7 @@ type Host struct {
 	// Confirm shows an approval card. allowAlways adds "Always allow".
 	Confirm func(title, detail string, allowAlways bool) (yes, always bool)
 	Yolo    func() bool   // the auto-approve setting
-	Focus   func()        // bring Blaze to the front after a browser sign-in
+	Focus   func()        // bring Argus to the front after a browser sign-in
 	Dir     func() string // working folder for local MCP servers
 	Version string
 }
@@ -159,7 +160,7 @@ type PendingView struct {
 	Kind     string `json:"kind"` // browser | device
 	URL      string `json:"url"`
 	UserCode string `json:"user_code,omitempty"`
-	OneClick bool   `json:"one_click,omitempty"` // through Blaze's sign-in service
+	OneClick bool   `json:"one_click,omitempty"` // through Argus's sign-in service
 }
 
 type ConnectorView struct {
@@ -182,7 +183,7 @@ type ConnectorView struct {
 	Tools        []ToolView   `json:"tools"`
 	Pending      *PendingView `json:"pending"`
 	Since        string       `json:"since"`
-	OneClick     bool         `json:"one_click"` // Connect goes through Blaze's sign-in service
+	OneClick     bool         `json:"one_click"` // Connect goes through Argus's sign-in service
 	Cloud        string       `json:"cloud"`     // ready | soon | "" (service offline or off)
 	Via          string       `json:"via"`       // broker | "" (your own app or token)
 }
@@ -208,7 +209,7 @@ type MCPView struct {
 type View struct {
 	Connectors []ConnectorView `json:"connectors"`
 	MCP        []MCPView       `json:"mcp"`
-	MCPFile    string          `json:"mcp_file,omitempty"`  // the shared ~/.blaze/mcp.json
+	MCPFile    string          `json:"mcp_file,omitempty"`  // the shared ~/.argus/mcp.json
 	MCPError   string          `json:"mcp_error,omitempty"` // a problem reading it
 	Loopback   string          `json:"loopback"`
 	Scheme     string          `json:"scheme"`
@@ -396,7 +397,7 @@ func (m *Manager) SetField(id, key, value string) error {
 	return errors.New("unknown field " + key)
 }
 
-// SetRedirect picks loopback ("") or the blaze:// scheme for a provider that allows it.
+// SetRedirect picks loopback ("") or the argus:// scheme for a provider that allows it.
 func (m *Manager) SetRedirect(id, mode string) error {
 	if mode != "scheme" {
 		mode = ""
@@ -405,7 +406,7 @@ func (m *Manager) SetRedirect(id, mode string) error {
 	return m.store.Update(id, func(s *ConnState) { s.Redirect = mode })
 }
 
-// SetEnabled turns a connected connector's tools on or off for Blaze.
+// SetEnabled turns a connected connector's tools on or off for Argus.
 func (m *Manager) SetEnabled(id string, on bool) error {
 	defer m.changed()
 	return m.store.Update(id, func(s *ConnState) { s.Disabled = !on })
@@ -572,7 +573,7 @@ func (m *Manager) ensureLoopback(anyPort bool) (int, error) {
 		l, err = startLoopback(0, m.HandleCallback)
 	}
 	if err != nil {
-		return 0, fmt.Errorf("Blaze couldn't listen on 127.0.0.1:%d for the sign-in (%v). Close whatever uses that port, or pick the blaze:// redirect", m.Port, err)
+		return 0, fmt.Errorf(brand.NAME+" couldn't listen on 127.0.0.1:%d for the sign-in (%v). Close whatever uses that port, or pick the argus:// redirect", m.Port, err)
 	}
 	m.loop = l
 	return l.port, nil
@@ -629,10 +630,10 @@ func (m *Manager) startOAuth(c *Connector, st ConnState, scopes []string) Connec
 	return ConnectResult{Status: "waiting", URL: u}
 }
 
-// HandleURL routes a blaze:// URL (from the OS) to its handler.
+// HandleURL routes an argus:// URL (from the OS) to its handler.
 func (m *Manager) HandleURL(raw string) bool {
 	u, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil || u.Scheme != "blaze" {
+	if err != nil || u.Scheme != "argus" {
 		return false
 	}
 	if u.Host == "connector" && strings.TrimSuffix(u.Path, "/") == "/oauth_callback" {
@@ -679,7 +680,7 @@ func (m *Manager) HandleCallback(raw string) (title, msg string, ok bool) {
 		return "Sign-in didn't finish", err.Error(), false
 	}
 	go m.host.Focus()
-	return "Connected to " + c.Name, "You can close this tab and go back to Blaze.", true
+	return "Connected to " + c.Name, "You can close this tab and go back to " + brand.NAME + ".", true
 }
 
 func (m *Manager) finishConnect(ctx context.Context, c *Connector, tok *Token, requested []string) error {
@@ -991,10 +992,10 @@ func (m *Manager) brokerRefresh(ctx context.Context, c *Connector, tok *Token) (
 	nt, err := b.Refresh(ctx, c.ID, tok.RefreshToken)
 	if err != nil {
 		if errors.Is(err, ErrBrokerUnreachable) {
-			return "", fmt.Errorf("couldn't reach Blaze's sign-in service to refresh %s. Check your internet connection", c.Name)
+			return "", fmt.Errorf("couldn't reach "+brand.NAME+"'s sign-in service to refresh %s. Check your internet connection", c.Name)
 		}
 		if errors.Is(err, ErrBrokerTemporary) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return "", fmt.Errorf("Blaze's sign-in service couldn't refresh %s right now. Try again in a moment", c.Name)
+			return "", fmt.Errorf(brand.NAME+"'s sign-in service couldn't refresh %s right now. Try again in a moment", c.Name)
 		}
 		m.markExpired(c.ID)
 		return "", ErrReauth
@@ -1130,7 +1131,7 @@ func (m *Manager) Tools() []llm.Tool {
 		ids = append(ids, c.ID)
 	}
 	out = append(out, toolDef(metaSuggest, "When a request needs an account that isn't connected or is turned off (e.g. email for Gmail), show the user a card to connect or enable it, instead of guessing.",
-		map[string]any{"connector": enum("Connector", ids...), "reason": str("One short sentence: what it would let Blaze do for this request")}, []string{"connector", "reason"}))
+		map[string]any{"connector": enum("Connector", ids...), "reason": str("One short sentence: what it would let " + brand.NAME + " do for this request")}, []string{"connector", "reason"}))
 	for _, g := range ready {
 		if !m.isLoaded(g) {
 			continue
@@ -1289,12 +1290,12 @@ func (m *Manager) Run(ctx context.Context, name, raw string) string {
 		return "Error: the user turned " + name + " off in Connectors. Don't use it; say so if it's needed."
 	}
 	if m.store.Token(c.ID) == nil {
-		m.emit("connector_suggest", map[string]string{"id": c.ID, "name": c.Name, "action": "connect", "reason": "Blaze needs " + c.Name + " for this (" + strings.ReplaceAll(name, "_", " ") + ")."})
-		return "Error: " + c.Name + " isn't connected. Blaze showed the user a Connect button; continue after they connect it, or do the task another way."
+		m.emit("connector_suggest", map[string]string{"id": c.ID, "name": c.Name, "action": "connect", "reason": brand.NAME + " needs " + c.Name + " for this (" + strings.ReplaceAll(name, "_", " ") + ")."})
+		return "Error: " + c.Name + " isn't connected. " + brand.NAME + " showed the user a Connect button; continue after they connect it, or do the task another way."
 	}
 	if st.Disabled {
-		m.emit("connector_suggest", map[string]string{"id": c.ID, "name": c.Name, "action": "enable", "reason": c.Name + " is turned off for Blaze."})
-		return "Error: the user turned " + c.Name + " off for Blaze. Blaze showed them an Enable button."
+		m.emit("connector_suggest", map[string]string{"id": c.ID, "name": c.Name, "action": "enable", "reason": c.Name + " is turned off for " + brand.NAME + "."})
+		return "Error: the user turned " + c.Name + " off for " + brand.NAME + ". " + brand.NAME + " showed them an Enable button."
 	}
 	if st.Expired {
 		return m.reauth(c)
@@ -1331,7 +1332,7 @@ func (m *Manager) Run(ctx context.Context, name, raw string) string {
 
 func (m *Manager) reauth(c *Connector) string {
 	m.emit("connector_reauth", map[string]string{"id": c.ID, "name": c.Name})
-	return "Error: the user's " + c.Name + " connection has expired. Blaze showed them a Reconnect button. Don't retry until they reconnect; tell them in one line."
+	return "Error: the user's " + c.Name + " connection has expired. " + brand.NAME + " showed them a Reconnect button. Don't retry until they reconnect; tell them in one line."
 }
 
 func (m *Manager) consent(c *Connector, t *Tool, scopes []string) string {
@@ -1340,7 +1341,7 @@ func (m *Manager) consent(c *Connector, t *Tool, scopes []string) string {
 		labels = append(labels, ScopeLabel(s))
 	}
 	m.emit("connector_consent", map[string]any{"id": c.ID, "name": c.Name, "tool": t.Name, "scopes": labels})
-	return "Error: " + c.Name + " hasn't given Blaze permission to " + strings.Join(labels, ", ") + " yet. Blaze asked the user to grant it (a Grant access button in the chat). Wait for them, then try " + t.Name + " again."
+	return "Error: " + c.Name + " hasn't given " + brand.NAME + " permission to " + strings.Join(labels, ", ") + " yet. " + brand.NAME + " asked the user to grant it (a Grant access button in the chat). Wait for them, then try " + t.Name + " again."
 }
 
 // approve is the gate: Always allow runs; Ask shows the card (with Always allow);
@@ -1413,7 +1414,7 @@ func (m *Manager) suggest(a args) string {
 		action = "enable"
 	}
 	m.emit("connector_suggest", map[string]string{"id": c.ID, "name": c.Name, "action": action, "reason": a.s("reason")})
-	return "Blaze showed the user a card to " + action + " " + c.Name + ". Tell them in one line why it helps, then wait for them."
+	return brand.NAME + " showed the user a card to " + action + " " + c.Name + ". Tell them in one line why it helps, then wait for them."
 }
 
 // ---------------- MCP ----------------
@@ -1512,7 +1513,7 @@ func (m *Manager) AddMCP(sp MCPSpec) (MCPView, error) {
 	}
 	s := MCPServer{ID: id, Name: sp.Name, Transport: sp.Transport, URL: sp.URL, Header: strings.TrimSpace(sp.Header), Command: sp.Command, Args: splitArgs(sp.Args)}
 	if s.Name != id {
-		s.Key = id // the file uses the id as the name: stable, and the same in Blaze CLI
+		s.Key = id // the file uses the id as the name: stable, and the same in Argus CLI
 		s.Name = id
 	}
 	if sp.Transport == "stdio" {
@@ -1544,7 +1545,7 @@ func (m *Manager) RemoveMCP(id string) error {
 	return m.store.RemoveMCP(id)
 }
 
-// SetMCPEnabled turns a server's tools on or off for Blaze.
+// SetMCPEnabled turns a server's tools on or off for Argus.
 func (m *Manager) SetMCPEnabled(id string, on bool) error {
 	if !on {
 		m.dropClient(id)
@@ -1725,7 +1726,7 @@ func (m *Manager) ConnectedCount() int {
 	return n
 }
 
-// SetMCPConfig shares MCP servers through the file Blaze CLI reads too (~/.blaze/mcp.json).
+// SetMCPConfig shares MCP servers through the file Argus CLI reads too (~/.argus/mcp.json).
 func (m *Manager) SetMCPConfig(path string) error {
 	err := m.store.SetMCPConfig(path)
 	m.changed()

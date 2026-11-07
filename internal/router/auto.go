@@ -20,13 +20,14 @@ package router
 // models from different providers at once and keeps the first answer.
 
 import (
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"math"
 	"sort"
 	"strings"
 	"sync"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // AutoPreset is one built-in auto/* model.
@@ -42,7 +43,7 @@ type AutoPreset struct {
 
 // AutoPresets lists every built-in auto/* id, the same names OmniRoute uses.
 var AutoPresets = []AutoPreset{
-	{ID: "auto", Name: "Auto", Desc: "Your Blaze chain, healthiest first, then every provider with a key"},
+	{ID: "auto", Name: "Auto", Desc: "Your " + brand.NAME + " chain, healthiest first, then every provider with a key"},
 	{ID: "auto/best-free", Name: "Best Free", Desc: "Free-tier models only, cheapest and healthiest first", Variant: "cheap", Tier: "free"},
 	{ID: "auto/best-chat", Name: "Best Chat", Desc: "Balanced everyday chat"},
 	{ID: "auto/best-coding", Name: "Best Coding", Desc: "Models known for code, quality first", Variant: "coding", Category: "coding"},
@@ -79,7 +80,7 @@ var AutoPresets = []AutoPreset{
 	{ID: "auto/coding:pro", Name: "Coding Pro", Desc: "Premium coding models first", Category: "coding", Tier: "pro"},
 	{ID: "auto/coding:reliable", Name: "Coding Reliable", Desc: "Coding models, most reliable first", Category: "coding", Tier: "reliable"},
 	{ID: "auto/reasoning:pro", Name: "Reasoning Pro", Desc: "Premium thinking models first", Category: "reasoning", Tier: "pro"},
-	// Blaze's own presets from before the port (kept: clients may already use them).
+	// Argus's own presets from before the port (kept: clients may already use them).
 	{ID: "auto/free", Name: "Free", Desc: "Same as Auto", Strategy: StratPriority},
 	{ID: "auto/quota", Name: "Quota", Desc: "Most quota left today first", Strategy: StratQuotaAware},
 }
@@ -92,9 +93,9 @@ var autoVariants = map[string]bool{"coding": true, "fast": true, "cheap": true, 
 // any auto/<variant> resolve on demand, like OmniRoute, even when not listed.
 func autoPreset(m string) (AutoPreset, bool) {
 	m = strings.ToLower(strings.TrimSpace(m))
-	m = strings.TrimPrefix(m, "blazerouter/")
+	m = strings.TrimPrefix(m, "argusrouter/")
 	switch m {
-	case "", "auto", "default", "blazerouter", "auto/":
+	case "", "auto", "default", "argusrouter", "auto/":
 		return AutoPresets[0], true
 	}
 	if !strings.HasPrefix(m, "auto/") {
@@ -124,7 +125,7 @@ func titleWord(s string) string {
 }
 
 // weights are the scoring weights of one mode pack (OmniRoute's ScoringWeights,
-// reduced to the signals Blaze measures).
+// reduced to the signals Argus measures).
 type weights struct{ quota, health, cost, latency, fit, stability, tier float64 }
 
 var (

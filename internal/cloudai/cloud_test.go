@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 func user(s string) []llm.Message {
@@ -115,7 +115,7 @@ func TestErrorLines(t *testing.T) {
 		text string
 		want string
 	}{
-		{403, "waitlisted You're on the Blaze waiting list", Waitlisted},
+		{403, "waitlisted You're on the Argus waiting list", Waitlisted},
 		{403, "access_rejected nope", Rejected},
 		{403, "forbidden", Expired},
 		{401, "invalid_api_key", Expired},

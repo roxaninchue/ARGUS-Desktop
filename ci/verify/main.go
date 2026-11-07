@@ -1,9 +1,9 @@
-// Command verify checks a Blaze release by hand.
+// Command verify checks an Argus release by hand.
 //
 // Put the downloaded files in one folder with SHA256SUMS and SHA256SUMS.sig, then:
 //
-//	go run ./ci/verify ~/Downloads/blaze            # every listed file that's there
-//	go run ./ci/verify ~/Downloads/blaze/Blaze-v0.15.1-linux-amd64.tar.gz
+//	go run ./ci/verify ~/Downloads/argus            # every listed file that's there
+//	go run ./ci/verify ~/Downloads/argus/Argus-v0.15.1-linux-amd64.tar.gz
 //
 // -key overrides the public keys (base64 raw ed25519) built into the app.
 package main
@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/updsig"
+	"github.com/lacksonkapapahue/argus-desktop/internal/updsig"
 )
 
 func main() {

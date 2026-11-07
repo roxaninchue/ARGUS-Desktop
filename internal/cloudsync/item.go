@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"sort"
 	"strconv"
@@ -13,7 +14,7 @@ import (
 	"unicode/utf16"
 )
 
-// Kinds Blaze Android syncs (connect/SyncAdapters.kt SyncKinds, ChatItems.kt).
+// Kinds Argus Android syncs (connect/SyncAdapters.kt SyncKinds, ChatItems.kt).
 const (
 	KindChat     = "chat"     // a chat's own fields (title, updated…), ChatHeadAdapter
 	KindMessage  = "msg"      // one message, id "<chat>:<gid>", MessageAdapter (never pushed as a delete)
@@ -74,7 +75,7 @@ func decodeObj(raw []byte, out any) error {
 	return d.Decode(out)
 }
 
-// ParseItem reads an envelope; it refuses one made by a newer Blaze or one whose
+// ParseItem reads an envelope; it refuses one made by a newer Argus or one whose
 // kind / id don't match the item it came in (SyncMerge.Item.parse).
 func ParseItem(kind, id, plain string) (Item, error) {
 	var e struct {
@@ -90,7 +91,7 @@ func ParseItem(kind, id, plain string) (Item, error) {
 	}
 	if e.V != nil {
 		if v, err := e.V.Int64(); err == nil && v > 1 {
-			return Item{}, errors.New("made by a newer Blaze")
+			return Item{}, errors.New("made by a newer " + brand.NAME)
 		}
 	}
 	if (e.Kind != nil && *e.Kind != kind) || (e.ID != nil && *e.ID != id) {

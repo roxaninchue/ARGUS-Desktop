@@ -1,7 +1,7 @@
 package media
 
 // The folder scanner: the user's music and video folders (~/Music, ~/Videos or
-// ~/Movies, Blaze's own download folders, and any folder they add). Audio tags and
+// ~/Movies, Argus's own download folders, and any folder they add). Audio tags and
 // embedded covers come from github.com/dhowden/tag (ID3v1/2, MP4, FLAC, Ogg); a
 // cover.jpg / folder.jpg next to the songs is used when there's no embedded one.
 // Unchanged files (same size and mtime) come from the cache, so a rescan is quick.

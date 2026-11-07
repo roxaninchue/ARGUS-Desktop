@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun/bgruntest"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun/bgruntest"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // v0.19.14 "ack now, work in background, report when done": the app wiring behind its ports
@@ -168,7 +168,7 @@ func TestDeskCloudAckThenDone(t *testing.T) {
 	if s.running() {
 		t.Fatal("the composer is still blocked")
 	}
-	msg := d.tap.waitFor(t, "blaze_msg")
+	msg := d.tap.waitFor(t, "argus_msg")
 	if !strings.Contains(msg, "Done ✓ Reminder set for 9:00 tomorrow.") {
 		t.Fatalf("final: %s", msg)
 	}
@@ -212,7 +212,7 @@ func TestDeskCloudGreetingNoAck(t *testing.T) {
 		t.Fatalf("a greeting or question must start no run: created=%d notes=%v evs=%v", len(created), notes, evs)
 	}
 	for _, e := range evs {
-		if strings.Contains(e, `"ack":true`) || strings.HasPrefix(e, "blaze_msg") || strings.Contains(e, "Done ✓") {
+		if strings.Contains(e, `"ack":true`) || strings.HasPrefix(e, "argus_msg") || strings.Contains(e, "Done ✓") {
 			t.Fatalf("a greeting must get no promise and no Done: %v", evs)
 		}
 	}
@@ -226,7 +226,7 @@ func TestDeskCloudNeedsDeviceAnswered(t *testing.T) {
 			bgruntest.Running(), bgruntest.Done("Reminder set for Fri 9:00.", "Reminder set for Fri 9:00.", "reminder")}
 	}
 	d.turn(context.Background(), "remind me on friday at 9 to pay rent")
-	msg := d.tap.waitFor(t, "blaze_msg")
+	msg := d.tap.waitFor(t, "argus_msg")
 	bgRuns.Wait()
 	_, res, _ := d.fake.Snapshot()
 	if len(d.tools) != 1 || !strings.HasPrefix(d.tools[0], "schedule_add") || len(res) != 1 {
@@ -249,7 +249,7 @@ func TestDeskCloudDeviceFailNeverDone(t *testing.T) {
 		return []bgrun.View{bgruntest.NeedsDevice("c1", "schedule_add", `{"mode":"fail"}`), bgruntest.Done("Reminder set.", "Reminder set.", "reminder")}
 	}
 	d.turn(context.Background(), "remind me at 9")
-	msg := d.tap.waitFor(t, "blaze_msg")
+	msg := d.tap.waitFor(t, "argus_msg")
 	bgRuns.Wait()
 	_, notes := d.tap.snap()
 	if strings.Contains(msg, "Done ✓") || len(notes) != 1 || strings.HasPrefix(notes[0], "Done") {
@@ -264,7 +264,7 @@ func TestDeskCloudFailedPath(t *testing.T) {
 		return []bgrun.View{bgruntest.Running(), bgruntest.Failed("models_busy", "Every free model is busy right now.", "Try again in a minute.")}
 	}
 	d.turn(context.Background(), "remind me at 9")
-	msg := d.tap.waitFor(t, "blaze_msg")
+	msg := d.tap.waitFor(t, "argus_msg")
 	if !strings.Contains(msg, "Every free model is busy right now.") || !strings.Contains(msg, "Try again in a minute.") ||
 		strings.Contains(msg, "Done") || !strings.Contains(msg, `"kind":"failed"`) {
 		t.Fatalf("failed final: %s", msg)
@@ -278,7 +278,7 @@ func TestDeskSingleNotificationWhenUnfocused(t *testing.T) {
 		return []bgrun.View{bgruntest.Running(), bgruntest.NeedsDevice("c1", "schedule_add", `{}`), bgruntest.Running(), bgruntest.Done("Reminder set for Fri 9:00.", "Reminder set for Fri 9:00.", "reminder")}
 	}
 	d.turn(context.Background(), "remind me friday 9am")
-	d.tap.waitFor(t, "blaze_msg")
+	d.tap.waitFor(t, "argus_msg")
 	bgRuns.Wait()
 	// A second resume / duplicate follow must not notify again.
 	bgRuns.Follow(context.Background(), bgrun.Entry{RunID: "run_fake1", Conv: mainConv, Action: true}, 0)
@@ -296,7 +296,7 @@ func TestDeskNoNotificationWhenFocused(t *testing.T) {
 		return []bgrun.View{bgruntest.Done("Reminder set for Fri 9:00.", "Reminder set for Fri 9:00.", "reminder")}
 	}
 	d.turn(context.Background(), "remind me friday 9am")
-	d.tap.waitFor(t, "blaze_msg")
+	d.tap.waitFor(t, "argus_msg")
 	bgRuns.Wait()
 	if _, notes := d.tap.snap(); len(notes) != 0 {
 		t.Fatalf("focused window got %v", notes)
@@ -320,7 +320,7 @@ func TestDeskResumePendingRuns(t *testing.T) {
 	m.Track(bgrun.Entry{RunID: "run_old2", ClientMsgID: "desk-old2", Conv: mainConv, Action: true, Created: time.Now()})
 	a.resumeRuns(0)
 	m.Wait()
-	msgs := d.tap.find("blaze_msg")
+	msgs := d.tap.find("argus_msg")
 	if len(msgs) != 2 {
 		t.Fatalf("resume delivered %d finals: %v", len(msgs), msgs)
 	}
@@ -370,7 +370,7 @@ func TestDeskNewMessageMovesRunToBackground(t *testing.T) {
 	a.mu.Unlock()
 	cancel()
 	<-done
-	msg := d.tap.waitFor(t, "blaze_msg")
+	msg := d.tap.waitFor(t, "argus_msg")
 	if !strings.Contains(msg, "Paris is the capital of France.") {
 		t.Fatalf("final: %s", msg)
 	}
@@ -407,7 +407,7 @@ func TestDeskLocalAckAndBackground(t *testing.T) {
 	if s.running() {
 		t.Fatal("composer blocked")
 	}
-	msg := d.tap.waitFor(t, "blaze_msg")
+	msg := d.tap.waitFor(t, "argus_msg")
 	if !strings.Contains(msg, "Done ✓ There is one file, marker.txt.") {
 		t.Fatalf("local final: %s", msg)
 	}
@@ -435,7 +435,7 @@ func TestDeskLocalFailedPath(t *testing.T) {
 	}
 	t.Cleanup(func() { completeTurn = old })
 	d.turn(context.Background(), "create a file notes.txt with hello")
-	msg := d.tap.waitFor(t, "blaze_msg")
+	msg := d.tap.waitFor(t, "argus_msg")
 	if !strings.Contains(msg, "Couldn't finish that.") || strings.Contains(msg, "Done ✓") || !strings.Contains(msg, `"kind":"failed"`) {
 		t.Fatalf("local failed final: %s", msg)
 	}
@@ -486,7 +486,7 @@ func TestDeskResumeLeavesForegroundRunAlone(t *testing.T) {
 	if bgRuns != nil {
 		bgRuns.Wait()
 	}
-	if len(d.tap.find("done ")) != 1 || len(d.tap.find(`delta "It's Friday 23 October."`)) != 1 || len(d.tap.find("blaze_msg")) != 0 {
+	if len(d.tap.find("done ")) != 1 || len(d.tap.find(`delta "It's Friday 23 October."`)) != 1 || len(d.tap.find("argus_msg")) != 0 {
 		evs, _ := d.tap.snap()
 		t.Fatalf("the turn's own reply must end the turn once: %v", evs)
 	}
@@ -505,7 +505,7 @@ func TestBgActionRouting(t *testing.T) {
 		"fix the failing tests",
 		"Read notes-1.txt in this folder, find the magic word, and create out-1.txt containing only that word.",
 		"Now edit out-1.txt: change the word to zephyr-edited.",
-		"Run this command and tell me its exact output: echo blaze-$((42+1))-ok",
+		"Run this command and tell me its exact output: echo argus-$((42+1))-ok",
 		"look up the weather in Lusaka and save it to weather.txt",
 		"Create a file called ack-1.txt in this folder containing the word ready.",
 		"Make a CSV report of sales-1.csv in this folder: total amount by region, with a bar chart.",
@@ -552,11 +552,11 @@ func TestDeskCloudActionWithoutGatewayAckStillAcks(t *testing.T) {
 	d := deskSetup(t, true, true)
 	d.fake.AckFor = nil
 	d.fake.ScriptFor = func(bgrun.CreateReq) []bgrun.View {
-		return []bgrun.View{bgruntest.Running(), bgruntest.NeedsDevice("call_1", "run_shell", `{"command":"echo blaze-43-ok"}`),
-			bgruntest.Running(), bgruntest.Done("blaze-43-ok", "blaze-43-ok", "search")} // the receipt calls it a search
+		return []bgrun.View{bgruntest.Running(), bgruntest.NeedsDevice("call_1", "run_shell", `{"command":"echo argus-43-ok"}`),
+			bgruntest.Running(), bgruntest.Done("argus-43-ok", "argus-43-ok", "search")} // the receipt calls it a search
 	}
 	start := time.Now()
-	s, ok := d.turn(context.Background(), "Run this command and tell me its exact output: echo blaze-$((42+1))-ok")
+	s, ok := d.turn(context.Background(), "Run this command and tell me its exact output: echo argus-$((42+1))-ok")
 	if !ok {
 		t.Fatal("not handled as a run")
 	}
@@ -570,8 +570,8 @@ func TestDeskCloudActionWithoutGatewayAckStillAcks(t *testing.T) {
 	if s.running() {
 		t.Fatal("composer blocked")
 	}
-	msg := d.tap.waitFor(t, "blaze_msg")
-	if !strings.Contains(msg, "Done ✓ blaze-43-ok") {
+	msg := d.tap.waitFor(t, "argus_msg")
+	if !strings.Contains(msg, "Done ✓ argus-43-ok") {
 		t.Fatalf("final: %s", msg)
 	}
 }
@@ -601,7 +601,7 @@ func TestAcksNotSentToModel(t *testing.T) {
 			t.Errorf("not an ack: %q", l)
 		}
 	}
-	for _, l := range []string{"Done ✓ Created a.txt.", "On it the file says hello.\nMore", "Sure! Paris is the capital of France.", "blaze-43-ok"} {
+	for _, l := range []string{"Done ✓ Created a.txt.", "On it the file says hello.\nMore", "Sure! Paris is the capital of France.", "argus-43-ok"} {
 		if bgrun.IsAckLine(l) {
 			t.Errorf("not an ack but dropped: %q", l)
 		}

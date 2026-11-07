@@ -1,20 +1,21 @@
 package router
 
-// BlazeRouter's own settings, in ~/.blaze/desktop/blazerouter.json (mode 0600).
-// Keys are NOT here: they stay in Blaze's shared key store (the OS keychain or
-// ~/.blaze/keys.json), which Blaze CLI reads too. The custom provider's address and
+// ArgusRouter's own settings, in ~/.argus/desktop/argusrouter.json (mode 0600).
+// Keys are NOT here: they stay in Argus's shared key store (the OS keychain or
+// ~/.argus/keys.json), which Argus CLI reads too. The custom provider's address and
 // each provider's chosen model stay in config.json, also shared with the CLI.
 
 import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 const DefaultPort = 20128
@@ -29,8 +30,8 @@ const (
 
 type Settings struct {
 	Port        int               `json:"port"`
-	Enabled     *bool             `json:"enabled,omitempty"`     // server on (nil = off since v0.19.1: Blaze Cloud answers)
-	Autostart   *bool             `json:"autostart,omitempty"`   // starts with Blaze (nil = yes)
+	Enabled     *bool             `json:"enabled,omitempty"`     // server on (nil = off since v0.19.1: Argus Cloud answers)
+	Autostart   *bool             `json:"autostart,omitempty"`   // starts with Argus (nil = yes)
 	Compression string            `json:"compression,omitempty"` // off, light (default), standard, aggressive
 	APIKey      string            `json:"api_key"`               // the local key clients send
 	Combos      []Combo           `json:"combos,omitempty"`
@@ -43,7 +44,7 @@ func (s *Settings) AutoStart() bool { return s.Autostart == nil || *s.Autostart 
 
 var smu sync.Mutex
 
-func settingsPath() string { return filepath.Join(config.Dir(), "desktop", "blazerouter.json") }
+func settingsPath() string { return filepath.Join(config.Dir(), "desktop", "argusrouter.json") }
 
 // NewKey makes a local API key: "br-" and 40 hex characters.
 func NewKey() string {
@@ -84,9 +85,9 @@ func (s *Settings) save() error {
 	return os.Rename(tmp, settingsPath())
 }
 
-// migrate runs once: everything Blaze's old Settings › Models held becomes BlazeRouter's.
-// Nothing is moved or rewritten in the shared files, so Blaze CLI keeps working as before:
-//   - keys stay in the shared key store; BlazeRouter reads them from there.
+// migrate runs once: everything Argus's old Settings › Models held becomes ArgusRouter's.
+// Nothing is moved or rewritten in the shared files, so Argus CLI keeps working as before:
+//   - keys stay in the shared key store; ArgusRouter reads them from there.
 //   - the custom provider's address and name stay in config.json.
 //   - the Auto chain (with each entry's model) becomes the combo "My chain", so a
 //     hand-ordered chain and any custom model ids in it are kept.
@@ -112,7 +113,7 @@ func (s *Settings) migrate(cfg *config.Config) bool {
 	}
 	if len(chain) > 0 && s.combo("my-chain") == nil {
 		s.Combos = append(s.Combos, Combo{ID: "my-chain", Name: "My chain", Strategy: StratPriority, Targets: chain,
-			Note: "Your Auto chain from Blaze's old Settings › Models"})
+			Note: "Your Auto chain from " + brand.NAME + "'s old Settings › Models"})
 	}
 	// A fixed default model with a custom id is kept in config.json (ModelFor) as it was.
 	return true

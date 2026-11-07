@@ -13,7 +13,7 @@ import (
 func tempHome(t *testing.T) string {
 	t.Helper()
 	d := t.TempDir()
-	t.Setenv("BLAZE_HOME", d)
+	t.Setenv("ARGUS_HOME", d)
 	return d
 }
 
@@ -27,7 +27,7 @@ func TestCacheRoundTrip(t *testing.T) {
 		[]Method{{Kind: "exec", Name: "notify-send", Argv: []string{"notify-send", "{title}", "{body}"}}}, []string{"dunstify"})
 	c.Save()
 	if _, err := os.Stat(filepath.Join(home, "notify.json")); err != nil {
-		t.Fatalf("cache not written to BLAZE_HOME/notify.json: %v", err)
+		t.Fatalf("cache not written to ARGUS_HOME/notify.json: %v", err)
 	}
 	got := Load()
 	if got == nil {

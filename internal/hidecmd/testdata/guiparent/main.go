@@ -1,6 +1,6 @@
 //go:build windows
 
-// guiparent is built as a GUI program, like Blaze.exe, and starts conchild either through
+// guiparent is built as a GUI program, like Argus.exe, and starts conchild either through
 // hidecmd.Hide ("hidden") or plainly ("plain"), writing what conchild saw to the out file.
 package main
 
@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/hidecmd"
+	"github.com/lacksonkapapahue/argus-desktop/internal/hidecmd"
 )
 
 func main() {

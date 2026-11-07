@@ -36,7 +36,7 @@ $result.Lines | ForEach-Object { $_.Text }
 // scriptFile writes the script once per version (-File passes the image path as $args).
 func scriptFile() (string, error) {
 	sum := sha256.Sum256([]byte(winScript))
-	p := filepath.Join(os.TempDir(), fmt.Sprintf("blaze-ocr-%x.ps1", sum[:6]))
+	p := filepath.Join(os.TempDir(), fmt.Sprintf("argus-ocr-%x.ps1", sum[:6]))
 	if _, err := os.Stat(p); err == nil {
 		return p, nil
 	}

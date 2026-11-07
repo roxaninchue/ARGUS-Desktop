@@ -10,8 +10,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Script tests for App.run, the production loop, behind its two ports: completeTurn

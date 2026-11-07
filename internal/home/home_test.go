@@ -247,14 +247,14 @@ func TestLocalCards(t *testing.T) {
 		t.Fatalf("%+v", d)
 	}
 	if e := ScheduleData(nil, now); !strings.HasPrefix(e.Action, "ask:") {
-		t.Fatal("empty schedule asks Blaze")
+		t.Fatal("empty schedule asks Argus")
 	}
 	dl := DeadlinesData(jobs, []string{"Report is due Friday", "Likes tea"}, now)
 	if dl.Value != "call mum" || len(dl.Lines) != 2 || dl.Lines[1].N != "From memory" {
 		t.Fatalf("%+v", dl)
 	}
 	r := RecentsData([]Recent{{Title: "Fix the tests", Sub: "Chat", Kind: "chat", Target: "main"}, {Title: ""}, {Title: "HomeGlow", Kind: "project", Target: "p1"}})
-	if len(r.Lines) != 2 || r.Lines[1].U != "blaze:project:p1" {
+	if len(r.Lines) != 2 || r.Lines[1].U != "argus:project:p1" {
 		t.Fatalf("%+v", r)
 	}
 	c := CustomData(Widget{Title: "Links", Config: map[string]string{"items": "Docs | read | https://x.dev\nbad | | javascript:alert(1)", "url": "ftp://x"}})

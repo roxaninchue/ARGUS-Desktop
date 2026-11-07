@@ -6,18 +6,18 @@ import (
 	"testing"
 )
 
-var toolSet = []string{"about_blaze", "web_search", "fetch_page", "run_shell"}
+var toolSet = []string{"about_argus", "web_search", "fetch_page", "run_shell"}
 
 // Calls a model wrote as text (non-gateway routes) become real calls (v0.19.13, ported from CLI 0.14.14).
 func TestTextCallsUserCases(t *testing.T) {
 	for _, in := range []string{
-		"dispatch_agent: about_blaze {\"topic\":\"crew\"}",
-		`{"tool":"about_blaze","args":{"topic":"crew"}}`,
-		"```json\n{\"name\":\"about_blaze\",\"arguments\":{\"topic\":\"crew\"}}\n```",
-		"<tool_call>{\"name\":\"about_blaze\",\"arguments\":{\"topic\":\"crew\"}}</tool_call>",
+		"dispatch_agent: about_argus {\"topic\":\"crew\"}",
+		`{"tool":"about_argus","args":{"topic":"crew"}}`,
+		"```json\n{\"name\":\"about_argus\",\"arguments\":{\"topic\":\"crew\"}}\n```",
+		"<tool_call>{\"name\":\"about_argus\",\"arguments\":{\"topic\":\"crew\"}}</tool_call>",
 	} {
 		rest, calls := ExtractTextCalls(in, toolSet)
-		if len(calls) != 1 || calls[0].Function.Name != "about_blaze" || !strings.Contains(calls[0].Function.Arguments, `"crew"`) {
+		if len(calls) != 1 || calls[0].Function.Name != "about_argus" || !strings.Contains(calls[0].Function.Arguments, `"crew"`) {
 			t.Errorf("%q: calls %+v", in, calls)
 			continue
 		}
@@ -25,7 +25,7 @@ func TestTextCallsUserCases(t *testing.T) {
 			t.Errorf("%q: raw syntax left in the answer: %q", in, rest)
 		}
 	}
-	if _, calls := ExtractTextCalls("Blaze has a crew of agents. Ask me about it.", toolSet); len(calls) != 0 {
+	if _, calls := ExtractTextCalls("Argus has a crew of agents. Ask me about it.", toolSet); len(calls) != 0 {
 		t.Fatalf("prose became a call: %+v", calls)
 	}
 }
@@ -86,7 +86,7 @@ func TestInlineEnvelopeWithStringInput(t *testing.T) {
 		t.Fatalf("syntax left: %q", rest)
 	}
 	// Plain prose holding JSON data is not a call.
-	if _, c := ExtractTextCalls(`The config is {"name":"blaze","port":8080}.`, []string{"memory_search"}); len(c) != 0 {
+	if _, c := ExtractTextCalls(`The config is {"name":"argus","port":8080}.`, []string{"memory_search"}); len(c) != 0 {
 		t.Fatalf("data read as call: %+v", c)
 	}
 }

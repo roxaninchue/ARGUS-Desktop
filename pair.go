@@ -1,16 +1,16 @@
 package main
 
-// Blaze Link (v0.14+): the PC side of phone pairing with Blaze for Android
+// Argus Link (v0.14+): the PC side of phone pairing with Argus for Android
 // (com.blaze.assistant.link.DesktopLink). Ported from PR #3 (branch feature/phone-pairing)
 // onto the current app; the wire protocol is unchanged and documented in
-// docs/plans/plan-blaze-link.md.
+// docs/plans/plan-argus-link.md.
 //
 // The PC runs a small HTTPS server (port 7377) with its own self-signed certificate. The QR code
 // shown in the Phone view carries this PC's addresses, the certificate's SHA-256 fingerprint (the
 // phone pins it, so nobody else on the Wi-Fi can pretend to be the PC) and a one-time code that
 // expires after 5 minutes. The phone trades the code for a long-lived token. After that:
 //
-//	phone → PC: POST /v1/task runs a Blaze turn on this PC. The phone long-polls /v1/task/{id}
+//	phone → PC: POST /v1/task runs an Argus turn on this PC. The phone long-polls /v1/task/{id}
 //	            for progress, approval requests (answered with POST /v1/confirm) and the answer.
 //	PC → phone: the phone long-polls GET /v1/inbox. The phone_ask tool drops a request there and
 //	            waits for POST /v1/inbox/{id}/reply.
@@ -35,6 +35,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"image/png"
 	"math/big"
 	"net"
@@ -49,9 +50,9 @@ import (
 
 	"rsc.io/qr"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 const (
@@ -87,7 +88,7 @@ type taskConfirm struct {
 	answer chan bool
 }
 
-// phoneReq is a request from this PC's Blaze to the phone (the phone_ask tool).
+// phoneReq is a request from this PC's Argus to the phone (the phone_ask tool).
 type phoneReq struct {
 	ID    string `json:"id"`
 	Text  string `json:"text"`
@@ -150,12 +151,12 @@ func (p *pairHub) loadCert() error {
 		host, _ := os.Hostname()
 		tpl := &x509.Certificate{
 			SerialNumber: serial,
-			Subject:      pkix.Name{CommonName: "Blaze Desktop " + host},
+			Subject:      pkix.Name{CommonName: brand.NAME + " Desktop " + host},
 			NotBefore:    time.Now().Add(-time.Hour),
 			NotAfter:     time.Now().AddDate(20, 0, 0),
 			KeyUsage:     x509.KeyUsageDigitalSignature,
 			ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-			DNSNames:     []string{"blaze.local"},
+			DNSNames:     []string{"argus.local"},
 		}
 		der, err := x509.CreateCertificate(rand.Reader, tpl, tpl, &key.PublicKey, key)
 		if err != nil {
@@ -190,7 +191,7 @@ func (p *pairHub) ensureServer() {
 	}
 	ln, err := net.Listen("tcp", ":"+strconv.Itoa(pairPort))
 	if err != nil {
-		p.errText = fmt.Sprintf("Port %d is busy (%v). Close whatever uses it, or another Blaze window, then try again.", pairPort, err)
+		p.errText = fmt.Sprintf("Port %d is busy (%v). Close whatever uses it, or another "+brand.NAME+" window, then try again.", pairPort, err)
 		return
 	}
 	mux := http.NewServeMux()
@@ -459,7 +460,7 @@ func (p *pairHub) hConfirm(w http.ResponseWriter, r *http.Request, dev pairedDev
 	pairJSON(w, 200, map[string]bool{"ok": true})
 }
 
-// runTask is a Blaze turn on this PC for the phone: the same tools, connectors and memory
+// runTask is an Argus turn on this PC for the phone: the same tools, connectors and memory
 // as the app's chat, its own conversation per phone, and approvals asked on the phone
 // instead of the PC screen.
 func (p *pairHub) runTask(t *phoneTask, dev pairedDevice, text string) {
@@ -482,7 +483,7 @@ func (p *pairHub) runTask(t *phoneTask, dev pairedDevice, text string) {
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			finish("error", fmt.Sprint("Blaze on the PC hit an internal error: ", r))
+			finish("error", fmt.Sprint(brand.NAME+" on the PC hit an internal error: ", r))
 		}
 	}()
 	a.emit("status", dev.Name+" asked: "+firstLine(text))
@@ -494,7 +495,7 @@ func (p *pairHub) runTask(t *phoneTask, dev pairedDevice, text string) {
 	p.mu.Lock()
 	hist := append(append([]llm.Message(nil), p.hist[dev.ID]...), llm.Message{Role: "user", Content: text})
 	p.mu.Unlock()
-	sys := a.system(text) + tools.ExtraLine(conv) + "\nTHIS REQUEST CAME FROM THE USER'S PHONE (" + dev.Name + "), paired with this PC over Blaze Link. They may not be at the computer: do the work here, then answer in a few short sentences that read well on a phone. Approvals are asked on the phone.\n"
+	sys := a.system(text) + tools.ExtraLine(conv) + "\nTHIS REQUEST CAME FROM THE USER'S PHONE (" + dev.Name + "), paired with this PC over " + brand.NAME + " Link. They may not be at the computer: do the work here, then answer in a few short sentences that read well on a phone. Approvals are asked on the phone.\n"
 
 	steps := 40
 	if a.cfg != nil && a.cfg.MaxSteps > 0 {
@@ -675,10 +676,10 @@ func (p *pairHub) askPhone(task string) string {
 	n := len(p.devices)
 	p.mu.Unlock()
 	if n == 0 {
-		return "No phone is paired with this PC. The user can pair one in Blaze Desktop › Phone."
+		return "No phone is paired with this PC. The user can pair one in " + brand.NAME + " Desktop › Phone."
 	}
 	if p.connectedPhone() == "" {
-		return "The paired phone isn't reachable right now. Blaze must be running on it, on the same Wi-Fi as this PC (or both on Tailscale). Tell the user that, and don't retry in a loop."
+		return "The paired phone isn't reachable right now. " + brand.NAME + " must be running on it, on the same Wi-Fi as this PC (or both on Tailscale). Tell the user that, and don't retry in a loop."
 	}
 	q := &phoneReq{ID: randHex(6), Text: task, reply: make(chan string, 1)}
 	p.mu.Lock()

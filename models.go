@@ -9,7 +9,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/privacy"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
+	"github.com/lacksonkapapahue/argus-desktop/internal/privacy"
 	"io"
 	"net"
 	"net/http"
@@ -20,9 +21,9 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudai"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 type ProviderView struct {
@@ -36,7 +37,7 @@ type ProviderView struct {
 	HasKey    bool   `json:"has_key"`
 	Keys      int    `json:"keys"`
 	Keyless   bool   `json:"keyless"`
-	Model     string `json:"model"`    // the model Blaze uses for it
+	Model     string `json:"model"`    // the model Argus uses for it
 	InChain   bool   `json:"in_chain"` // part of the Auto chain
 	Ready     bool   `json:"ready"`    // usable now (key, or keyless/local)
 	Base      string `json:"base,omitempty"`
@@ -112,7 +113,7 @@ func (a *App) modelName() string {
 
 // ---------------- choosing ----------------
 
-// ModelOptions lists one provider's models: Blaze's catalog plus the live list from the
+// ModelOptions lists one provider's models: Argus's catalog plus the live list from the
 // provider (cached; refresh fetches it now), with tools / vision / context for each.
 func (a *App) ModelOptions(provider string, refresh bool) llm.ModelList {
 	a.waitReady()
@@ -160,7 +161,7 @@ func (a *App) DetectModels(provider string) llm.ModelList {
 // An empty model uses the provider's current model. Returns the chip label.
 func (a *App) SelectModel(provider, model string) string {
 	a.waitReady()
-	if provider == cloudai.ProviderID { // v0.19.13: the Blaze Cloud row (blaze-auto) of the model menu
+	if provider == cloudai.ProviderID { // v0.19.13: the Argus Cloud row (blaze-auto) of the model menu
 		a.SetModelsMode(cloudai.ModeCloud)
 		return a.modelName()
 	}
@@ -235,11 +236,11 @@ type ModelItem struct {
 	Ready    bool   `json:"ready"`
 }
 
-// Models lists what the /model menu offers (v0.19.13). Blaze Cloud is always the first row and
-// shows only blaze-auto: in Cloud mode it is the one default and nothing else from Blaze is
+// Models lists what the /model menu offers (v0.19.13). Argus Cloud is always the first row and
+// shows only blaze-auto: in Cloud mode it is the one default and nothing else from Argus is
 // offered (no provider or model names). Other models come only from the user's own providers
 // (a saved key, or a local server they set up); picking one switches to Custom. In Custom mode
-// Auto and BlazeRouter, which route over those same providers, are offered as before.
+// Auto and ArgusRouter, which route over those same providers, are offered as before.
 // Keyless is never offered.
 func (a *App) Models() []ModelItem {
 	a.waitReady()
@@ -247,7 +248,7 @@ func (a *App) Models() []ModelItem {
 	sel := a.selection()
 	out := []ModelItem{{Provider: cloudai.ProviderID, Name: cloudai.Name, Model: cloudai.Model, Tools: true, Current: cloud, Ready: true}}
 	if !cloud {
-		out = append(out, ModelItem{Provider: config.RouterID, Name: "BlazeRouter", Model: "auto/best-free and every auto/* preset", Tools: true, Current: !sel.Auto && sel.Provider == config.RouterID, Ready: true},
+		out = append(out, ModelItem{Provider: config.RouterID, Name: brand.NAME + "Router", Model: "auto/best-free and every auto/* preset", Tools: true, Current: !sel.Auto && sel.Provider == config.RouterID, Ready: true},
 			ModelItem{Provider: config.Auto, Name: "Auto (free routing)", Model: "fastest healthy model in your chain", Tools: true, Current: sel.Auto, Ready: true})
 	}
 	for _, p := range a.providerViews() {
@@ -285,7 +286,7 @@ func (a *App) AddProvider(id, key string) KeyResult {
 		return KeyResult{Error: "Unknown provider."}
 	}
 	if id == config.KeylessID {
-		return KeyResult{Error: "Pollinations can't use tools, so Blaze doesn't add it as a model. Turn on the keyless fallback in Settings › Models to let it answer plain chat when nothing else is set up."}
+		return KeyResult{Error: "Pollinations can't use tools, so " + brand.NAME + " doesn't add it as a model. Turn on the keyless fallback in Settings › Models to let it answer plain chat when nothing else is set up."}
 	}
 	if id == config.Custom && strings.TrimSpace(a.cfg.CustomBase) == "" {
 		return KeyResult{Error: "Enter the service address first (it ends in /v1)."}
@@ -346,7 +347,7 @@ func (a *App) AddProvider(id, key string) KeyResult {
 		} else {
 			where = w
 			if before > 0 {
-				note = fmt.Sprintf("Added as key %d for %s. When one runs out, Blaze switches to the next.", before+1, config.Name(id))
+				note = fmt.Sprintf("Added as key %d for %s. When one runs out, "+brand.NAME+" switches to the next.", before+1, config.Name(id))
 			}
 		}
 	}
@@ -554,7 +555,7 @@ func (a *App) TestModel(provider, model string) Check {
 
 // ---------------- OpenRouter one-click sign-in (OAuth PKCE) ----------------
 
-// ConnectOpenRouter opens OpenRouter's sign-in in the browser; OpenRouter hands Blaze a key
+// ConnectOpenRouter opens OpenRouter's sign-in in the browser; OpenRouter hands Argus a key
 // on a local callback, which is saved like a pasted one.
 func (a *App) ConnectOpenRouter() KeyResult {
 	vb := make([]byte, 48)
@@ -574,7 +575,7 @@ func (a *App) ConnectOpenRouter() KeyResult {
 		c := r.URL.Query().Get("code")
 		msg := "Sign-in didn't finish. You can close this tab."
 		if c != "" {
-			msg = "Blaze is connected to OpenRouter. You can close this tab."
+			msg = brand.NAME + " is connected to OpenRouter. You can close this tab."
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, `<html><body style="font-family:system-ui;padding:48px"><h2>%s</h2></body></html>`, msg)

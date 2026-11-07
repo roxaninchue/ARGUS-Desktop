@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-const asset = "Blaze-v9.9.9-linux-amd64.tar.gz"
+const asset = "Argus-v9.9.9-linux-amd64.tar.gz"
 
 type fixture struct {
 	pub   ed25519.PublicKey
@@ -31,14 +31,14 @@ func newFixture(t *testing.T) *fixture {
 	if err != nil {
 		t.Fatal(err)
 	}
-	body := []byte("pretend this is the new Blaze")
+	body := []byte("pretend this is the new Argus")
 	path := filepath.Join(t.TempDir(), asset)
 	if err := os.WriteFile(path, body, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	h := sha256.Sum256(body)
 	sums := []byte(hex.EncodeToString(h[:]) + "  " + asset + "\n" +
-		strings.Repeat("ab", 32) + "  blaze-desktop_9.9.9_amd64.deb\n")
+		strings.Repeat("ab", 32) + "  argus-desktop_9.9.9_amd64.deb\n")
 	sig := Sign(priv, sums)
 	return &fixture{pub: pub, priv: priv, path: path, sums: sums, sig: sig,
 		files: map[string][]byte{"/" + SumsName: sums, "/" + SigName: sig}}
@@ -115,7 +115,7 @@ func TestAssetHashMismatchFails(t *testing.T) {
 func TestAssetNotListedFails(t *testing.T) {
 	f := newFixture(t)
 	s := f.server(t)
-	err := VerifyDownload(s.Client(), Keys{f.pub}, s.URL+"/"+SumsName, s.URL+"/"+SigName, hdr, "Blaze-v9.9.9-macos-universal.dmg", f.path)
+	err := VerifyDownload(s.Client(), Keys{f.pub}, s.URL+"/"+SumsName, s.URL+"/"+SigName, hdr, "Argus-v9.9.9-macos-universal.dmg", f.path)
 	wantFail(t, err, "isn't listed")
 }
 

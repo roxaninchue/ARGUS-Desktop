@@ -1,50 +1,51 @@
 package main
 
-// Blaze updates itself from the chat: the /update command and the update_blaze tool
+// Argus updates itself from the chat: the /update command and the update_argus tool
 // (so "update yourself" in plain words works too). The frontend (selfupdate.js) shows
-// the check, the download and the install as one live line, then Blaze restarts.
+// the check, the download and the install as one live line, then Argus restarts.
 // Background agents that were running pick up again after the restart.
 
 import (
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
-// resumeMarker is written just before an update restarts Blaze while agents run.
+// resumeMarker is written just before an update restarts Argus while agents run.
 func resumeMarker() string { return filepath.Join(config.Dir(), "desktop", "resume-after-update") }
 
-// updateBlazeTool is the main agent's tool for updating the app itself.
-func updateBlazeTool() llm.Tool {
+// updateArgusTool is the main agent's tool for updating the app itself.
+func updateArgusTool() llm.Tool {
 	var t llm.Tool
 	t.Type = "function"
-	t.Function.Name = "update_blaze"
-	t.Function.Description = "Update Blaze (this app) to the newest release. Use when the user asks you to update Blaze or yourself. It checks the Blaze downloads site, and if there's a new version Blaze downloads and installs it in the chat and restarts by itself. Never use a shell command to update Blaze."
+	t.Function.Name = "update_argus"
+	t.Function.Description = "Update " + brand.NAME + " (this app) to the newest release. Use when the user asks you to update " + brand.NAME + " or yourself. It checks the " + brand.NAME + " downloads site, and if there's a new version " + brand.NAME + " downloads and installs it in the chat and restarts by itself. Never use a shell command to update " + brand.NAME + "."
 	t.Function.Parameters = map[string]any{"type": "object", "properties": map[string]any{}}
 	return t
 }
 
-// selfUpdate runs update_blaze: check, then hand the install to the chat's update line.
+// selfUpdate runs update_argus: check, then hand the install to the chat's update line.
 func (a *App) selfUpdate() string {
 	i := a.CheckUpdate()
 	switch {
 	case i.Error != "":
-		return "Couldn't check for a Blaze update: " + i.Error + " Tell the user in one line."
+		return "Couldn't check for an " + brand.NAME + " update: " + i.Error + " Tell the user in one line."
 	case !i.Available:
-		return "Blaze is already on the newest version, " + i.Current + ". Tell the user in one line."
+		return brand.NAME + " is already on the newest version, " + i.Current + ". Tell the user in one line."
 	case !i.CanAuto:
-		return fmt.Sprintf("Blaze %s is out (the user has %s), but there's no automatic install for this computer. Give them the release page: %s", i.Latest, i.Current, i.Page)
+		return fmt.Sprintf(brand.NAME+" %s is out (the user has %s), but there's no automatic install for this computer. Give them the release page: %s", i.Latest, i.Current, i.Page)
 	}
 	a.emit("selfupdate", map[string]any{"latest": i.Latest})
-	return fmt.Sprintf("Updating to %s has started. Blaze shows the progress in the chat and restarts by itself once it's installed. Tell the user in one short line and call no more tools.", i.Latest)
+	return fmt.Sprintf("Updating to %s has started. "+brand.NAME+" shows the progress in the chat and restarts by itself once it's installed. Tell the user in one short line and call no more tools.", i.Latest)
 }
 
-// markResume remembers that agents were running when an update restarted Blaze.
+// markResume remembers that agents were running when an update restarted Argus.
 func (a *App) markResume() {
 	if a.agents == nil {
 		return

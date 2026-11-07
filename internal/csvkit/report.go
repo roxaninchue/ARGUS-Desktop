@@ -13,8 +13,8 @@ import (
 
 // SummaryMarker opens the slot in the Markdown report where the model's written summary goes.
 const (
-	SummaryMarker    = "<!-- blaze:summary -->"
-	SummaryEndMarker = "<!-- /blaze:summary -->"
+	SummaryMarker    = "<!-- argus:summary -->"
+	SummaryEndMarker = "<!-- /argus:summary -->"
 	SummaryPending   = "The written summary appears here once a model is available. Everything else in this report was computed on this computer."
 )
 

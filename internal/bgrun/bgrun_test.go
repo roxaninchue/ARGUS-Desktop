@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun/bgruntest"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun/bgruntest"
 )
 
 func noSleep(ctx context.Context, _ time.Duration) error { return ctx.Err() }
@@ -28,7 +28,7 @@ func TestAckShownForActionNotForGreeting(t *testing.T) {
 	if got := bgrun.AckLine(nil); got != "" {
 		t.Fatalf("greeting (ack null) must show no promise: %q", got)
 	}
-	for _, g := range []string{"hi", "thanks!", "hello blaze"} {
+	for _, g := range []string{"hi", "thanks!", "hello argus"} {
 		if _, l := bgrun.LocalAck(g, false); l != "" {
 			t.Fatalf("local greeting %q got an ack %q", g, l)
 		}
@@ -178,7 +178,7 @@ func (d *deliveries) add(e bgrun.Entry, f bgrun.Final) {
 
 func TestResumePicksUpPendingRuns(t *testing.T) {
 	f := &bgruntest.Fake{}
-	// Before the restart: one run finished while Blaze was closed, one waits for this computer.
+	// Before the restart: one run finished while Argus was closed, one waits for this computer.
 	f.Seed("r_done", "desk-a", bgruntest.Done("Reminder set for 9:00.", "Reminder set for 9:00.", "reminder"))
 	f.Seed("r_dev", "desk-b", bgruntest.NeedsDevice("c1", "file_write", `{"path":"a.txt"}`), bgruntest.Done("Saved a.txt.", "Saved a.txt.", "write"))
 	f.Seed("r_phone", "mob-c", bgruntest.Done("phone run", "", "")) // another device's run: never touched
@@ -269,7 +269,7 @@ func TestDoneNotSaidTwice(t *testing.T) {
 		"Created c.txt with \"ready\".":                                     "Done ✓ Created c.txt with \"ready\".",
 		"Done":                                                              "Done ✓",
 		"done.txt now says ready.":                                          "Done ✓ done.txt now says ready.",
-		"blaze-43-ok":                                                       "Done ✓ blaze-43-ok",
+		"argus-43-ok":                                                       "Done ✓ argus-43-ok",
 		"Done — out-1.txt contains `zephyr-1596`.":                          "Done ✓ out-1.txt contains `zephyr-1596`.",
 	} {
 		f := bgrun.Final{Kind: bgrun.KindDone, Action: true, Intent: "file", DeviceRan: true, DeviceOK: true, Reply: in}

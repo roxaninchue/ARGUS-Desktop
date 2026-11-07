@@ -2,7 +2,7 @@ package media
 
 // Subtitles (mobile Subs.kt + SubsLoader.kt): YouTube caption tracks, WebVTT, SubRip,
 // YouTube json3 and srv1/srv3 XML parsed into cues and written back as one clean
-// WebVTT per track under ~/.blaze/media/subs/<video>/ (index.json lists them), so a
+// WebVTT per track under ~/.argus/media/subs/<video>/ (index.json lists them), so a
 // video gets its subtitles back next time, offline too. The player loads them as
 // <track> elements served by Handler.
 
@@ -27,7 +27,7 @@ type Cue struct {
 	Text    string `json:"t"`
 }
 
-// Subtitle is one track a source offers or Blaze saved.
+// Subtitle is one track a source offers or Argus saved.
 type Subtitle struct {
 	ID   string `json:"id"`
 	URL  string `json:"url"` // remote url, or a local file path once saved
@@ -371,7 +371,7 @@ func ToVtt(c []Cue) string {
 	return b.String()
 }
 
-// IsSubtitleFile says whether Blaze can load the file as subtitles.
+// IsSubtitleFile says whether Argus can load the file as subtitles.
 func IsSubtitleFile(name string) bool {
 	switch strings.ToLower(strings.TrimPrefix(filepath.Ext(name), ".")) {
 	case "srt", "vtt", "webvtt":

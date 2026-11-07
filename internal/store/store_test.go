@@ -10,7 +10,7 @@ import (
 
 func open(t *testing.T) *DB {
 	t.Helper()
-	d, err := Open(filepath.Join(t.TempDir(), "blaze.db"))
+	d, err := Open(filepath.Join(t.TempDir(), "argus.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,7 +19,7 @@ func open(t *testing.T) *DB {
 }
 
 func TestSchemaVersion(t *testing.T) {
-	p := filepath.Join(t.TempDir(), "blaze.db")
+	p := filepath.Join(t.TempDir(), "argus.db")
 	d, err := Open(p)
 	if err != nil {
 		t.Fatal(err)
@@ -183,7 +183,7 @@ func TestToolsIndexAndActivation(t *testing.T) {
 	d := open(t)
 	rows := []ToolRow{
 		{"download_file", "Download a file to disk (default ~/Downloads).", "web files download"},
-		{"schedule", "Schedule a shell command or a Blaze prompt to run by itself.", "schedule cron timer"},
+		{"schedule", "Schedule a shell command or an Argus prompt to run by itself.", "schedule cron timer"},
 		{"install_tool", "Install a program with the package manager.", "install packages"},
 		{"see_screen", "Look at the user's screen with a vision model.", "screen vision"},
 	}

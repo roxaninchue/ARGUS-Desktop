@@ -1,5 +1,5 @@
-// BlazeRouter dashboard. Plain JS, no build step: served by the local server from
-// files embedded in Blaze. Every call carries the session token Blaze opened the page
+// ArgusRouter dashboard. Plain JS, no build step: served by the local server from
+// files embedded in Argus. Every call carries the session token Argus opened the page
 // with (or the API key the user pasted).
 "use strict";
 const $ = (s, el = document) => el.querySelector(s);
@@ -24,7 +24,7 @@ const params = new URLSearchParams(location.hash.slice(1));
 })();
 
 async function api(path, body) {
-  const r = await fetch("/api/" + path, { method: body ? "POST" : "GET", headers: { "X-Blaze-Token": token, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+  const r = await fetch("/api/" + path, { method: body ? "POST" : "GET", headers: { "X-Argus-Token": token, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
   let j = {};
   try { j = await r.json(); } catch (e) {}
   if (r.status === 401) { gate(); throw new Error("signed out"); }
@@ -42,9 +42,9 @@ async function copy(text, what) {
   }
   toast((what || "Copied") + " to the clipboard");
 }
-// Links: inside Blaze the page asks Blaze to open them in the browser.
+// Links: inside Argus the page asks Argus to open them in the browser.
 function openExt(url) {
-  if (embedded) window.parent.postMessage({ blazeRouter: "open", url }, "*");
+  if (embedded) window.parent.postMessage({ argusRouter: "open", url }, "*");
   else window.open(url, "_blank", "noopener");
 }
 document.addEventListener("click", e => {
@@ -52,17 +52,17 @@ document.addEventListener("click", e => {
   if (a) { e.preventDefault(); openExt(a.href); }
 });
 
-// ---------- theme: follows Blaze's sun/moon toggle when embedded ----------
+// ---------- theme: follows Argus's sun/moon toggle when embedded ----------
 const SUN = '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="3"/><path d="M8 1.5v1.8M8 12.7v1.8M1.5 8h1.8M12.7 8h1.8M3.4 3.4l1.3 1.3M11.3 11.3l1.3 1.3M3.4 12.6l1.3-1.3M11.3 4.7l1.3-1.3"/></svg>';
 const MOON = '<svg viewBox="0 0 16 16"><path d="M13.5 9.8A5.8 5.8 0 0 1 6.2 2.5a5.8 5.8 0 1 0 7.3 7.3z"/></svg>';
 function setTheme(t, save) {
   const r = document.documentElement;
   r.classList.add("fade"); r.dataset.theme = t; setTimeout(() => r.classList.remove("fade"), 380);
   $("#theme").innerHTML = t === "dark" ? MOON : SUN;
-  if (save) { try { localStorage.setItem("blaze-theme", t); } catch (e) {} if (embedded) window.parent.postMessage({ blazeRouter: "theme", theme: t }, "*"); }
+  if (save) { try { localStorage.setItem("argus-theme", t); } catch (e) {} if (embedded) window.parent.postMessage({ argusRouter: "theme", theme: t }, "*"); }
   if (page === "home" && S) drawTopo();
 }
-window.addEventListener("message", e => { if (e.data && e.data.blazeTheme) setTheme(e.data.blazeTheme, false); });
+window.addEventListener("message", e => { if (e.data && e.data.argusTheme) setTheme(e.data.argusTheme, false); });
 $("#theme").innerHTML = document.documentElement.dataset.theme === "dark" ? MOON : SUN;
 $("#theme").onclick = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true);
 $("#refresh").onclick = () => load(true);
@@ -81,8 +81,8 @@ function go(id) { page = id; nav(); draw(); $("#main").focus({ preventScroll: tr
 
 function gate() {
   $("#view").innerHTML = "";
-  const g = h("div", "gate", `<div class="label acc">BlazeRouter</div><h1 style="font-size:28px;letter-spacing:-.03em">Open from Blaze</h1>
-    <p class="sub">Click the BlazeRouter button in Blaze's top bar, or paste your BlazeRouter API key (it starts with <span class="mono">br-</span>).</p>
+  const g = h("div", "gate", `<div class="label acc">ArgusRouter</div><h1 style="font-size:28px;letter-spacing:-.03em">Open from Argus</h1>
+    <p class="sub">Click the ArgusRouter button in Argus's top bar, or paste your ArgusRouter API key (it starts with <span class="mono">br-</span>).</p>
     <div class="row"><input class="field mono" type="password" placeholder="br-…" aria-label="API key"><button class="btn primary"><span>Continue</span></button></div>`);
   $("button", g).onclick = () => { token = $("input", g).value.trim(); try { sessionStorage.setItem("br-token", token); } catch (e) {} load(true); };
   $("input", g).onkeydown = e => { if (e.key === "Enter") $("button", g).click(); };
@@ -91,7 +91,7 @@ function gate() {
 }
 
 async function load(redraw) {
-  try { S = await api("state"); } catch (e) { if (e.message !== "signed out") { $("#stext").textContent = "Can't reach BlazeRouter"; $("#sdot").className = "dot red"; } return; }
+  try { S = await api("state"); } catch (e) { if (e.message !== "signed out") { $("#stext").textContent = "Can't reach ArgusRouter"; $("#sdot").className = "dot red"; } return; }
   const st = S.status || {};
   $("#sdot").className = "dot " + (st.level || "");
   $("#stext").textContent = st.note || "";
@@ -140,15 +140,15 @@ function snippets() {
     ["Claude Code", "Anthropic's Messages API is translated, so Claude Code works as is.", `export ANTHROPIC_BASE_URL=${base}\nexport ANTHROPIC_AUTH_TOKEN=${key}\nexport ANTHROPIC_MODEL=auto\nclaude`],
     ["Cline · Continue · Roo", "Choose the \"OpenAI Compatible\" provider.", `Base URL:  ${base}/v1\nAPI key:   ${key}\nModel ID:  auto`],
     ["Gemini SDK", "Gemini's generateContent API is translated too.", `curl "${base}/v1beta/models/auto:generateContent?key=${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"contents": [{"parts": [{"text": "Hello"}]}]}'`],
-    ["Blaze CLI", "Point Blaze CLI's custom provider at BlazeRouter.", `blaze config set custom_base ${base}/v1\nblaze key custom ${key}\nblaze --model custom/auto`],
+    ["Argus CLI", "Point Argus CLI's custom provider at ArgusRouter.", `argus config set custom_base ${base}/v1\nargus key custom ${key}\nargus --model custom/auto`],
   ];
 }
 
 function Home(el) {
   const st = S.status || {}, today = S.today || {};
   const hero = h("div", "hero");
-  const left = h("div", "", `<div class="dotfield"></div><div class="label">BlazeRouter · local AI gateway</div><h1>One endpoint. Every free model.</h1>
-    <p>Point any app at BlazeRouter and it routes each request across your free tiers: when one is rate limited, out of quota or down, the next one answers.</p>`);
+  const left = h("div", "", `<div class="dotfield"></div><div class="label">ArgusRouter · local AI gateway</div><h1>One endpoint. Every free model.</h1>
+    <p>Point any app at ArgusRouter and it routes each request across your free tiers: when one is rate limited, out of quota or down, the next one answers.</p>`);
   const cta = h("div", "cta");
   cta.append(btn("Copy endpoint", "primary", () => copy((S.url || location.origin) + "/v1", "Endpoint")), btn("Add a provider", "", () => go("providers")));
   left.append(cta);
@@ -181,7 +181,7 @@ function Home(el) {
   box.append(nv, code); sn.append(box); pick(0);
   // topology
   const tp = block(el, "Provider topology", "live");
-  tp.append(h("div", "topo", `<svg id="topo" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Providers connected to BlazeRouter"></svg>`));
+  tp.append(h("div", "topo", `<svg id="topo" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Providers connected to ArgusRouter"></svg>`));
   drawTopo();
   // recent
   const rc = block(el, "Recent requests");
@@ -203,7 +203,7 @@ function drawTopo() {
       <text x="${x - 88}" y="${y + 4}">${esc((p.name.length > 24 ? p.name.slice(0, 23) + "…" : p.name).toUpperCase())}</text></g>`;
   });
   if (!ps.length) out += `<text x="${cx}" y="${cy + 60}" text-anchor="middle">NO PROVIDERS YET · ADD A KEY</text>`;
-  out += `<g class="node-hub"><rect x="${cx - 80}" y="${cy - 22}" width="160" height="44"/><text class="hubt" x="${cx}" y="${cy + 4}" text-anchor="middle">BLAZEROUTER</text></g>`;
+  out += `<g class="node-hub"><rect x="${cx - 80}" y="${cy - 22}" width="160" height="44"/><text class="hubt" x="${cx}" y="${cy + 4}" text-anchor="middle">ARGUSROUTER</text></g>`;
   svg.innerHTML = out;
   const col = { green: getComputedStyle(document.documentElement).getPropertyValue("--accent"), amber: "#d98a00", red: "#d0362f" };
   $$("rect.dot", svg).forEach(r => { const l = r.classList[1]; r.style.fill = col[l] || ""; });
@@ -235,7 +235,7 @@ function freeLine(p) {
   return t + n + (f.tos && f.tos !== "ok" ? ` · ToS ${f.tos}` : "");
 }
 function Providers(el) {
-  head(el, "02 · Providers", "Your models, one place", "Add a key once: BlazeRouter, Blaze and Blaze CLI all use it (kept in your system keychain). A second key for the same provider joins its key ring and takes over when the first runs out.");
+  head(el, "02 · Providers", "Your models, one place", "Add a key once: ArgusRouter, Argus and Argus CLI all use it (kept in your system keychain). A second key for the same provider joins its key ring and takes over when the first runs out.");
   const tools = h("div", "tools");
   const q = h("input", "field"); q.placeholder = `Search ${(S.providers || []).length} providers`; q.value = pquery; q.setAttribute("aria-label", "Search providers");
   const chips = h("div", "chips");
@@ -342,8 +342,8 @@ function Combos(el) {
 }
 function comboCard(c, i) {
   const strat = (S.strategies || []).find(s => s.ID === c.strategy) || {};
-  const using = S.blaze_model === "blazerouter/" + c.id;
-  const d = h("div", "card", `<div class="ix">${pad(i + 1)}</div><h3>${esc(c.name)} ${c.builtin ? '<span class="tag acc">Built in</span>' : ""} ${using ? '<span class="tag ink">Blaze uses this</span>' : ""}</h3>
+  const using = S.argus_model === "argusrouter/" + c.id;
+  const d = h("div", "card", `<div class="ix">${pad(i + 1)}</div><h3>${esc(c.name)} ${c.builtin ? '<span class="tag acc">Built in</span>' : ""} ${using ? '<span class="tag ink">Argus uses this</span>' : ""}</h3>
     <div class="meta">model "${esc(c.id)}" · ${esc(strat.Name || c.strategy)} · ${c.usable}/${(c.rows || []).length} usable</div>
     <div class="note">${esc(c.note || strat.Desc || "")}</div>`);
   const ch = h("div", "chain");
@@ -356,7 +356,7 @@ function comboCard(c, i) {
   if (!(c.rows || []).length) ch.append(h("div", "note", c.builtin ? "Add a provider key and it joins Auto by itself." : "No models in this combo yet."));
   d.append(ch);
   const f = h("div", "foot");
-  if (!using) f.append(btn("Use in Blaze", "sm", async () => { await api("blaze/use", { model: c.id }); toast(`Blaze now answers through ${c.name}`); load(true); }));
+  if (!using) f.append(btn("Use in Argus", "sm", async () => { await api("argus/use", { model: c.id }); toast(`Argus now answers through ${c.name}`); load(true); }));
   f.append(btn("Copy name", "sm ghost", () => copy(c.id, "Model name")));
   if (!c.builtin) {
     f.append(btn("Edit", "sm", () => { editing = JSON.parse(JSON.stringify(c)); draw(); }));
@@ -406,7 +406,7 @@ function comboEditor() {
 // ---------- 04 Usage & logs ----------
 async function Usage(el) {
   const clr = btn("Clear log", "ghost");
-  head(el, "04 · Usage & logs", "What went where", "Every request through BlazeRouter: who asked, which model answered, how long it took and how many tokens it used. Prompts and replies are never stored.", [clr]);
+  head(el, "04 · Usage & logs", "What went where", "Every request through ArgusRouter: who asked, which model answered, how long it took and how many tokens it used. Prompts and replies are never stored.", [clr]);
   clr.onclick = async () => { if (!clr.dataset.sure) { clr.dataset.sure = 1; clr.innerHTML = "<span>Clear every entry? Click again</span>"; return; } await api("logs/clear", {}); load(true); };
   let u, logs;
   try { [u, logs] = await Promise.all([api("usage"), api("logs?n=200")]); } catch (e) { return; }
@@ -466,17 +466,17 @@ function Quota(el) {
 // ---------- 06 Settings ----------
 function Settings(el) {
   const s = S.settings || {}, st = S.status || {};
-  head(el, "06 · Settings", "BlazeRouter settings", "The server runs on this computer only (127.0.0.1). Keys stay in Blaze's shared key store; these settings live in " + esc(S.home || "~/.blaze") + "/desktop/blazerouter.json.");
+  head(el, "06 · Settings", "ArgusRouter settings", "The server runs on this computer only (127.0.0.1). Keys stay in Argus's shared key store; these settings live in " + esc(S.home || "~/.argus") + "/desktop/argusrouter.json.");
   const sv = block(el, "Server");
   const kv = h("div", "kv");
-  const port = h("div", "", `<div><div class="t">Port</div><div class="d">Default 20128. If it's busy BlazeRouter takes the next free one (now ${st.port || "—"}).</div></div><input class="field mono" style="width:120px" value="${s.port}" aria-label="Port">`);
+  const port = h("div", "", `<div><div class="t">Port</div><div class="d">Default 20128. If it's busy ArgusRouter takes the next free one (now ${st.port || "—"}).</div></div><input class="field mono" style="width:120px" value="${s.port}" aria-label="Port">`);
   const ps = btn("Save", "sm"); ps.onclick = async () => { const v = parseInt($("input", port).value, 10); try { await api("settings", { port: v }); toast("Restarting on port " + v + "…"); setTimeout(() => { location.href = location.href.replace(/:\d+\//, ":" + v + "/"); }, 1200); } catch (e) { toast(e.message); } };
   port.append(ps);
-  const auto = h("div", "", `<div><div class="t">Start with Blaze</div><div class="d">Turn the server on whenever Blaze opens.</div></div><span></span>`);
-  const sw = h("button", "switch" + (s.autostart ? " on" : "")); sw.setAttribute("aria-label", "Start with Blaze"); sw.onclick = async () => { await api("settings", { autostart: !s.autostart }); load(true); };
+  const auto = h("div", "", `<div><div class="t">Start with Argus</div><div class="d">Turn the server on whenever Argus opens.</div></div><span></span>`);
+  const sw = h("button", "switch" + (s.autostart ? " on" : "")); sw.setAttribute("aria-label", "Start with Argus"); sw.onclick = async () => { await api("settings", { autostart: !s.autostart }); load(true); };
   auto.append(sw);
-  const run = h("div", "", `<div><div class="t">Server</div><div class="d">${esc(st.note || "")}. Turning it off closes this page; turn it back on from Blaze's top bar.</div></div><span></span>`);
-  run.append(btn("Turn off", "sm ghost", async () => { await api("settings", { enabled: false }).catch(() => {}); $("#view").innerHTML = '<div class="gate"><h1 style="font-size:24px">BlazeRouter is off</h1><p class="sub">Turn it back on from the BlazeRouter button in Blaze\'s top bar.</p></div>'; }));
+  const run = h("div", "", `<div><div class="t">Server</div><div class="d">${esc(st.note || "")}. Turning it off closes this page; turn it back on from Argus's top bar.</div></div><span></span>`);
+  run.append(btn("Turn off", "sm ghost", async () => { await api("settings", { enabled: false }).catch(() => {}); $("#view").innerHTML = '<div class="gate"><h1 style="font-size:24px">ArgusRouter is off</h1><p class="sub">Turn it back on from the ArgusRouter button in Argus\'s top bar.</p></div>'; }));
   kv.append(port, auto, run); sv.append(kv);
   const cp = block(el, "Prompt compression", "saves tokens");
   const opts = h("div", "opts");
@@ -492,10 +492,10 @@ function Settings(el) {
   const kr = h("div", "", `<div><div class="t">Local key</div><div class="d">Apps send it as <span class="mono">Authorization: Bearer …</span>. Rotate it if it leaked; apps using the old one stop working.</div></div><span class="mono">${esc(keyMasked(S.key))}</span>`);
   const ka = h("span", "row"); ka.append(btn("Copy", "sm", () => copy(S.key, "API key")), btn("Rotate", "sm ghost", async () => { await api("key/rotate", {}); toast("New key made"); load(true); }));
   kr.append(ka); k2.append(kr);
-  const bu = h("div", "", `<div><div class="t">Blaze's own chats</div><div class="d">${S.blaze_model && S.blaze_model.startsWith("blazerouter/") ? "Go through BlazeRouter (" + esc(S.blaze_model.slice(12)) + ")." : "Use " + esc(S.blaze_model) + " directly. Choose BlazeRouter in Blaze's model picker, or \"Use in Blaze\" on a combo."}</div></div><span></span><span></span>`);
+  const bu = h("div", "", `<div><div class="t">Argus's own chats</div><div class="d">${S.argus_model && S.argus_model.startsWith("argusrouter/") ? "Go through ArgusRouter (" + esc(S.argus_model.slice(12)) + ")." : "Use " + esc(S.argus_model) + " directly. Choose ArgusRouter in Argus's model picker, or \"Use in Argus\" on a combo."}</div></div><span></span><span></span>`);
   k2.append(bu); kb.append(k2);
   const ab = block(el, "About");
-  ab.append(h("div", "list", `<div class="item"><span class="n">i</span><div><div class="t">BlazeRouter ${esc(S.version || "")}</div><div class="s">Built into Blaze Desktop. A native Go port of the core of <a href="https://github.com/diegosouzapw/OmniRoute" data-ext>OmniRoute</a> by diegosouzapw, used under the MIT licence (see THIRD_PARTY_NOTICES.md). Free-tier data comes from OmniRoute's catalog.</div></div><div class="acts"></div></div>`));
+  ab.append(h("div", "list", `<div class="item"><span class="n">i</span><div><div class="t">ArgusRouter ${esc(S.version || "")}</div><div class="s">Built into Argus Desktop. A native Go port of the core of <a href="https://github.com/diegosouzapw/OmniRoute" data-ext>OmniRoute</a> by diegosouzapw, used under the MIT licence (see THIRD_PARTY_NOTICES.md). Free-tier data comes from OmniRoute's catalog.</div></div><div class="acts"></div></div>`));
 }
 
 // ---------- boot ----------

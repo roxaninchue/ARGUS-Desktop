@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // conv makes n turns: user, assistant with a tool call, tool result, assistant answer.

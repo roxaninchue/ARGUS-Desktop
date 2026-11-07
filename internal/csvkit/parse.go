@@ -1,4 +1,4 @@
-// Package csvkit is Blaze Desktop's local CSV workflow (W2, local half): read a messy CSV,
+// Package csvkit is Argus Desktop's local CSV workflow (W2, local half): read a messy CSV,
 // clean it, infer column types, summarise a value by group, draw a bar or line chart (SVG,
 // PNG) and export a Markdown and PDF report. Everything runs on this computer with no model
 // calls; the written summary is a slot (Report.Summary) a model fills in later.

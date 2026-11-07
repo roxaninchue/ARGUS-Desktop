@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/updsig"
+	"github.com/lacksonkapapahue/argus-desktop/internal/updsig"
 )
 
 func die(format string, a ...any) {

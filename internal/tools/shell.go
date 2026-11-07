@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"os"
 	"os/exec"
@@ -42,7 +43,7 @@ func (s *Shell) Cwd() string        { s.mu.Lock(); defer s.mu.Unlock(); return s
 func (s *Shell) Kind() string       { return s.kind }
 func (s *Shell) IsPowerShell() bool { return s.kind == "pwsh" || s.kind == "powershell" }
 
-const cwdMark = "__BLAZE_CWD__"
+const cwdMark = "__" + brand.UPPER + "_CWD__"
 
 // command builds the process for cmd, printing the final cwd on the last line.
 func (s *Shell) command(ctx context.Context, cmd string, track bool) *exec.Cmd {
@@ -94,7 +95,7 @@ func (s *Shell) RunCtx(parent context.Context, cmd string, timeout time.Duration
 	defer cancel()
 	c := s.command(ctx, cmd, true)
 	c.Stdin = nil
-	c.Env = append(os.Environ(), "BLAZE=1", "GIT_TERMINAL_PROMPT=0", "PAGER=cat", "GIT_PAGER=cat", "DEBIAN_FRONTEND=noninteractive")
+	c.Env = append(os.Environ(), brand.UPPER+"=1", "GIT_TERMINAL_PROMPT=0", "PAGER=cat", "GIT_PAGER=cat", "DEBIAN_FRONTEND=noninteractive")
 	var buf bytes.Buffer
 	c.Stdout = &buf
 	c.Stderr = &buf
@@ -193,7 +194,7 @@ func (js *Jobs) Start(sh *Shell, cmd string) (*job, error) {
 	js.all = append(js.all, j)
 	js.mu.Unlock()
 	c := sh.command(context.Background(), cmd, false)
-	c.Env = append(os.Environ(), "BLAZE=1", "PYTHONUNBUFFERED=1", "GIT_TERMINAL_PROMPT=0")
+	c.Env = append(os.Environ(), brand.UPPER+"=1", "PYTHONUNBUFFERED=1", "GIT_TERMINAL_PROMPT=0")
 	c.Stdout = j
 	c.Stderr = j
 	in, _ := c.StdinPipe()

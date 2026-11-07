@@ -1,20 +1,20 @@
-// Package keystore is the one place Blaze CLI and Blaze Desktop keep model API keys on
+// Package keystore is the one place Argus CLI and Argus Desktop keep model API keys on
 // this computer, so a key added in either app works in the other.
 //
 // This file is identical in Blaze-cli and Blaze-dekstop (internal/keystore); change both.
 //
 // Layout (shared by both apps, never rename):
 //
-//   - OS keychain, service "blaze-cli", account "<provider>" for the main key and
+//   - OS keychain, service "argus-cli", account "<provider>" for the main key and
 //     "<provider>#extra" for the provider's extra keys (a JSON list, Desktop's key ring).
 //   - When there is no keychain (headless Linux, locked Secret Service), the same
-//     accounts go to ~/.blaze/keys.json (mode 0600), read fresh on every access so two
+//     accounts go to ~/.argus/keys.json (mode 0600), read fresh on every access so two
 //     running apps never overwrite each other's keys from stale memory.
-//   - ~/.blaze/keys.meta.json (0600, no secrets): when each provider's keys last
-//     changed here, used to merge with other devices through the Blaze account.
-//   - Legacy: Blaze up to CLI 0.6.x / Desktop 0.7.x kept keychain-less keys under
-//     "keys" in ~/.blaze/config.json. They are copied into the store once and still
-//     read as a last resort, and are left in place so an older Blaze on this PC keeps
+//   - ~/.argus/keys.meta.json (0600, no secrets): when each provider's keys last
+//     changed here, used to merge with other devices through the Argus account.
+//   - Legacy: Argus up to CLI 0.6.x / Desktop 0.7.x kept keychain-less keys under
+//     "keys" in ~/.argus/config.json. They are copied into the store once and still
+//     read as a last resort, and are left in place so an older Argus on this PC keeps
 //     working. Deleting a key removes it there too.
 package keystore
 
@@ -30,12 +30,12 @@ import (
 )
 
 // Service is the OS keychain service name both apps use.
-const Service = "blaze-cli"
+const Service = "argus-cli"
 
 // ExtraSuffix marks the account holding a provider's extra keys (JSON list).
 const ExtraSuffix = "#extra"
 
-// Synced are the model providers whose keys follow the Blaze account to other devices
+// Synced are the model providers whose keys follow the Argus account to other devices
 // (the phone included). Connector tokens, the session and the updater's "github" token
 // never leave this computer.
 var Synced = []string{"gemini", "groq", "cerebras", "openrouter", "mistral", "nvidia", "deepseek", "moonshot", "openai", "anthropic", "xai"}
@@ -66,7 +66,7 @@ func (osKeyring) Delete(a string) error        { return keyring.Delete(Service, 
 // Keychain is the backend Open uses. Tests set it to a fake.
 var Keychain Backend = osKeyring{}
 
-// Store is the key store under one Blaze home (~/.blaze).
+// Store is the key store under one Argus home (~/.argus).
 type Store struct {
 	dir string
 	kc  Backend
@@ -218,7 +218,7 @@ func (s *Store) dropLegacy(accounts ...string) error {
 // ---------------- migration ----------------
 
 // migrate copies legacy config.json keys into the keychain (or keys.json) once.
-// Keys already in the store win; the legacy copy stays for older Blaze versions.
+// Keys already in the store win; the legacy copy stays for older Argus versions.
 func (s *Store) migrate() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -275,7 +275,7 @@ func (s *Store) Where(account string) string {
 	if s.InKeychain(account) {
 		return "your system keychain"
 	}
-	return "~/.blaze/keys.json (owner-only)"
+	return "~/.argus/keys.json (owner-only)"
 }
 
 func providerOf(account string) string { return strings.TrimSuffix(account, ExtraSuffix) }
@@ -309,7 +309,7 @@ func (s *Store) set(account, value string, at int64) (string, error) {
 			}
 		}
 	} else {
-		where = "~/.blaze/keys.json (owner-only)"
+		where = "~/.argus/keys.json (owner-only)"
 		fb[account] = value
 		if err := writeMap(s.fallbackPath(), fb); err != nil {
 			return "", err

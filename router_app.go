@@ -1,19 +1,20 @@
 package main
 
-// BlazeRouter in the app: the local OpenAI-compatible gateway (internal/router) starts
-// with Blaze, shows as a button with a status dot in the top bar and the tray, opens
-// its dashboard inside Blaze or in the browser, and is what the model picker offers
-// first ("BlazeRouter · auto/best-free"). Keys and models are managed on its
-// dashboard; they still live in Blaze's shared key store, so Blaze CLI keeps working.
+// ArgusRouter in the app: the local OpenAI-compatible gateway (internal/router) starts
+// with Argus, shows as a button with a status dot in the top bar and the tray, opens
+// its dashboard inside Argus or in the browser, and is what the model picker offers
+// first ("ArgusRouter · auto/best-free"). Keys and models are managed on its
+// dashboard; they still live in Argus's shared key store, so Argus CLI keeps working.
 
 import (
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/router"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/router"
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -44,7 +45,7 @@ func (a *App) startRouter() {
 		},
 	})
 	s := a.router.Settings()
-	// v0.19.1: Blaze Cloud answers by default, like Blaze Mobile. BlazeRouter only starts when
+	// v0.19.1: Argus Cloud answers by default, like Argus Mobile. ArgusRouter only starts when
 	// the user turned it on, or their Custom models still go through it.
 	if (s.On() && s.AutoStart()) || a.routerInUse() {
 		_ = a.router.Start()
@@ -56,7 +57,7 @@ func (a *App) startRouter() {
 	}()
 }
 
-// routerInUse is true when Custom models answer through BlazeRouter.
+// routerInUse is true when Custom models answer through ArgusRouter.
 func (a *App) routerInUse() bool {
 	return !cloudModelsOn() && a.cfg != nil && a.cfg.Default != nil && a.cfg.Default.Provider == config.RouterID
 }
@@ -67,19 +68,19 @@ func (a *App) stopRouter() {
 	}
 }
 
-// RouterView is what the top-bar button, the tray and the BlazeRouter view show.
+// RouterView is what the top-bar button, the tray and the ArgusRouter view show.
 type RouterView struct {
 	router.Status
 	Key       string `json:"key"`
 	Dashboard string `json:"dashboard"` // signed-in dashboard address for this run ("" when off)
 	Enabled   bool   `json:"enabled"`
 	Autostart bool   `json:"autostart"`
-	InUse     bool   `json:"in_use"` // Blaze's own chats go through BlazeRouter
+	InUse     bool   `json:"in_use"` // Argus's own chats go through ArgusRouter
 }
 
 func (a *App) routerView() RouterView {
 	if a.router == nil {
-		return RouterView{Status: router.Status{Level: "red", Note: "BlazeRouter is starting"}}
+		return RouterView{Status: router.Status{Level: "red", Note: brand.NAME + "Router is starting"}}
 	}
 	s := a.router.Settings()
 	v := RouterView{Status: a.router.Status(), Key: s.APIKey, Dashboard: a.router.DashboardURL(""), Enabled: s.On() || a.routerInUse(), Autostart: s.AutoStart()}
@@ -96,7 +97,7 @@ func (a *App) emitRouter() {
 	setTrayRouter(v)
 }
 
-// RouterInfo is BlazeRouter's status, address and local key.
+// RouterInfo is ArgusRouter's status, address and local key.
 func (a *App) RouterInfo() RouterView {
 	a.waitReady()
 	return a.routerView()
@@ -119,7 +120,7 @@ func (a *App) RouterDashboardURL(page string) string {
 func (a *App) OpenRouterDashboard() string {
 	u := a.RouterDashboardURL("")
 	if u == "" {
-		return "BlazeRouter couldn't start: " + a.router.Status().Note
+		return brand.NAME + "Router couldn't start: " + a.router.Status().Note
 	}
 	a.OpenURL(u)
 	return ""
@@ -139,7 +140,7 @@ func (a *App) SetRouterOn(on bool) string {
 
 // RouterPick is one row of the model picker.
 type RouterPick struct {
-	Group    string `json:"group"`    // blazerouter, combo, provider
+	Group    string `json:"group"`    // argusrouter, combo, provider
 	Provider string `json:"provider"` // what SelectModel takes
 	Model    string `json:"model"`
 	Name     string `json:"name"`
@@ -149,10 +150,10 @@ type RouterPick struct {
 }
 
 // pickerPresets are the auto/* presets shown first in the picker (all of them work;
-// the full list is under "All BlazeRouter presets").
+// the full list is under "All ArgusRouter presets").
 var pickerPresets = []string{"auto/best-free", "auto", "auto/best-coding", "auto/best-fast", "auto/best-reasoning", "auto/best-vision", "auto/chaos"}
 
-// RouterPicker lists what the model picker and /model offer: BlazeRouter presets and
+// RouterPicker lists what the model picker and /model offer: ArgusRouter presets and
 // the user's combos first, then each ready provider with its model.
 func (a *App) RouterPicker() []RouterPick {
 	a.waitReady()
@@ -162,22 +163,22 @@ func (a *App) RouterPicker() []RouterPick {
 	running := a.router != nil && a.router.Running()
 	note := ""
 	if !running {
-		note = " (BlazeRouter is off: picking turns it on)"
+		note = " (" + brand.NAME + "Router is off: picking turns it on)"
 	}
 	shown := map[string]bool{}
 	for _, id := range pickerPresets {
 		shown[id] = true
 	}
 	for _, p := range router.AutoPresets {
-		g := "blazerouter"
+		g := "argusrouter"
 		if !shown[p.ID] {
 			g = "preset"
 		}
-		out = append(out, RouterPick{Group: g, Provider: config.RouterID, Model: p.ID, Name: "BlazeRouter · " + p.ID, Desc: p.Desc + note, Current: cur(config.RouterID, p.ID), Tools: true})
+		out = append(out, RouterPick{Group: g, Provider: config.RouterID, Model: p.ID, Name: brand.NAME + "Router · " + p.ID, Desc: p.Desc + note, Current: cur(config.RouterID, p.ID), Tools: true})
 	}
 	if a.router != nil {
 		for _, c := range a.router.Settings().Combos {
-			out = append(out, RouterPick{Group: "combo", Provider: config.RouterID, Model: c.ID, Name: "BlazeRouter · " + c.Name, Desc: "Your combo · " + c.Strategy + note, Current: cur(config.RouterID, c.ID), Tools: true})
+			out = append(out, RouterPick{Group: "combo", Provider: config.RouterID, Model: c.ID, Name: brand.NAME + "Router · " + c.Name, Desc: "Your combo · " + c.Strategy + note, Current: cur(config.RouterID, c.ID), Tools: true})
 		}
 	}
 	for _, p := range a.providerViews() {
@@ -189,15 +190,15 @@ func (a *App) RouterPicker() []RouterPick {
 	return out
 }
 
-// selectRouter makes a BlazeRouter preset or combo the default (starting the server
-// if needed). BlazeRouter never joins the chain: it routes across the chain itself.
+// selectRouter makes an ArgusRouter preset or combo the default (starting the server
+// if needed). ArgusRouter never joins the chain: it routes across the chain itself.
 func (a *App) selectRouter(model string) string {
 	if model == "" {
 		model = "auto/best-free"
 	}
 	if !a.router.Running() {
 		if err := a.router.SetEnabled(true); err != nil {
-			return "BlazeRouter couldn't start: " + err.Error()
+			return brand.NAME + "Router couldn't start: " + err.Error()
 		}
 	}
 	a.cfg.Default = &config.Entry{Provider: config.RouterID, Model: strings.TrimSpace(model)}

@@ -1,14 +1,15 @@
 package router
 
 // The dashboard's JSON API (/api/*). Every call needs the dashboard's session token
-// (Blaze opens the dashboard with it) or the local API key. Keys are only ever shown
-// masked; a key goes into Blaze's shared key store, never into a BlazeRouter file.
+// (Argus opens the dashboard with it) or the local API key. Keys are only ever shown
+// masked; a key goes into Argus's shared key store, never into an ArgusRouter file.
 
 import (
 	"context"
 	"embed"
 	"encoding/json"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"io/fs"
 	"net/http"
@@ -17,15 +18,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 //go:embed web
 var webFS embed.FS
 
-// frameAncestors lets Blaze's webview (wails:// on macOS/Linux, http(s)://wails.localhost
-// on Windows) show the dashboard in its BlazeRouter view, and nobody else.
+// frameAncestors lets Argus's webview (wails:// on macOS/Linux, http(s)://wails.localhost
+// on Windows) show the dashboard in its ArgusRouter view, and nobody else.
 const frameAncestors = "frame-ancestors 'self' wails: wails://wails http://wails.localhost https://wails.localhost"
 
 func dashboardFiles() http.Handler {
@@ -33,7 +34,7 @@ func dashboardFiles() http.Handler {
 	fsrv := http.FileServer(http.FS(sub))
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		// Only Blaze's own window (the Wails webview) and the dashboard itself may frame it.
+		// Only Argus's own window (the Wails webview) and the dashboard itself may frame it.
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; "+frameAncestors)
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
@@ -59,7 +60,7 @@ type ProviderView struct {
 	Custom    bool      `json:"custom"` // the user's own OpenAI-compatible service
 	NeedsBase bool      `json:"needs_base"`
 	BaseHint  string    `json:"base_hint,omitempty"`
-	Builtin   bool      `json:"builtin"` // one of Blaze's original providers
+	Builtin   bool      `json:"builtin"` // one of Argus's original providers
 	Health    HealthV   `json:"health"`
 	Requests  int       `json:"requests"` // last 24 hours
 	Errors    int       `json:"errors"`
@@ -110,7 +111,7 @@ func healthOf(provider, model string) HealthV {
 	return v
 }
 
-// Providers lists every provider BlazeRouter can use, set-up ones first.
+// Providers lists every provider ArgusRouter can use, set-up ones first.
 func (r *Router) Providers() []ProviderView {
 	cfg := r.cfg()
 	auto := map[string]bool{}
@@ -156,7 +157,7 @@ func (r *Router) Providers() []ProviderView {
 		v.Requests, v.Errors = s.Requests, s.Errors
 		out = append(out, v)
 	}
-	// Set-up first, then Blaze's originals, then the long tail (catalog order).
+	// Set-up first, then Argus's originals, then the long tail (catalog order).
 	rank := func(v ProviderView) int {
 		switch {
 		case v.Ready:
@@ -241,11 +242,11 @@ func (r *Router) state() map[string]any {
 	cfg := r.cfg()
 	s := r.Settings()
 	total, byP, _ := r.log.stats(time.Now().Add(-24 * time.Hour))
-	blaze := "auto"
+	argus := "auto"
 	if !cfg.IsAuto() {
-		blaze = cfg.Default.Provider + "/" + cfg.Default.Model
+		argus = cfg.Default.Provider + "/" + cfg.Default.Model
 		if cfg.Default.Provider == config.RouterID {
-			blaze = "blazerouter/" + cfg.Default.Model
+			argus = "argusrouter/" + cfg.Default.Model
 		}
 	}
 	return map[string]any{
@@ -253,7 +254,7 @@ func (r *Router) state() map[string]any {
 		"settings":   map[string]any{"port": s.Port, "compression": s.Compression, "autostart": s.AutoStart(), "enabled": s.On()},
 		"strategies": Strategies, "combos": r.combos(), "providers": r.Providers(),
 		"recent": r.log.recent(12), "today": total, "by_provider": byP, "hourly": r.log.hourly(),
-		"blaze_model": blaze, "home": config.Dir(),
+		"argus_model": argus, "home": config.Dir(),
 	}
 }
 
@@ -274,7 +275,7 @@ type apiReq struct {
 
 func (r *Router) handleAPI(w http.ResponseWriter, req *http.Request) {
 	if !r.authorized(req) {
-		writeJSON(w, 401, map[string]any{"error": "Open the dashboard from Blaze (the BlazeRouter button in the top bar), or paste your BlazeRouter key."})
+		writeJSON(w, 401, map[string]any{"error": "Open the dashboard from " + brand.NAME + " (the " + brand.NAME + "Router button in the top bar), or paste your " + brand.NAME + "Router key."})
 		return
 	}
 	var a apiReq
@@ -439,8 +440,8 @@ func (r *Router) handleAPI(w http.ResponseWriter, req *http.Request) {
 		_ = s.save()
 		r.changed()
 		ok(map[string]any{"key": s.APIKey})
-	case "blaze/use":
-		// Blaze's own chats go through BlazeRouter with this combo ("auto" or a combo id).
+	case "argus/use":
+		// Argus's own chats go through ArgusRouter with this combo ("auto" or a combo id).
 		m := strings.TrimSpace(a.Model)
 		if m == "" {
 			m = "auto"
@@ -498,7 +499,7 @@ func (r *Router) applySettings(a apiReq) error {
 }
 
 // setBase saves a provider's address: the custom service (config.json, shared with
-// Blaze CLI) or a templated one like Cloudflare's account id (BlazeRouter's settings).
+// Argus CLI) or a templated one like Cloudflare's account id (ArgusRouter's settings).
 func (r *Router) setBase(cfg *config.Config, provider, base, name string) error {
 	base = strings.TrimSpace(base)
 	if provider == config.Custom {
@@ -526,7 +527,7 @@ func (r *Router) setBase(cfg *config.Config, provider, base, name string) error 
 	return s.save()
 }
 
-// addKey tests and saves a key (Blaze's own AddProvider when the app provides it).
+// addKey tests and saves a key (Argus's own AddProvider when the app provides it).
 func (r *Router) addKey(cfg *config.Config, provider, key string) (string, string, error) {
 	p, ok := config.ProviderByID(provider)
 	if !ok {

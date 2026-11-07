@@ -2,7 +2,7 @@
 //
 // On Windows a GUI app that starts a console program (git, node, schtasks,
 // powershell…) gets a new console window for it unless the process is created
-// with CREATE_NO_WINDOW. Every background command Blaze runs goes through Hide,
+// with CREATE_NO_WINDOW. Every background command Argus runs goes through Hide,
 // so nothing flashes on screen. On macOS and Linux child processes never open a
 // terminal window, so Hide does nothing there.
 package hidecmd

@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // A chat's turn keeps going when the user opens another chat: Stop there leaves it
 // alone, reopening it shows its live history, and it saves into its own chat.
 func TestChatKeepsRunningInTheBackground(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	a := NewApp()
 	for _, id := range []string{"aaa", "bbb"} {
 		b, _ := json.Marshal(Conv{ID: id, Title: id, Messages: []llm.Message{{Role: "user", Content: "hi " + id}}})
@@ -73,7 +73,7 @@ func TestChatKeepsRunningInTheBackground(t *testing.T) {
 
 // A new chat started mid-turn gets its own session; the running one keeps its id.
 func TestNewChatMidTurn(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	a := NewApp()
 	a.conn = nil
 	run := a.screen()

@@ -1,27 +1,28 @@
 package main
 
-// Blaze self-knowledge (v0.12+): Blaze knows what it is. The ABOUT YOU block in every
-// system prompt carries identity, version, the apps and how they connect, BlazeRouter and
-// Blaze Link status and the OS; the about_blaze tool returns the full live report. The
-// formatting lives in internal/selfknow (shared with Blaze CLI and named like Blaze
+// Argus self-knowledge (v0.12+): Argus knows what it is. The ABOUT YOU block in every
+// system prompt carries identity, version, the apps and how they connect, ArgusRouter and
+// Argus Link status and the OS; the about_argus tool returns the full live report. The
+// formatting lives in internal/selfknow (shared with Argus CLI and named like Argus
 // Android's agent/SelfKnowledge.kt); this file reads Desktop's live state into it.
 
 import (
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"runtime"
 	"runtime/debug"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/router"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/selfknow"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/store"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/router"
+	"github.com/lacksonkapapahue/argus-desktop/internal/selfknow"
+	"github.com/lacksonkapapahue/argus-desktop/internal/store"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
-// linkInBuild says whether this build has Blaze Link's PC side (the pairing server and
+// linkInBuild says whether this build has Argus Link's PC side (the pairing server and
 // Phone view). It does since v0.14.0 (pair.go, ported from PR #3), so ABOUT YOU and
-// about_blaze give the real pairing steps and the live paired-phone status.
+// about_argus give the real pairing steps and the live paired-phone status.
 const linkInBuild = true
 
 // buildLine is the Go version and, when the binary carries it, the git commit.
@@ -37,12 +38,12 @@ func buildLine() string {
 	return strings.Join(parts, " · ")
 }
 
-// selfFacts reads Blaze Desktop's live state. full adds the slower parts (connectors,
-// MCP, skills, memory, registries) that only the about_blaze tool needs.
+// selfFacts reads Argus Desktop's live state. full adds the slower parts (connectors,
+// MCP, skills, memory, registries) that only the about_argus tool needs.
 func (a *App) selfFacts(full bool) selfknow.Facts {
-	f := selfknow.Facts{App: "Blaze Desktop", Version: version, Build: buildLine(), DataDir: config.Dir(), PhonePrev: true}
+	f := selfknow.Facts{App: brand.NAME + " Desktop", Version: version, Build: buildLine(), DataDir: config.Dir(), PhonePrev: true}
 	f.Account.Service = selfknow.Worker
-	f.Account.SignIn = "/account or Settings › Account (email, Google or GitHub). Blaze CLI on this computer shares the sign-in."
+	f.Account.SignIn = "/account or Settings › Account (email, Google or GitHub). " + brand.NAME + " CLI on this computer shares the sign-in."
 	if cs := a.cloud; cs != nil {
 		cs.mu.Lock()
 		f.Account.Online = cs.online
@@ -120,7 +121,7 @@ func init() {
 		nil, func(e *tools.Env, args map[string]any) string {
 			a := theApp
 			if a == nil {
-				return "Error: Blaze Desktop is still starting."
+				return "Error: " + brand.NAME + " Desktop is still starting."
 			}
 			return selfknow.Report(a.selfFacts(true), tools.ArgS(args, "section"))
 		})

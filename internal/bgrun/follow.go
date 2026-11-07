@@ -3,6 +3,7 @@ package bgrun
 import (
 	"context"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strings"
 	"time"
 )
@@ -79,7 +80,7 @@ func (f *Follower) Follow(ctx context.Context, id string, after int, action bool
 			}
 			if c := StatusOf(err); c == 404 || c == 410 {
 				fin.Kind, fin.Code = KindFailed, "gone"
-				fin.Reason = "This task is no longer on Blaze Cloud, so I can't tell how it ended."
+				fin.Reason = "This task is no longer on " + brand.NAME + " Cloud, so I can't tell how it ended."
 				fin.Try = "Ask again and I'll start it fresh."
 				return fin, nil
 			}
@@ -239,7 +240,7 @@ func failReason(v *View, e *Event) (code, reason, try string) {
 		}
 	}
 	if reason == "" {
-		reason = "Blaze Cloud couldn't finish this."
+		reason = brand.NAME + " Cloud couldn't finish this."
 	}
 	if try == "" {
 		switch code {

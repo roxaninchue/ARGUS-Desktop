@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,10 +14,10 @@ func autostartFile() string {
 		home, _ := os.UserHomeDir()
 		dir = filepath.Join(home, ".config")
 	}
-	return filepath.Join(dir, "autostart", "blaze-desktop.desktop")
+	return filepath.Join(dir, "autostart", "argus-desktop.desktop")
 }
 
-// setAutostart writes ~/.config/autostart/blaze-desktop.desktop.
+// setAutostart writes ~/.config/autostart/argus-desktop.desktop.
 func setAutostart(on bool) error {
 	p := autostartFile()
 	if !on {
@@ -32,7 +33,7 @@ func setAutostart(on bool) error {
 	if strings.ContainsAny(exe, " \"'\\") {
 		exe = `"` + strings.ReplaceAll(exe, `"`, `\"`) + `"`
 	}
-	entry := fmt.Sprintf("[Desktop Entry]\nType=Application\nName=Blaze\nComment=Blaze assistant, in the background\nExec=%s --background\nIcon=blaze\nTerminal=false\nX-GNOME-Autostart-enabled=true\n", exe)
+	entry := fmt.Sprintf("[Desktop Entry]\nType=Application\nName="+brand.NAME+"\nComment="+brand.NAME+" assistant, in the background\nExec=%s --background\nIcon=argus\nTerminal=false\nX-GNOME-Autostart-enabled=true\n", exe)
 	return os.WriteFile(p, []byte(entry), 0o644)
 }
 

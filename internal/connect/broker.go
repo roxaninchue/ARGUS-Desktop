@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// Broker is the one-click path: Blaze's sign-in service (internal/cloud) holds each
+// Broker is the one-click path: Argus's sign-in service (internal/cloud) holds each
 // provider's client secret, so the user just presses Connect instead of making a
 // developer app. Manual setup (your own client ID / token) stays as the fallback.
 type Broker interface {
@@ -24,7 +24,7 @@ type Broker interface {
 }
 
 // ErrBrokerUnreachable is returned by a Broker's Refresh when the service can't be reached
-// (the connection stays; Blaze tries again later).
+// (the connection stays; Argus tries again later).
 var ErrBrokerUnreachable = errors.New("broker_unreachable")
 
 // ErrBrokerTemporary is returned by a Broker's Refresh when the service answered but

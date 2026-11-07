@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
@@ -221,7 +222,7 @@ func portalShot() (image.Image, error) {
 		return nil, err
 	}
 	defer c.Close()
-	token := "blaze" + strconv.FormatInt(time.Now().UnixNano()%1e9, 10)
+	token := "argus" + strconv.FormatInt(time.Now().UnixNano()%1e9, 10)
 	sender := strings.ReplaceAll(strings.TrimPrefix(c.Names()[0], ":"), ".", "_")
 	reqPath := dbus.ObjectPath("/org/freedesktop/portal/desktop/request/" + sender + "/" + token)
 	if err := c.AddMatchSignal(dbus.WithMatchObjectPath(reqPath), dbus.WithMatchInterface("org.freedesktop.portal.Request"), dbus.WithMatchMember("Response")); err != nil {
@@ -244,7 +245,7 @@ func portalShot() (image.Image, error) {
 			}
 			code, _ := s.Body[0].(uint32)
 			if code != 0 {
-				return nil, errors.New("screenshot permission was declined (allow Blaze in your desktop's privacy settings)")
+				return nil, errors.New("screenshot permission was declined (allow " + brand.NAME + " in your desktop's privacy settings)")
 			}
 			res, _ := s.Body[1].(map[string]dbus.Variant)
 			u, _ := res["uri"].Value().(string)

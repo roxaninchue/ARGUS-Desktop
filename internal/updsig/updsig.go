@@ -1,4 +1,4 @@
-// Package updsig signs and verifies Blaze release files.
+// Package updsig signs and verifies Argus release files.
 //
 // Every release carries two extra assets:
 //
@@ -19,13 +19,14 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"os"
 	"strings"
 )
 
-// PublicKey is Blaze's release-signing public key (raw 32-byte ed25519, base64).
+// PublicKey is Argus's release-signing public key (raw 32-byte ed25519, base64).
 // The matching private key is a masked, protected CI/CD variable on the GitLab project
 // (BLAZE_UPDATE_SIGNING_KEY_HEX), read by the release build and handed to ci/sign; it is never
 // committed or printed. v0.19.6 rotated to this key.
@@ -144,7 +145,7 @@ func VerifySums(keys Keys, sums, sig []byte) error {
 			return nil
 		}
 	}
-	return fail("the signature on %s doesn't match Blaze's key", SumsName)
+	return fail("the signature on %s doesn't match "+brand.NAME+"'s key", SumsName)
 }
 
 // ParseSums reads sha256sum output: "<hex>  name" or "<hex> *name" (binary mode),

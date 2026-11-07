@@ -48,7 +48,7 @@ func TestRealPack(t *testing.T) {
 			}
 		}
 	}
-	for _, must := range []string{"web-design-teamofkeys", "web-design-blaze-classic", "skill-creator", "landing-page-builder"} {
+	for _, must := range []string{"web-design-teamofkeys", "web-design-argus-classic", "skill-creator", "landing-page-builder"} {
 		if !seen[must] {
 			t.Errorf("missing %s", must)
 		}

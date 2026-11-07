@@ -3,6 +3,7 @@ package connect
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"mime"
 	"regexp"
 	"strings"
@@ -335,7 +336,7 @@ func googleTools() []*Tool {
 					}
 				}
 				if u == "" {
-					return fmt.Sprintf("%s is a %s file, which Blaze can't read as text. Link: %s", f.Name, f.MimeType, f.WebViewLink), nil
+					return fmt.Sprintf("%s is a %s file, which "+brand.NAME+" can't read as text. Link: %s", f.Name, f.MimeType, f.WebViewLink), nil
 				}
 				st, data, err := c.do("GET", u, nil, map[string]string{"Accept": "*/*"})
 				if err != nil {

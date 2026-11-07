@@ -1,12 +1,12 @@
 package media
 
 // The download queue (mobile DownloadLogic.kt + Downloads.kt): one at a time, in
-// order, saved in ~/.blaze/media/downloads.json so it survives a restart. Each stream
+// order, saved in ~/.argus/media/downloads.json so it survives a restart. Each stream
 // is fetched in 8 MB HTTP ranges into a .part file, so a dropped connection resumes
 // where it stopped. Expired or refused urls (403/410) are fetched again from the
 // source; network errors retry with backoff (2 s … 5 min, up to 8 tries, reset when
 // bytes arrive). Pause keeps the .part files; Cancel deletes them. Finished files go
-// to ~/Music/Blaze/Music and ~/Videos/Blaze/Videos (~/Movies on macOS). Video + audio
+// to ~/Music/Argus/Music and ~/Videos/Argus/Videos (~/Movies on macOS). Video + audio
 // streams are merged and DASH audio remuxed with ffmpeg when it's installed
 // (mobile used Android's MediaMuxer); without it the stream is kept as sent.
 
@@ -14,6 +14,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"math/rand"
 	"net"
@@ -260,7 +261,7 @@ func SafeFileName(title, ext string) string {
 		b = string(r[:80])
 	}
 	if b == "" {
-		b = "Blaze"
+		b = brand.NAME
 	}
 	return b + "." + ext
 }
@@ -505,7 +506,7 @@ func (d *downloader) chunk(job DlJob, i int) (chunkResult, error) {
 	if err != nil {
 		return 0, errFatal{err.Error()}
 	}
-	ua := blazeUA
+	ua := argusUA
 	if s := d.m.Source(job.Source); s != nil {
 		ua = s.UserAgent()
 	}

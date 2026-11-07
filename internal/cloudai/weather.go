@@ -1,8 +1,8 @@
 package cloudai
 
-// Weather from Blaze Cloud (gateway 0.6.8, GET /v1/weather): the one source for weather in chat
+// Weather from Argus Cloud (gateway 0.6.8, GET /v1/weather): the one source for weather in chat
 // (get_weather) and on the Home card, so both always agree. Open-Meteo with MET Norway as a
-// fallback, day/night aware; a 503 weather_unavailable means both failed, and Blaze must say so
+// fallback, day/night aware; a 503 weather_unavailable means both failed, and Argus must say so
 // instead of guessing.
 
 import (
@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io"
 	"net/http"
 	"net/url"
@@ -38,10 +39,10 @@ type Weather struct {
 	Summary     string   `json:"summary"`
 }
 
-// ErrWeatherUnavailable: neither weather source answered (or Blaze Cloud can't be reached).
+// ErrWeatherUnavailable: neither weather source answered (or Argus Cloud can't be reached).
 var ErrWeatherUnavailable = errors.New("weather_unavailable")
 
-// ErrSignedOut: weather needs a Blaze account.
+// ErrSignedOut: weather needs an Argus account.
 var ErrSignedOut = errors.New("signed_out")
 
 // WeatherURL is the request for lat/lon (rounded to 0.01°, the gateway's cache cell) and units
@@ -63,7 +64,7 @@ func round2(v float64) float64 {
 	return float64(int64(v*100+0.5)) / 100
 }
 
-// Weather asks Blaze Cloud for the current weather at lat/lon.
+// Weather asks Argus Cloud for the current weather at lat/lon.
 func (g *Gateway) Weather(ctx context.Context, lat, lon float64, units string) (*Weather, error) {
 	if lat < -90 || lat > 90 || lon < -180 || lon > 180 {
 		return nil, fmt.Errorf("lat/lon out of range")
@@ -83,7 +84,7 @@ func (g *Gateway) Weather(ctx context.Context, lat, lon float64, units string) (
 	}
 	req.Header.Set("Authorization", "Bearer "+tok)
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "Blaze-Desktop")
+	req.Header.Set("User-Agent", brand.NAME+"-Desktop")
 	hc := g.HC
 	if hc == nil {
 		hc = http.DefaultClient

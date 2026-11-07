@@ -5,7 +5,7 @@ package main
 //   image   sent to models that can see as an image part (a downscaled copy when it is big);
 //           models that can't see get the path and a note instead (internal/llm/attach.go).
 //   file    text files travel inside the message (like @ files); binary files travel as a path.
-//   folder  a short tree of the folder travels inside the message; Blaze reads more with its tools.
+//   folder  a short tree of the folder travels inside the message; Argus reads more with its tools.
 
 import (
 	"bytes"
@@ -28,8 +28,8 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 const (

@@ -125,7 +125,7 @@ func (a *App) applyHotkey() {
 		return
 	}
 	if isWayland() {
-		hkLast = hkStatus{note: "Wayland doesn't let apps grab a global shortcut. Bind one in your desktop's keyboard settings to run: blaze-desktop --orb"}
+		hkLast = hkStatus{note: "Wayland doesn't let apps grab a global shortcut. Bind one in your desktop's keyboard settings to run: argus-desktop --orb"}
 		return
 	}
 	mods, key := hotkeyCombo(id)

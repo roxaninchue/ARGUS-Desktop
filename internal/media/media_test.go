@@ -400,7 +400,7 @@ func TestDownloadLogic(t *testing.T) {
 	if p := DlPause(DlJob{Status: DlRunning}); p.Status != DlPaused || DlResume(p).Status != DlQueued {
 		t.Fatal("pause/resume")
 	}
-	if SafeFileName(`AC/DC: Back in Black`, "mp3") != "AC-DC- Back in Black.mp3" || SafeFileName("...", "mp3") != "Blaze.mp3" {
+	if SafeFileName(`AC/DC: Back in Black`, "mp3") != "AC-DC- Back in Black.mp3" || SafeFileName("...", "mp3") != "Argus.mp3" {
 		t.Fatal(SafeFileName(`AC/DC: Back in Black`, "mp3"))
 	}
 	if onStatus(206) != rsAppend || onStatus(200) != rsRestart || onStatus(416) != rsComplete || onStatus(403) != rsRetry || onStatus(404) != rsFail {
@@ -532,7 +532,7 @@ func writeMP3(t *testing.T, path, title, artist, genre string) {
 
 func newTestMedia(t *testing.T) (*Media, string, *[]Cmd) {
 	home := t.TempDir()
-	m := New(filepath.Join(home, ".blaze", "media"))
+	m := New(filepath.Join(home, ".argus", "media"))
 	m.HomeDir = home
 	var cmds []Cmd
 	m.Emit = func(ev string, data any) {
@@ -757,7 +757,7 @@ func TestDownloaderEndToEnd(t *testing.T) {
 	if j.Status != DlDone {
 		t.Fatalf("download: %+v", j)
 	}
-	want := filepath.Join(home, "Music", "Blaze", "Music", "Song - One.mp3")
+	want := filepath.Join(home, "Music", "Argus", "Music", "Song - One.mp3")
 	b, err := os.ReadFile(want)
 	if err != nil || len(b) != len(data) || j.Out != want {
 		t.Fatalf("saved file: %v %d", err, len(b))

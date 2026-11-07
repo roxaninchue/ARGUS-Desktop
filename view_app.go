@@ -1,20 +1,21 @@
 package main
 
-// open_view: Blaze switches the window into one of its views (Design, Memory, Jobs…) by
+// open_view: Argus switches the window into one of its views (Design, Memory, Jobs…) by
 // itself. Visual work opens Design without asking; other views ask first unless the user
 // asked for them. The top bar then shows "DESIGN · Exit", which returns to the chat.
 
 import (
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // Views open_view can switch to (the frontend's /views registry has the same ids).
 var openableViews = map[string]string{
 	"chat": "Chat", "design": "Design", "memory": "Memory", "jobs": "Jobs", "schedule": "Schedule",
-	"accounts": "Accounts", "doctor": "Doctor", "settings": "Settings", "router": "BlazeRouter", "phone": "Phone",
+	"accounts": "Accounts", "doctor": "Doctor", "settings": "Settings", "router": brand.NAME + "Router", "phone": "Phone",
 	"music": "Music", "video": "Video", // v0.19 media_app.go
 }
 
@@ -45,7 +46,7 @@ func openView(view, reason string, ask bool, confirm func(title, detail string) 
 }
 
 func init() {
-	tools.Register("open_view", "Switch Blaze's window to one of its views: design (live preview for anything visual), memory, jobs, schedule, accounts, doctor, settings, router (BlazeRouter: models and keys), phone (Blaze Link: pair the Android phone), music, video, or chat to go back. Visual work: ask=false. Other views: ask=true unless the user asked for that view.",
+	tools.Register("open_view", "Switch "+brand.NAME+"'s window to one of its views: design (live preview for anything visual), memory, jobs, schedule, accounts, doctor, settings, router ("+brand.NAME+"Router: models and keys), phone ("+brand.NAME+" Link: pair the Android phone), music, video, or chat to go back. Visual work: ask=false. Other views: ask=true unless the user asked for that view.",
 		[][3]string{{"view", "string", "design, memory, jobs, schedule, accounts, doctor, settings, router, phone, music, video or chat"}, {"ask", "boolean", "Ask the user before switching"}, {"reason", "string", "One short line shown when asking"}},
 		[]string{"view"}, func(e *tools.Env, args map[string]any) string {
 			a := theApp

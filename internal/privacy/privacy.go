@@ -1,9 +1,9 @@
 // Package privacy keeps what powers an answer out of what the user sees (0.19.16).
 //
-// Blaze is one assistant to the user: the providers and models behind an answer (Blaze Cloud's
+// Argus is one assistant to the user: the providers and models behind an answer (Argus Cloud's
 // upstreams, or the routing between them) are never named in the chat chrome: footers, the model
 // pill, error cards, fallback notices, status lines, working pills or the "What happened" trace.
-// They show only behind an explicit developer flag (BLAZE_DEV=1 / BLAZE_DEBUG=1).
+// They show only behind an explicit developer flag (ARGUS_DEV=1 / ARGUS_DEBUG=1).
 //
 // The reply text itself is never touched: a user who asks about a model gets the answer.
 // "Google" alone is left alone (it is a connector the user signs in to); Google's model names
@@ -12,6 +12,7 @@ package privacy
 
 import (
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"regexp"
 	"strings"
@@ -53,7 +54,7 @@ func Found(s string) []string {
 
 // Dev is the explicit developer flag that lets names through.
 func Dev() bool {
-	for _, k := range []string{"BLAZE_DEV", "BLAZE_DEBUG"} {
+	for _, k := range []string{brand.UPPER + "_DEV", brand.UPPER + "_DEBUG"} {
 		if v := strings.TrimSpace(os.Getenv(k)); v == "1" || strings.EqualFold(v, "true") {
 			return true
 		}
@@ -76,15 +77,15 @@ func Scrub(s string) string {
 	return strings.TrimSpace(out)
 }
 
-// Route is the footer / model-pill label: kept when clean, else just "Blaze".
+// Route is the footer / model-pill label: kept when clean, else just "Argus".
 func Route(s string) string {
 	if Leaks(s) {
-		return "Blaze"
+		return brand.NAME
 	}
 	return s
 }
 
-// chrome lists the events whose strings are Blaze's own chrome (never the model's reply text).
+// chrome lists the events whose strings are Argus's own chrome (never the model's reply text).
 var chrome = map[string]bool{
 	"error": true, "route": true, "done": true, "status": true, "model": true, "trace": true, "stopped": true,
 	"run_event": true, "thinking": true, "repair": true, "notify": true, "job": true,
@@ -96,15 +97,15 @@ var dropKeys = map[string]bool{"provider": true, "model": true, "upstream": true
 // textKeys are reply text (never scrubbed): a user asking about a model gets the answer.
 var textKeys = map[string]bool{"text": true, "reply": true, "content": true, "delta": true}
 
-// Event returns what an event may show on screen. Reply text (delta, blaze_msg done replies) is
+// Event returns what an event may show on screen. Reply text (delta, argus_msg done replies) is
 // left as it is; chrome strings are scrubbed and provider/model fields dropped.
 func Event(ev string, d any) any {
 	if Dev() || d == nil {
 		return d
 	}
 	if !chrome[ev] {
-		if ev == "blaze_msg" {
-			return blazeMsg(d)
+		if ev == "argus_msg" {
+			return argusMsg(d)
 		}
 		return d
 	}
@@ -156,9 +157,9 @@ func walk(v any, key string) any {
 	return v
 }
 
-// blazeMsg: a background final. A done reply is the model's text (left alone); a failed one is
-// Blaze's own line about the run, scrubbed.
-func blazeMsg(d any) any {
+// argusMsg: a background final. A done reply is the model's text (left alone); a failed one is
+// Argus's own line about the run, scrubbed.
+func argusMsg(d any) any {
 	m, ok := d.(map[string]any)
 	if !ok {
 		return d
@@ -178,7 +179,7 @@ func blazeMsg(d any) any {
 	return out
 }
 
-// ModelLabel is the model pill's label: "Blaze" unless the developer flag is on.
+// ModelLabel is the model pill's label: "Argus" unless the developer flag is on.
 func ModelLabel(s string) string {
 	if Dev() {
 		return s
@@ -186,34 +187,34 @@ func ModelLabel(s string) string {
 	return Route(s)
 }
 
-// Owner names: Blaze is made by Blazeinchue; no person is named as its maker (0.19.16).
+// Owner names: Argus is made by Blazeinchue; no person is named as its maker (0.19.16).
 var ownerRe = regexp.MustCompile(`(?i)\b(?:luke|lackson|kapapa\w*)\b`)
 
-// Maker is who makes Blaze, wherever the app says so.
+// Maker is who makes Argus, wherever the app says so.
 const Maker = "Blazeinchue"
 
 // LeaksOwner reports whether s names the owner.
 func LeaksOwner(s string) bool { return ownerRe.MatchString(s) }
 
-// Owner questions (0.19.16 guard): a reply to "who made/owns Blaze" or "what's the owner's name"
+// Owner questions (0.19.16 guard): a reply to "who made/owns Argus" or "what's the owner's name"
 // always says Blazeinchue and never names a person, whatever the model wrote.
-const subj = `(?:the\s+)?(?:blaze(?:\s+app)?|you|this\s+(?:app|assistant|ai|bot))`
+const subj = `(?:the\s+)?(?:argus(?:\s+app)?|you|this\s+(?:app|assistant|ai|bot))`
 
 var (
-	// "who made Blaze", "who really created you", "who is behind Blaze", "who's running this app"
+	// "who made Argus", "who really created you", "who is behind Argus", "who's running this app"
 	askWhoRe = regexp.MustCompile(`(?i)\bwho(?:'s|’s|\s+is|\s+are|\s+was|\s+were|\s+exactly|\s+actually|\s+really|\s+originally|\s+first)*\s+(?:owns?|made|makes|created|creates|built|builds|developed|develops|founded|wrote|programmed|designed|coded|runs|is\s+behind|are\s+behind|was\s+behind|behind)\s+` + subj + `\b(?:\s+(\w+))?`)
-	// "which company makes Blaze", "what team built you"
+	// "which company makes Argus", "what team built you"
 	askWhichRe = regexp.MustCompile(`(?i)\b(?:which|what)\s+(?:company|team|person|people|studio|business|developer|organi[sz]ation)\s+(?:\w+\s+)?(?:owns?|made|makes|created|built|developed|is\s+behind|are\s+behind)\s+` + subj + `\b`)
-	// "were you made by", "is Blaze owned by"
+	// "were you made by", "is Argus owned by"
 	askByRe = regexp.MustCompile(`(?i)\b(?:(?:were|are|was|is)\s+` + subj + `\s+(?:made|created|built|developed|owned|designed|programmed)|` + subj + `\s+(?:was|were|is|are)\s+(?:made|created|built|developed|owned|designed|programmed))\s+by\b[^.!]*\?`)
-	// "Blaze's owner", "your creator", "the owner of Blaze", "the person who owns Blaze" (asked)
-	ownerNounRe = regexp.MustCompile(`(?i)\b(?:blaze(?:'s|’s)?|your)\s+(?:real\s+|actual\s+)?(?:owners?|makers?|creators?|developers?|founders?|authors?)\b|\b(?:owners?|makers?|creators?|developers?|founders?|authors?|people|person|company|team)\s+(?:of|behind|who\s+(?:owns?|made|created|built|develops?|developed|runs?))\s+` + subj + `\b`)
+	// "Argus's owner", "your creator", "the owner of Argus", "the person who owns Argus" (asked)
+	ownerNounRe = regexp.MustCompile(`(?i)\b(?:argus(?:'s|’s)?|your)\s+(?:real\s+|actual\s+)?(?:owners?|makers?|creators?|developers?|founders?|authors?)\b|\b(?:owners?|makers?|creators?|developers?|founders?|authors?|people|person|company|team)\s+(?:of|behind|who\s+(?:owns?|made|created|built|develops?|developed|runs?))\s+` + subj + `\b`)
 	questionRe  = regexp.MustCompile(`(?i)\?|^\s*(?:who|what|whats|which|tell|give|name|do\s+you\s+know|can\s+you\s+tell)\b|\bname\b`)
 	notOwnerRe  = map[string]bool{"a": true, "an": true, "some": true, "this": true, "that": true, "my": true, "feel": true, "do": true, "laugh": true, "cry": true, "think": true, "want": true, "say": true, "so": true, "angry": true, "sad": true, "happy": true}
 	dupMakerRe  = regexp.MustCompile(`(?i)\bblazeinchue(?:[\s,.-]+blazeinchue)+\b`)
 )
 
-// AsksOwner reports whether the user's message asks who owns or made Blaze, or the owner's name.
+// AsksOwner reports whether the user's message asks who owns or made Argus, or the owner's name.
 func AsksOwner(q string) bool {
 	if m := askWhoRe.FindStringSubmatch(q); m != nil {
 		if !notOwnerRe[strings.ToLower(m[1])] {
@@ -244,5 +245,5 @@ func OwnerReply(question, reply string) string {
 	if strings.Contains(strings.ToLower(reply), strings.ToLower(Maker)) {
 		return reply
 	}
-	return "Blaze is made by " + Maker + ". " + strings.TrimLeft(reply, " \t\r\n")
+	return brand.NAME + " is made by " + Maker + ". " + strings.TrimLeft(reply, " \t\r\n")
 }

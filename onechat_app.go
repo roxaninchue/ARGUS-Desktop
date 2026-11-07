@@ -1,9 +1,9 @@
 package main
 
-// v0.19 one infinite chat (like Blaze Mobile): the Chat tab is the one main conversation, opened on its
+// v0.19 one infinite chat (like Argus Mobile): the Chat tab is the one main conversation, opened on its
 // last turns; older turns page in as the user scrolls up, then the archived chats from before one mind,
 // newest first. Only the UI side changes: OpenMainPage still opens the whole conversation for the model
-// (OpenConversation), it just sends the UI the tail. Nothing in ~/.blaze is moved or deleted.
+// (OpenConversation), it just sends the UI the tail. Nothing in ~/.argus is moved or deleted.
 
 import (
 	"encoding/json"
@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/agents"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/chatpage"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/agents"
+	"github.com/lacksonkapapahue/argus-desktop/internal/chatpage"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // ChatPage is one page of the main conversation: Messages are msgs[Start:Start+len(Messages)].

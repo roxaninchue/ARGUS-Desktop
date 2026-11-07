@@ -6,6 +6,7 @@ package llm
 
 import (
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"strings"
 )
@@ -33,7 +34,7 @@ func (e *RouteError) Error() string {
 		return "No AI model is set up yet. Add a free Gemini or Groq key in Settings › Models (it takes a minute)."
 	}
 	if e.NoTools {
-		return "None of your models can use tools, so Blaze can't act. Add a free Gemini, Groq or Cerebras key in Settings › Models."
+		return "None of your models can use tools, so " + brand.NAME + " can't act. Add a free Gemini, Groq or Cerebras key in Settings › Models."
 	}
 	var b strings.Builder
 	if len(e.Failures) == 0 && len(e.Resting) > 0 {
@@ -55,7 +56,7 @@ func Plain(err error) string {
 	if err == nil {
 		return ""
 	}
-	var pl Plainer // v0.19: Blaze Cloud / Custom errors already carry their line (backend.go)
+	var pl Plainer // v0.19: Argus Cloud / Custom errors already carry their line (backend.go)
 	if errors.As(err, &pl) {
 		return pl.PlainLine()
 	}
@@ -65,7 +66,7 @@ func Plain(err error) string {
 			return re.Error()
 		}
 		if len(re.Failures) == 0 && len(re.Resting) > 0 {
-			return "All your models are resting after hitting their limits (" + strings.Join(re.Resting, "; ") + "). Try again shortly, or add another free key so Blaze can switch."
+			return "All your models are resting after hitting their limits (" + strings.Join(re.Resting, "; ") + "). Try again shortly, or add another free key so " + brand.NAME + " can switch."
 		}
 		if len(re.Failures) == 1 && len(re.Resting) == 0 {
 			return re.Failures[0].Message
@@ -98,7 +99,7 @@ func PlainText(who string, code int, raw string) string {
 	low := strings.ToLower(t)
 	switch {
 	case code == 429 || strings.Contains(low, "quota") || strings.Contains(low, "rate limit") || strings.Contains(low, "resource_exhausted"):
-		return who + " hit its free limit for now. Blaze will use another model; limits reset by themselves (usually within a minute, or by tomorrow)."
+		return who + " hit its free limit for now. " + brand.NAME + " will use another model; limits reset by themselves (usually within a minute, or by tomorrow)."
 	case code == 401 || code == 403 || (strings.Contains(low, "api key") && (strings.Contains(low, "invalid") || strings.Contains(low, "not valid"))) || strings.Contains(low, "is a ") && strings.Contains(low, "key"):
 		return who + " didn't accept its key. Check it in Settings › Models."
 	case code == 404 || strings.Contains(low, "not found") || strings.Contains(low, "does not exist") || strings.Contains(low, "no model chosen"):
@@ -106,7 +107,7 @@ func PlainText(who string, code int, raw string) string {
 	case NoToolSupport(&HTTPError{Code: code, Body: t}):
 		return who + " can't use tools with this model. Pick a model marked Tools."
 	case code == 400 && (strings.Contains(low, "invalid argument") || strings.Contains(low, "invalid_argument") || strings.Contains(low, "thought_signature") || strings.Contains(low, "function")):
-		return who + " refused the conversation's format (" + short(t) + "). Blaze repaired the history; try again, or switch model."
+		return who + " refused the conversation's format (" + short(t) + "). " + brand.NAME + " repaired the history; try again, or switch model."
 	case code >= 500 || strings.Contains(low, "overloaded") || strings.Contains(low, "unavailable"):
 		return who + " is having trouble on its side right now. Try again in a moment."
 	case strings.Contains(low, "timeout") || strings.Contains(low, "timed out") || strings.Contains(low, "stopped sending") || strings.Contains(low, "deadline"):
@@ -115,9 +116,9 @@ func PlainText(who string, code int, raw string) string {
 		if strings.Contains(low, "127.0.0.1") || strings.Contains(low, "localhost") {
 			return who + " isn't running on this computer. Start it, then try again."
 		}
-		return "Blaze can't reach " + who + ". Check your internet connection, then try again."
+		return brand.NAME + " can't reach " + who + ". Check your internet connection, then try again."
 	case strings.Contains(low, "context") && (strings.Contains(low, "length") || strings.Contains(low, "too long") || strings.Contains(low, "token")):
-		return "This chat got too long for " + who + ". Start a new chat, or try again and Blaze will trim it."
+		return "This chat got too long for " + who + ". Start a new chat, or try again and " + brand.NAME + " will trim it."
 	}
 	if len(t) < 160 && !strings.Contains(t, "{") {
 		return who + ": " + t

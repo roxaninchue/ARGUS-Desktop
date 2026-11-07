@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strings"
 
 	"golang.org/x/sys/windows/registry"
@@ -8,7 +9,7 @@ import (
 
 const runKey = `Software\Microsoft\Windows\CurrentVersion\Run`
 
-// setAutostart writes HKCU\...\Run "Blaze" = "<exe>" --background.
+// setAutostart writes HKCU\...\Run "Argus" = "<exe>" --background.
 func setAutostart(on bool) error {
 	k, err := registry.OpenKey(registry.CURRENT_USER, runKey, registry.SET_VALUE|registry.QUERY_VALUE)
 	if err != nil {
@@ -16,12 +17,12 @@ func setAutostart(on bool) error {
 	}
 	defer k.Close()
 	if !on {
-		if err := k.DeleteValue("Blaze"); err != nil && err != registry.ErrNotExist {
+		if err := k.DeleteValue(brand.NAME); err != nil && err != registry.ErrNotExist {
 			return err
 		}
 		return nil
 	}
-	return k.SetStringValue("Blaze", `"`+selfPath()+`" --background`)
+	return k.SetStringValue(brand.NAME, `"`+selfPath()+`" --background`)
 }
 
 func autostartEnabled() bool {
@@ -30,6 +31,6 @@ func autostartEnabled() bool {
 		return false
 	}
 	defer k.Close()
-	v, _, err := k.GetStringValue("Blaze")
+	v, _, err := k.GetStringValue(brand.NAME)
 	return err == nil && strings.Contains(strings.ToLower(v), strings.ToLower(selfPath()))
 }

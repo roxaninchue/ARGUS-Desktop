@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://blazeinchue.pages.dev/schemas/postkit-1.json",
-  "title": "Blaze post kit v1",
-  "description": "One post kit for a creator's photo, video still or idea. Client-neutral: Desktop, Mobile, CLI and the gateway post-kit tool all produce exactly this shape. Copy-out only: nothing here is ever posted by Blaze. Length limits count Unicode code points, except X, which counts every URL as 23 characters (t.co).",
+  "title": "Argus post kit v1",
+  "description": "One post kit for a creator's photo, video still or idea. Client-neutral: Desktop, Mobile, CLI and the gateway post-kit tool all produce exactly this shape. Copy-out only: nothing here is ever posted by Argus. Length limits count Unicode code points, except X, which counts every URL as 23 characters (t.co).",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "language", "hook", "hashtags", "alt_text", "platforms", "crops"],
   "properties": {
-    "schema": { "const": "blaze.postkit/1" },
+    "schema": { "const": "argus.postkit/1" },
     "language": {
       "type": "string",
       "description": "BCP 47 tag of the creator's language (e.g. en, fr, sw, bem). Every text field is written in it.",
@@ -92,7 +92,7 @@
       }
     }
   },
-  "x-blaze-rules": {
+  "x-argus-rules": {
     "limits": { "x": 280, "instagram": 2200, "tiktok": 4000, "linkedin": 3000, "threads": 500, "youtube_shorts": 100, "reddit_title": 300, "reddit_body": 40000 },
     "preserve": "Every URL, @handle, email, {placeholder}, {{placeholder}} and `code` in the idea must appear unchanged in each caption that has room; never shorten or rewrite them.",
     "trim": "Over the limit, cut at a sentence or word boundary before the limit and never inside a preserved token.",

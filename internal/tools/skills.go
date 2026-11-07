@@ -3,7 +3,7 @@ package tools
 // The bundled skill library (v0.7) and the "learned something" hook.
 //
 // The pack ships inside the binary (skills/ at the repo root, embedded by the
-// main package) and is seeded into ~/.blaze/skills on start by internal/skillpack;
+// main package) and is seeded into ~/.argus/skills on start by internal/skillpack;
 // the folder stays the source of truth and the SQLite index follows it as before.
 
 import (
@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/skillpack"
+	"github.com/lacksonkapapahue/argus-desktop/internal/skillpack"
 )
 
 var pack struct {
@@ -76,8 +76,8 @@ func RestoreSkill(name string) error {
 
 func disabledSkills() map[string]bool { return skillpack.DisabledSet(skillsDir()) }
 
-// WriteSkill creates or replaces ~/.blaze/skills/<name>/SKILL.md. It keeps the
-// skill's version number moving up so other Blaze apps see a change.
+// WriteSkill creates or replaces ~/.argus/skills/<name>/SKILL.md. It keeps the
+// skill's version number moving up so other Argus apps see a change.
 func WriteSkill(name, desc string, tags []string, body string) (created bool, err error) {
 	name = strings.TrimSpace(strings.ToLower(name))
 	if !skillpack.ValidName(name) {
@@ -125,7 +125,7 @@ func splitTags(s string) []string {
 
 // ---------------- the learned-something hook ----------------
 
-// LearnEvent tells the UI that Blaze saved, changed or removed a memory or skill
+// LearnEvent tells the UI that Argus saved, changed or removed a memory or skill
 // (the chat shows a small mark and a toast).
 type LearnEvent struct {
 	Kind   string `json:"kind"`   // memory, skill

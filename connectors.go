@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,9 +11,9 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/connect"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/connect"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Connectors: the user's own accounts and MCP servers as agent tools.
@@ -31,24 +32,24 @@ func (a *App) startConnectors() {
 		Dir:     func() string { return a.prefs.Folder },
 		Version: version,
 	})
-	// MCP servers are shared with Blaze CLI through ~/.blaze/mcp.json (v0.8.1).
+	// MCP servers are shared with Argus CLI through ~/.argus/mcp.json (v0.8.1).
 	if err := a.conn.SetMCPConfig(connect.MCPConfigPath(config.Dir())); err != nil {
-		fmt.Fprintln(os.Stderr, "blaze: mcp.json:", err)
+		fmt.Fprintln(os.Stderr, "argus: mcp.json:", err)
 	}
-	// Launched by a blaze:// link (Windows and Linux pass it as an argument).
+	// Launched by an argus:// link (Windows and Linux pass it as an argument).
 	for _, arg := range os.Args[1:] {
 		a.routeURL(arg)
 	}
 }
 
-// routeURL handles a blaze:// URL from the OS, a second launch or macOS.
+// routeURL handles an argus:// URL from the OS, a second launch or macOS.
 func (a *App) routeURL(raw string) {
-	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(raw)), "blaze://") || a.conn == nil {
+	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(raw)), "argus://") || a.conn == nil {
 		return
 	}
 	go func() {
 		if !a.conn.HandleURL(raw) {
-			wr.EventsEmit(a.ctx, "toast", map[string]string{"text": "Blaze doesn't know the link " + raw, "kind": "error"})
+			wr.EventsEmit(a.ctx, "toast", map[string]string{"text": brand.NAME + " doesn't know the link " + raw, "kind": "error"})
 		}
 	}()
 }
@@ -89,14 +90,14 @@ func (a *App) ConnectorGrant(id, tool string) connect.ConnectResult {
 }
 
 // ConnectorPasteCallback finishes a sign-in from a redirect URL the user copied
-// out of the browser (when the loopback port or blaze:// can't be reached).
+// out of the browser (when the loopback port or argus:// can't be reached).
 func (a *App) ConnectorPasteCallback(raw string) string {
 	raw = strings.TrimSpace(raw)
-	if strings.HasPrefix(strings.ToLower(raw), "blaze://") {
+	if strings.HasPrefix(strings.ToLower(raw), "argus://") {
 		if a.conn.HandleURL(raw) {
 			return ""
 		}
-		return "That isn't a Blaze sign-in link."
+		return "That isn't an " + brand.NAME + " sign-in link."
 	}
 	_, msg, ok := a.conn.HandleCallback(raw)
 	if ok {
@@ -160,7 +161,7 @@ func (a *App) ask(title, detail string, allowAlways bool) int {
 	if allowAlways {
 		payload["always"] = true
 	}
-	if why := permReason(title, detail); why != "" { // v0.19.14: one line on why Blaze asks
+	if why := permReason(title, detail); why != "" { // v0.19.14: one line on why Argus asks
 		payload["why"] = why
 		payload["declined"] = permDeclined(title)
 	}

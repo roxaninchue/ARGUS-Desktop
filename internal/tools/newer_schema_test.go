@@ -8,15 +8,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/store"
+	"github.com/lacksonkapapahue/argus-desktop/internal/store"
 )
 
-// A blaze.db from a newer Blaze: Desktop runs without memory, leaves the file
-// alone, and says "please update Blaze" instead of a vague database error.
+// An argus.db from a newer Argus: Desktop runs without memory, leaves the file
+// alone, and says "please update Argus" instead of a vague database error.
 func TestNewerSchemaRunsWithoutMemory(t *testing.T) {
 	home := t.TempDir()
 	testHome(t, home)
-	p := filepath.Join(home, "blaze.db")
+	p := filepath.Join(home, "argus.db")
 	s, err := sql.Open("sqlite", "file:"+filepath.ToSlash(p))
 	if err != nil {
 		t.Fatal(err)
@@ -30,13 +30,13 @@ func TestNewerSchemaRunsWithoutMemory(t *testing.T) {
 	if DB() != nil {
 		t.Fatal("a newer schema must not be opened")
 	}
-	if n := UpdateNotice(); !strings.Contains(n, "update Blaze") {
+	if n := UpdateNotice(); !strings.Contains(n, "update Argus") {
 		t.Fatalf("notice %q", n)
 	}
-	if r := Run(&Env{}, "remember", `{"fact":"Uses pnpm"}`); !strings.Contains(r, "update Blaze") {
+	if r := Run(&Env{}, "remember", `{"fact":"Uses pnpm"}`); !strings.Contains(r, "update Argus") {
 		t.Fatalf("remember said %q", r)
 	}
-	if r := Run(&Env{}, "recall", `{"query":"pnpm"}`); !strings.Contains(r, "update Blaze") {
+	if r := Run(&Env{}, "recall", `{"query":"pnpm"}`); !strings.Contains(r, "update Argus") {
 		t.Fatalf("recall said %q", r)
 	}
 	if Memory() != "" || MemoryFor("pnpm") != "" {
@@ -44,6 +44,6 @@ func TestNewerSchemaRunsWithoutMemory(t *testing.T) {
 	}
 	after, _ := os.ReadFile(p)
 	if string(before) != string(after) {
-		t.Fatal("blaze.db changed")
+		t.Fatal("argus.db changed")
 	}
 }

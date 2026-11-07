@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudai"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 type traceStep struct {
@@ -45,7 +45,7 @@ type turnTrace struct {
 	TTFTms   int64          `json:"ttft_ms,omitempty"` // first word of the whole reply
 	Steps    []traceStep    `json:"steps"`
 	Tools    []traceTool    `json:"tools"`
-	Attempts []cloudai.Step `json:"attempts,omitempty"` // every Blaze Cloud request, retries included
+	Attempts []cloudai.Step `json:"attempts,omitempty"` // every Argus Cloud request, retries included
 	Err      string         `json:"error,omitempty"`
 }
 
@@ -129,7 +129,7 @@ func (a *App) emitTrace(s *session, t *turnTrace, turn *cloudai.Turn, started ti
 // traceHook, when set (tests only), sees each turn's unscrubbed gateway attempts. Nil in the app.
 var traceHook func(turn string, raw []cloudai.Step)
 
-// scrubAttempts (v0.19.13): Blaze Cloud is one model to the user. The gateway's X-Blaze-Provider /
+// scrubAttempts (v0.19.13): Argus Cloud is one model to the user. The gateway's X-Blaze-Provider /
 // X-Blaze-Model headers name the upstream that answered; they stay in the gateway's own logs
 // (matched by request id) and never reach the "What happened" view.
 func scrubAttempts(in []cloudai.Step) []cloudai.Step {

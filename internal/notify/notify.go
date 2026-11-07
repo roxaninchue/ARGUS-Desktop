@@ -1,11 +1,11 @@
-// Package notify sends native OS notifications cheaply. Blaze works out once
+// Package notify sends native OS notifications cheaply. Argus works out once
 // (during setup or Doctor) which method works on this computer and caches it,
-// with the full call template, in ~/.blaze/notify.json. Later a notification is
+// with the full call template, in ~/.argus/notify.json. Later a notification is
 // one template fill: the model only supplies title, body and urgency.
 //
 // Two kinds of method:
 //   - "native": in-process through Wails (Windows toast, macOS Notification
-//     Center, Linux org.freedesktop.Notifications over D-Bus). Clicks reach Blaze.
+//     Center, Linux org.freedesktop.Notifications over D-Bus). Clicks reach Argus.
 //   - "exec": a command template (notify-send, terminal-notifier, osascript, a
 //     PowerShell toast). Used when native isn't available, and by scheduled jobs,
 //     which run without the app.
@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"html"
 	"os"
 	"os/exec"
@@ -25,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 // Method is one way to show a notification on this computer.
@@ -35,14 +36,14 @@ type Method struct {
 	Argv   []string `json:"argv,omitempty"`   // exec: argv with {title} {body} {urgency} {icon} {app}
 	Stdin  string   `json:"stdin,omitempty"`  // exec: script fed on stdin, same placeholders (escaped)
 	Escape string   `json:"escape,omitempty"` // how placeholders in Stdin are escaped: "ps-xml"
-	Clicks bool     `json:"clicks"`           // a click opens Blaze
+	Clicks bool     `json:"clicks"`           // a click opens Argus
 }
 
-// Cache is ~/.blaze/notify.json.
+// Cache is ~/.argus/notify.json.
 type Cache struct {
 	Version  int       `json:"version"`
 	OS       string    `json:"os"`
-	Host     string    `json:"host,omitempty"`    // ~/.blaze may be synced: the probe is per machine
+	Host     string    `json:"host,omitempty"`    // ~/.argus may be synced: the probe is per machine
 	Desktop  string    `json:"desktop,omitempty"` // Linux: GNOME, Hyprland… (switching session re-probes)
 	Probed   time.Time `json:"probed"`
 	Primary  *Method   `json:"primary,omitempty"`  // what the app uses
@@ -79,7 +80,7 @@ func NewCache(now time.Time) *Cache {
 }
 
 // Load reads the cache; nil when there is none, or it was made for another OS,
-// machine, desktop session or cache version (then Blaze probes again, once).
+// machine, desktop session or cache version (then Argus probes again, once).
 func Load() *Cache {
 	b, err := os.ReadFile(Path())
 	if err != nil {
@@ -99,7 +100,7 @@ func (c *Cache) Valid() bool {
 }
 
 // Choose fills the cache from a probe: the in-process method when it works
-// (clicks reach Blaze), the first command method as fallback and for scheduled
+// (clicks reach Argus), the first command method as fallback and for scheduled
 // jobs, and a note of everything that didn't work for Doctor.
 func (c *Cache) Choose(native *Method, nativeErr string, execs []Method, missing []string) {
 	c.Primary, c.Fallback, c.Tried = nil, nil, nil
@@ -149,7 +150,7 @@ func (n *Note) Clean() {
 		n.Urgency = "normal"
 	}
 	if n.Title == "" {
-		n.Title = "Blaze"
+		n.Title = brand.NAME
 	}
 }
 
@@ -163,8 +164,8 @@ func clip(s string, n int) string {
 	return s
 }
 
-// IconPath is Blaze's icon on disk (written once by WriteIcon) for exec methods.
-func IconPath() string { return filepath.Join(config.Dir(), "desktop", "blaze.png") }
+// IconPath is Argus's icon on disk (written once by WriteIcon) for exec methods.
+func IconPath() string { return filepath.Join(config.Dir(), "desktop", "argus.png") }
 
 func WriteIcon(png []byte) {
 	if _, err := os.Stat(IconPath()); err == nil || len(png) == 0 {
@@ -182,16 +183,16 @@ func ExecCandidates() (out []Method, missing []string) {
 	switch runtime.GOOS {
 	case "linux":
 		if have("notify-send") {
-			out = append(out, Method{Kind: "exec", Name: "notify-send", Argv: []string{"notify-send", "--app-name=Blaze", "--urgency={urgency}", "--icon={icon}", "{title}", "{body}"}})
+			out = append(out, Method{Kind: "exec", Name: "notify-send", Argv: []string{"notify-send", "--app-name=" + brand.NAME, "--urgency={urgency}", "--icon={icon}", "{title}", "{body}"}})
 		} else {
 			missing = append(missing, "notify-send (install libnotify: sudo pacman -S libnotify / sudo apt install libnotify-bin)")
 		}
 		if have("dunstify") {
-			out = append(out, Method{Kind: "exec", Name: "dunstify", Argv: []string{"dunstify", "--appname=Blaze", "--urgency={urgency}", "--icon={icon}", "{title}", "{body}"}})
+			out = append(out, Method{Kind: "exec", Name: "dunstify", Argv: []string{"dunstify", "--appname=" + brand.NAME, "--urgency={urgency}", "--icon={icon}", "{title}", "{body}"}})
 		}
 	case "darwin":
 		if have("terminal-notifier") {
-			out = append(out, Method{Kind: "exec", Name: "terminal-notifier", Clicks: true, Argv: []string{"terminal-notifier", "-title", "{title}", "-message", "{body}", "-group", "blaze", "-activate", "com.wails.Blaze"}})
+			out = append(out, Method{Kind: "exec", Name: "terminal-notifier", Clicks: true, Argv: []string{"terminal-notifier", "-title", "{title}", "-message", "{body}", "-group", "argus", "-activate", "com.wails." + brand.NAME}})
 		}
 		out = append(out, Method{Kind: "exec", Name: "osascript", Argv: []string{"/usr/bin/osascript", "-e", "on run argv\ndisplay notification (item 2 of argv) with title (item 1 of argv)\nend run", "{title}", "{body}"}})
 	case "windows":
@@ -210,7 +211,7 @@ $x.LoadXml('<toast><visual><binding template="ToastGeneric"><text>{title}</text>
 // fill substitutes the placeholders. Argv entries are passed straight to the program
 // (no shell), so no quoting is needed there; stdin scripts escape per method.
 func fill(s string, n Note, esc func(string) string) string {
-	r := strings.NewReplacer("{title}", esc(n.Title), "{body}", esc(n.Body), "{urgency}", n.Urgency, "{icon}", IconPath(), "{app}", "Blaze")
+	r := strings.NewReplacer("{title}", esc(n.Title), "{body}", esc(n.Body), "{urgency}", n.Urgency, "{icon}", IconPath(), "{app}", brand.NAME)
 	return r.Replace(s)
 }
 

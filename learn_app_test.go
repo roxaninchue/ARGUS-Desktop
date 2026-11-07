@@ -4,8 +4,8 @@ import (
 	"io/fs"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/skillpack"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/skillpack"
 )
 
 func TestEmbeddedPackLoads(t *testing.T) {

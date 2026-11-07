@@ -1,15 +1,15 @@
 package main
 
-// Sync across devices (Settings › Account): memory and chat messages follow the Blaze account
-// to Blaze on the phone, other computers and blazeinchue.pages.dev/ai, end-to-end encrypted with
+// Sync across devices (Settings › Account): memory and chat messages follow the Argus account
+// to Argus on the phone, other computers and blazeinchue.pages.dev/ai, end-to-end encrypted with
 // a passphrase only the user knows (internal/cloudsync: PBKDF2-SHA256 600k, AES-256-GCM over
-// gzip, AAD "blaze-sync-v1|kind|id", the same envelope as Blaze Mobile and /ai-sync.js).
+// gzip, AAD "blaze-sync-v1|kind|id", the same envelope as Argus Mobile and /ai-sync.js).
 //
 //   - The passphrase is never stored or sent. The key derived from it is kept in the OS
 //     keychain under syncKeyAcct + the account id.
 //   - A round runs: when sync is switched on, ~20 s after start, every syncEvery, and shortly
 //     after memory (syncMemDebounce) or a chat file (syncChatDebounce) changes. One round at a
-//     time, and a lock file shared with Blaze CLI (~/.blaze/cloudsync/lock).
+//     time, and a lock file shared with Argus CLI (~/.argus/cloudsync/lock).
 //   - D1 budget (gateway free plan, 100k row writes/day for everyone): every chat's newest
 //     syncWindow messages sync at once; older ones are backfilled newest first, at most
 //     syncBackfill pushes in a round and one backfill round per syncBackfillGap (Sync now
@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"net"
 	"os"
 	"path/filepath"
@@ -34,15 +35,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudai"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloudsync"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/store"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudai"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloudsync"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/store"
 )
 
 const (
-	syncKeyAcct      = "blaze-sync:key:" // + Blaze account id: the derived key (hex), never the passphrase
+	syncKeyAcct      = "argus-sync:key:" // + Argus account id: the derived key (hex), never the passphrase
 	syncWindow       = 300               // newest messages of each chat that sync at once
 	syncBackfill     = 5                 // pushes (≤200 items each) of older messages in one round
 	syncBackfillGap  = time.Hour         // at most one backfill round per this (Sync now: at once)
@@ -59,16 +60,16 @@ const (
 func syncDir() string       { return filepath.Join(config.Dir(), "cloudsync") }
 func syncPrefsPath() string { return filepath.Join(config.Dir(), "desktop", "cloudsync.json") }
 
-// Desktop keeps its own state and alias files: Blaze CLI syncs memory only, and a round without
+// Desktop keeps its own state and alias files: Argus CLI syncs memory only, and a round without
 // the chat kinds would move the shared cursor past chat items Desktop never applied.
 func syncStatePath() string { return filepath.Join(syncDir(), "desktop-state.json") }
 func syncAliasPath() string { return filepath.Join(syncDir(), "desktop-alias.json") }
 func syncLockPath() string  { return filepath.Join(syncDir(), "lock") }
 
-// syncPrefs is ~/.blaze/desktop/cloudsync.json (no secrets).
+// syncPrefs is ~/.argus/desktop/cloudsync.json (no secrets).
 type syncPrefs struct {
 	On           bool   `json:"on"`
-	User         string `json:"user,omitempty"`          // the Blaze account sync was switched on for
+	User         string `json:"user,omitempty"`          // the Argus account sync was switched on for
 	LastOK       int64  `json:"last_ok,omitempty"`       // unix s of the last good round
 	LastTry      int64  `json:"last_try,omitempty"`      // unix s of the last round
 	LastBackfill int64  `json:"last_backfill,omitempty"` // unix s of the last round allowed to backfill
@@ -140,7 +141,7 @@ func (a *App) syncUser() string {
 	return a.cloud.user.ID
 }
 
-// syncBase is the gateway root the /v1/sync routes live on (the gateway Blaze Cloud uses).
+// syncBase is the gateway root the /v1/sync routes live on (the gateway Argus Cloud uses).
 func syncBase() string {
 	b := cloudai.BaseFrom("")
 	if cloudGateway != nil && cloudGateway.Base != "" {
@@ -150,7 +151,7 @@ func syncBase() string {
 }
 
 func (a *App) syncClient() *cloudsync.Client {
-	return &cloudsync.Client{Base: syncBase(), Token: a.blazeToken(), UserAgent: "Blaze-Desktop/" + strings.TrimSpace(version)}
+	return &cloudsync.Client{Base: syncBase(), Token: a.argusToken(), UserAgent: brand.NAME + "-Desktop/" + strings.TrimSpace(version)}
 }
 
 func (a *App) syncKey(user string) []byte {
@@ -174,14 +175,14 @@ func (a *App) SyncState() SyncView {
 	running := syncRT.running
 	syncRT.Unlock()
 	user := a.syncUser()
-	v := SyncView{SignedIn: a.blazeToken() != "" && user != "", Running: running, LastSync: p.LastOK, Backlog: p.Backlog}
+	v := SyncView{SignedIn: a.argusToken() != "" && user != "", Running: running, LastSync: p.LastOK, Backlog: p.Backlog}
 	v.On = p.On && v.SignedIn && p.User == user
 	v.NeedPassphrase = v.On && (p.NeedPass || a.syncKey(user) == nil)
 	switch {
 	case !v.SignedIn:
-		v.Status = "Sign in to your Blaze account to sync."
+		v.Status = "Sign in to your " + brand.NAME + " account to sync."
 	case p.On && p.User != "" && p.User != user:
-		v.Status = "Sync was switched on for another Blaze account. Switch it on for this one to sync."
+		v.Status = "Sync was switched on for another " + brand.NAME + " account. Switch it on for this one to sync."
 	case !v.On:
 		v.Status = "Off. Memory and chats stay on this computer."
 	case v.NeedPassphrase:
@@ -230,9 +231,9 @@ func agoText(t time.Time) string {
 // later devices must use the same passphrase. The first round runs in the background.
 func (a *App) SyncEnable(passphrase string) SyncView {
 	user := a.syncUser()
-	if a.blazeToken() == "" || user == "" {
+	if a.argusToken() == "" || user == "" {
 		v := a.SyncState()
-		v.Error = "Sign in to your Blaze account first."
+		v.Error = "Sign in to your " + brand.NAME + " account first."
 		return v
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -377,7 +378,7 @@ func syncFingerprints() (string, string) {
 	return mem, hex.EncodeToString(h.Sum(nil))
 }
 
-// syncLock is the lock file one round holds (shared with Blaze CLI). A lock older than
+// syncLock is the lock file one round holds (shared with Argus CLI). A lock older than
 // syncLockStale is from a crashed round and is taken over.
 func syncLock() (func(), error) {
 	p := syncLockPath()
@@ -400,7 +401,7 @@ func syncLock() (func(), error) {
 }
 
 var (
-	errSyncLocked   = errors.New("another Blaze app on this computer is syncing")
+	errSyncLocked   = errors.New("another " + brand.NAME + " app on this computer is syncing")
 	errSyncChatBusy = errors.New("a reply is still running in a synced chat")
 	errSyncNoKey    = errors.New("no sync key on this computer")
 )
@@ -409,7 +410,7 @@ var (
 func (a *App) syncOnce(reason string) error {
 	p := loadSyncPrefs()
 	user := a.syncUser()
-	if !p.On || p.User == "" || p.User != user || a.blazeToken() == "" {
+	if !p.On || p.User == "" || p.User != user || a.argusToken() == "" {
 		return nil
 	}
 	key := a.syncKey(user)
@@ -519,7 +520,7 @@ func (a *App) syncRound(key []byte, backfill int, retrySkipped bool) (syncResult
 	if retrySkipped {
 		st.RetrySkipped()
 	}
-	mem := &countingMemory{MemoryStore: &cloudsync.MindStore{Mind: md, Blaze: bdb}, n: &res.memory}
+	mem := &countingMemory{MemoryStore: &cloudsync.MindStore{Mind: md, Argus: bdb}, n: &res.memory}
 	ch := &appChats{a: a, f: &cloudsync.ConvFiles{Dir: convDir(), AliasPath: syncAliasPath()}, applied: map[string][]string{}}
 	res.chats = ch
 	adapters := append([]cloudsync.Adapter{&cloudsync.MemoryAdapter{Store: mem}}, cloudsync.ChatAdapters(ch, st)...)
@@ -572,20 +573,20 @@ func syncErrText(err error, enabling bool) string {
 	case errors.As(err, &he):
 		switch {
 		case he.Status == 401:
-			return "your Blaze sign-in has expired. Sign in again"
+			return "your " + brand.NAME + " sign-in has expired. Sign in again"
 		case he.Code == "quota_exceeded":
 			return "your cloud copy is full (25 MB)"
 		case he.Status == 429:
-			return "Blaze's sync service is busy (rate limit); trying again later"
+			return brand.NAME + "'s sync service is busy (rate limit); trying again later"
 		case he.Status >= 500:
-			return fmt.Sprintf("Blaze's sync service had a problem (%d); trying again later", he.Status)
+			return fmt.Sprintf(brand.NAME+"'s sync service had a problem (%d); trying again later", he.Status)
 		}
-		return "Blaze's sync service refused the request (" + he.Code + ")"
+		return brand.NAME + "'s sync service refused the request (" + he.Code + ")"
 	case errors.Is(err, context.DeadlineExceeded) || errors.As(err, &ne):
 		if enabling {
-			return "Couldn't reach Blaze's sync service. Check your connection and try again."
+			return "Couldn't reach " + brand.NAME + "'s sync service. Check your connection and try again."
 		}
-		return "couldn't reach Blaze's sync service; trying again later"
+		return "couldn't reach " + brand.NAME + "'s sync service; trying again later"
 	}
 	return err.Error()
 }

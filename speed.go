@@ -1,11 +1,11 @@
 package main
 
-// v0.19.1 speed (Blaze Mobile 0.45.1 PromptParts.kt and ToolPick.keepOrder).
+// v0.19.1 speed (Argus Mobile 0.45.1 PromptParts.kt and ToolPick.keepOrder).
 //
 // AI services reuse their work for the longest identical start of a request, so a reused start
 // answers sooner. The chat's system prompt is now put together stable first:
 //
-//	1. stable: rules, about Blaze, personality, design rules, project, PC profile, connected
+//	1. stable: rules, about Argus, personality, design rules, project, PC profile, connected
 //	   accounts, the skills picked for this request, learning rules;
 //	2. constant blocks: delegation, orchestration, long-chat rules (these used to come after the
 //	   live lines, so every step re-read them);
@@ -20,7 +20,7 @@ package main
 import (
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // promptOrder joins the system prompt's tiers, stable first. note is "ABOUT YOUR LAST REPLY".

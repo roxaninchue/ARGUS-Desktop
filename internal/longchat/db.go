@@ -2,8 +2,8 @@
 // older turns fold into a rolling state note, each project has a pinned brief, and big
 // tool outputs are set aside as artifacts the model reads on demand.
 //
-// It has its own database (~/.blaze/desktop/longchat.db) rather than a new table in
-// blaze.db: Blaze CLI shares blaze.db and refuses a newer schema, so a migration there
+// It has its own database (~/.argus/desktop/longchat.db) rather than a new table in
+// argus.db: Argus CLI shares argus.db and refuses a newer schema, so a migration there
 // would cost CLI users their memory.
 package longchat
 
@@ -19,7 +19,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 type DB struct {
@@ -50,7 +50,7 @@ func Default() (*DB, error) {
 		_ = defDB.sql.Close()
 	}
 	_ = os.MkdirAll(filepath.Dir(p), 0o700)
-	ownerOnly(p) // conversations/memory: 0600 even when ~/.blaze predates 0700
+	ownerOnly(p) // conversations/memory: 0600 even when ~/.argus predates 0700
 	d, err := Open(p)
 	if err != nil {
 		return nil, err

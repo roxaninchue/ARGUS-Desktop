@@ -8,8 +8,8 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/flashcards"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/flashcards"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // lowDataDrop are the tools low-data mode hides: they send screenshots or images.

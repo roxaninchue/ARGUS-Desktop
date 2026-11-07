@@ -3,6 +3,7 @@ package tools
 import (
 	"bufio"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -55,7 +56,7 @@ func init() {
 			return b.String()
 		})
 
-	register("file_write", "Create or overwrite a text file (folders are created). Writing outside the folder Blaze started in asks the user first.",
+	register("file_write", "Create or overwrite a text file (folders are created). Writing outside the folder "+brand.NAME+" started in asks the user first.",
 		[]prop{p("path", "string", "File path"), p("content", "string", "Full file content"), p("append", "boolean", "Append instead of overwrite")},
 		[]string{"path", "content"}, func(e *Env, a args) string {
 			path := expand(e, a.s("path"))

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/notify"
+	"github.com/lacksonkapapahue/argus-desktop/internal/notify"
 )
 
-func noteOf(kind string) notify.Note { return notify.Note{Kind: kind, Title: "Blaze", Body: "Done."} }
+func noteOf(kind string) notify.Note { return notify.Note{Kind: kind, Title: "Argus", Body: "Done."} }
 
 // v0.19.14: onboarding is two steps (sign in, optional folder), in that order.
 func TestOnboardTwoSteps(t *testing.T) {

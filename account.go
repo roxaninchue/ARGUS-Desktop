@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,16 +15,16 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/cloud"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/connect"
+	"github.com/lacksonkapapahue/argus-desktop/internal/cloud"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/connect"
 )
 
-// Blaze accounts and one-click connectors, through blaze-auth (cloud/ in this repo,
+// Argus accounts and one-click connectors, through blaze-auth (cloud/ in this repo,
 // a free Cloudflare Worker). The session token lives in the OS keychain; the signed-in
-// user's name and email are cached in ~/.blaze/desktop/account.json for the UI.
+// user's name and email are cached in ~/.argus/desktop/account.json for the UI.
 
-const sessionKey = "blaze-account:session"
+const sessionKey = "argus-account:session"
 
 type cloudState struct {
 	mu      sync.Mutex
@@ -274,7 +275,7 @@ func (a *App) AccountEmailCodesSend(on bool) AccountResult {
 	to, err := a.cloud.client.EmailCodesSend(ctx, tok, purpose)
 	if err != nil {
 		if errors.Is(err, cloud.ErrNotConfigured) {
-			return AccountResult{Error: "Emailed codes aren't switched on at Blaze yet."}
+			return AccountResult{Error: "Emailed codes aren't switched on at " + brand.NAME + " yet."}
 		}
 		return AccountResult{Error: cloud.Message(err)}
 	}
@@ -382,7 +383,7 @@ func (a *App) AccountEmail(mode, name, email, password string) AccountResult {
 // arrives as an "account" event; "" means the browser is open.
 func (a *App) AccountSignIn(provider string) string {
 	if provider != "google" && provider != "github" {
-		return "Blaze can't sign in with " + provider + "."
+		return brand.NAME + " can't sign in with " + provider + "."
 	}
 	cs := a.cloud
 	cs.refreshProviders(false)
@@ -390,7 +391,7 @@ func (a *App) AccountSignIn(provider string) string {
 	if cs.prov == nil || !cs.prov.Login[provider] {
 		cs.mu.Unlock()
 		if !cs.online {
-			return "Couldn't reach Blaze's sign-in service. Check your internet connection."
+			return "Couldn't reach " + brand.NAME + "'s sign-in service. Check your internet connection."
 		}
 		return "Sign in with " + titleCase(provider) + " isn't switched on yet. Use your email instead."
 	}
@@ -458,7 +459,7 @@ func (a *App) AccountSignOut() string {
 	return ""
 }
 
-// AccountDelete deletes the Blaze account (connectors and keys on this computer stay).
+// AccountDelete deletes the Argus account (connectors and keys on this computer stay).
 func (a *App) AccountDelete() string {
 	tok, _ := a.cloud.sec.Get(sessionKey)
 	if tok == "" {

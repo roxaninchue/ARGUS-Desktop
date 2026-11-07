@@ -196,7 +196,7 @@ func TestDisable(t *testing.T) {
 }
 
 func TestValidName(t *testing.T) {
-	for _, ok := range []string{"web-design-blaze-classic", "git-pr", "ab"} {
+	for _, ok := range []string{"web-design-argus-classic", "git-pr", "ab"} {
 		if !ValidName(ok) {
 			t.Errorf("%s should be valid", ok)
 		}

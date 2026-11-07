@@ -1,13 +1,13 @@
-// Package media is Blaze Desktop's Music and Video apps, ported from Blaze Mobile
+// Package media is Argus Desktop's Music and Video apps, ported from Argus Mobile
 // (app/src/main/java/com/blaze/assistant/mediaapps, v0.34.0): the library (the user's
-// music and video folders plus what Blaze downloaded), playlists, likes, recents, the
+// music and video folders plus what Argus downloaded), playlists, likes, recents, the
 // play log and the smart side built on it (daily mixes, smart playlists, Wrapped,
-// Blaze DJ, taste), lyrics (LRCLIB), subtitles (YouTube captions, .srt/.vtt), the
+// Argus DJ, taste), lyrics (LRCLIB), subtitles (YouTube captions, .srt/.vtt), the
 // Store sources (YouTube, Jamendo, Internet Archive, Blender open movies, a link) and
 // the download queue. Playback itself is the webview's <audio>/<video>; the files and
 // streams reach it through Handler (Wails asset handler and a loopback server).
 //
-// Everything is kept under ~/.blaze/media (new, additive: the CLI never reads it).
+// Everything is kept under ~/.argus/media (new, additive: the CLI never reads it).
 package media
 
 import (
@@ -17,7 +17,7 @@ import (
 	"strings"
 )
 
-// Track is one playable thing: a file in the user's folders, a Blaze download, or a
+// Track is one playable thing: a file in the user's folders, an Argus download, or a
 // Store stream (never saved). Mirrors mobile's Track (MediaLogic.kt).
 type Track struct {
 	Key         string `json:"k"`   // stable id: "file:" + absolute path

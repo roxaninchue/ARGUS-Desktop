@@ -1,16 +1,17 @@
-// Package mind is Blaze's "one mind" memory (v0.16+): one continuous main conversation
+// Package mind is Argus's "one mind" memory (v0.16+): one continuous main conversation
 // whose every turn goes into a journal (SQLite FTS5), and a memories table that is the
-// source of truth for what Blaze knows. The prompt carries only a pinned core and an
+// source of truth for what Argus knows. The prompt carries only a pinned core and an
 // index of subjects; everything else is looked up with memory_search / search_chat.
 //
-// It lives in its own database (~/.blaze/desktop/mind.db): Blaze CLI shares blaze.db and
+// It lives in its own database (~/.argus/desktop/mind.db): Argus CLI shares argus.db and
 // refuses a newer schema, so the new tables can't go there. The schema and the shared
-// prompt text are in docs/plans/plan-one-mind.md so Blaze Android can mirror them.
+// prompt text are in docs/plans/plan-one-mind.md so Argus Android can mirror them.
 package mind
 
 import (
 	"database/sql"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -21,7 +22,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 // Kinds of memory, in pinned-core order.
@@ -53,7 +54,7 @@ CREATE TABLE IF NOT EXISTS memories(
   source_turn INTEGER NOT NULL DEFAULT 0, -- journal.id it came from (0 = typed or imported)
   created INTEGER NOT NULL,
   updated INTEGER NOT NULL,
-  mirror INTEGER NOT NULL DEFAULT 0 -- blaze.db memories.id kept in step for Blaze CLI
+  mirror INTEGER NOT NULL DEFAULT 0 -- argus.db memories.id kept in step for ` + brand.NAME + ` CLI
 );
 CREATE INDEX IF NOT EXISTS memories_subject ON memories(kind, subject);
 CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(subject, text, content='memories', content_rowid='id', tokenize='porter unicode61');
@@ -95,7 +96,7 @@ func Default() (*DB, error) {
 		_ = defDB.sql.Close()
 	}
 	_ = os.MkdirAll(filepath.Dir(p), 0o700)
-	ownerOnly(p) // conversations/memory: 0600 even when ~/.blaze predates 0700
+	ownerOnly(p) // conversations/memory: 0600 even when ~/.argus predates 0700
 	d, err := Open(p)
 	if err != nil {
 		return nil, err
@@ -320,7 +321,7 @@ func (d *DB) JournalTurn(id int64) (Turn, bool) {
 
 // ---------- memories ----------
 
-// Memory is one line Blaze knows.
+// Memory is one line Argus knows.
 type Memory struct {
 	ID         int64  `json:"id"`
 	Kind       string `json:"kind"`
@@ -525,7 +526,7 @@ func (d *DB) Update(id int64, text, kind, subject string) error {
 	return err
 }
 
-// SetMirror records the blaze.db row kept in step with this memory.
+// SetMirror records the argus.db row kept in step with this memory.
 func (d *DB) SetMirror(id, mirror int64) {
 	_, _ = d.sql.Exec(`UPDATE memories SET mirror=? WHERE id=?`, mirror, id)
 }
@@ -577,7 +578,7 @@ func (d *DB) Core(maxChars int) []Memory {
 	return out
 }
 
-// Index lists the subjects Blaze knows about, per kind with counts ("person: Gloria (3), Mutale (1)").
+// Index lists the subjects Argus knows about, per kind with counts ("person: Gloria (3), Mutale (1)").
 func (d *DB) Index(maxPerKind int) map[string][]string {
 	rows, err := d.sql.Query(`SELECT kind, subject, count(*), max(updated) FROM memories GROUP BY kind, lower(subject) ORDER BY max(updated) DESC`)
 	if err != nil {

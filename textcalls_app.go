@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // completeTurn is App.run's port to the models (llm.CompleteWith); tests script it.

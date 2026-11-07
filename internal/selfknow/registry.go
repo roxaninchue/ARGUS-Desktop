@@ -1,7 +1,7 @@
 package selfknow
 
-// Blaze Desktop's views and slash commands live in its frontend (frontend/dist, embedded in
-// the binary): the BlazeViews LIST in views.js and the COMMANDS array in app.js, which other
+// Argus Desktop's views and slash commands live in its frontend (frontend/dist, embedded in
+// the binary): the ArgusViews LIST in views.js and the COMMANDS array in app.js, which other
 // files extend with COMMANDS.splice/push. Reading them from the embedded files keeps the
 // report true to this build without a second hand-kept list.
 

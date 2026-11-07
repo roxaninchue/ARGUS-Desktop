@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // fakeLLM answers by agent brief. Each script step either blocks until released,
@@ -359,7 +359,7 @@ func TestCleanHandle(t *testing.T) {
 // save just after the test returns: on Windows a file being written can't be removed,
 // so cleanup retries for a few seconds instead of failing the test.
 func lingeringTempDir(t *testing.T) string {
-	dir, err := os.MkdirTemp("", "blaze-agents-")
+	dir, err := os.MkdirTemp("", "argus-agents-")
 	if err != nil {
 		t.Fatal(err)
 	}

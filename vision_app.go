@@ -2,13 +2,14 @@ package main
 
 // Screen vision: read_screen (text first, from the accessibility tree) and
 // see_screen (a downscaled screenshot for a vision model). A small cache makes
-// repeat reads instant, and a slow warm loop keeps it fresh while Blaze is
+// repeat reads instant, and a slow warm loop keeps it fresh while Argus is
 // working or the orb is open.
 
 import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"image"
 	_ "image/jpeg"
 	"runtime"
@@ -18,9 +19,9 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/ocr"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/screen"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/ocr"
+	"github.com/lacksonkapapahue/argus-desktop/internal/screen"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 // VisionPrefs live in desktop.json under "vision".
@@ -78,7 +79,7 @@ func (a *App) startVision() {
 
 // warmLoop pre-reads the front window once when the orb opens or a turn starts, so
 // the model's first read_screen is instant. It reads on the rising edge only (never
-// on a timer while Blaze stays busy) and never when screen reading is off.
+// on a timer while Argus stays busy) and never when screen reading is off.
 func (a *App) warmLoop() {
 	t := time.NewTicker(3 * time.Second)
 	defer t.Stop()
@@ -111,7 +112,7 @@ func visionOff() string {
 }
 
 func init() {
-	tools.Register("read_screen", "Read what's on the user's screen right now as compact text: the frontmost window (not Blaze) from the accessibility tree, roles abbreviated (btn button, in input, a link, txt text, h heading, li list item, dlg dialog, term terminal; * = focused). Instant when cached. After the first read it returns only what changed. Use it before helping with an app, an error dialog, a form or a terminal. Password fields are never included.",
+	tools.Register("read_screen", "Read what's on the user's screen right now as compact text: the frontmost window (not "+brand.NAME+") from the accessibility tree, roles abbreviated (btn button, in input, a link, txt text, h heading, li list item, dlg dialog, term terminal; * = focused). Instant when cached. After the first read it returns only what changed. Use it before helping with an app, an error dialog, a form or a terminal. Password fields are never included.",
 		[][3]string{{"full", "boolean", "Return the whole window text even if you read it before"}, {"fresh", "boolean", "Skip the cache (the screen just changed)"}},
 		nil, func(e *tools.Env, args map[string]any) string {
 			a := theApp
@@ -148,7 +149,7 @@ func init() {
 			return out
 		})
 
-	tools.Register("see_screen", "Look at the user's screen with a vision model: a downscaled screenshot of the frontmost window (not Blaze), or the whole screen. Use it when read_screen has too little text (images, canvases, games, remote desktops) or the question is visual (layout, colours, charts). Ask a specific question. Password fields are blurred.",
+	tools.Register("see_screen", "Look at the user's screen with a vision model: a downscaled screenshot of the frontmost window (not "+brand.NAME+"), or the whole screen. Use it when read_screen has too little text (images, canvases, games, remote desktops) or the question is visual (layout, colours, charts). Ask a specific question. Password fields are blurred.",
 		[][3]string{{"question", "string", "What you want to know about the screen"}, {"whole_screen", "boolean", "The whole screen instead of the front window"}, {"region", "string", "Optional crop x,y,w,h inside the window (in window coordinates)"}},
 		nil, func(e *tools.Env, args map[string]any) string {
 			a := theApp
@@ -262,7 +263,7 @@ func (a *App) privateVisionView() PrivateVisionView {
 // PrivateVision reports the Private vision switch and the OCR it would use.
 func (a *App) PrivateVision() PrivateVisionView { a.waitReady(); return a.privateVisionView() }
 
-// SetPrivateVision turns Private vision on or off (shared with Blaze CLI in config.json).
+// SetPrivateVision turns Private vision on or off (shared with Argus CLI in config.json).
 func (a *App) SetPrivateVision(on bool) PrivateVisionView {
 	a.cfg.PrivateVision = on
 	_ = a.cfg.Save()
@@ -345,7 +346,7 @@ func (a *App) watchCheck() Check {
 	case p.Off || !p.Proactive:
 		return Check{Name: "Proactive suggestions", OK: true, Detail: "Off (Settings › Notifications)"}
 	case a.prefs.Vision.Off:
-		return Check{Name: "Proactive suggestions", OK: false, Detail: "On, but screen reading is off, so Blaze can't see what to help with"}
+		return Check{Name: "Proactive suggestions", OK: false, Detail: "On, but screen reading is off, so " + brand.NAME + " can't see what to help with"}
 	}
 	f, t := p.quiet()
 	d := fmt.Sprintf("Every %d min at most, %d an hour", int(p.every().Minutes()), p.maxHour())

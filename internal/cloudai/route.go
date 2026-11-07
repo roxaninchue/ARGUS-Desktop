@@ -1,26 +1,27 @@
 package cloudai
 
-// Router is the desktop's llm.Backend: each request goes to Blaze Cloud or to the user's
+// Router is the desktop's llm.Backend: each request goes to Argus Cloud or to the user's
 // Custom models, by the saved Choice.
 //
-//   - Blaze Cloud: the gateway (client.go). No provider keys involved.
+//   - Argus Cloud: the gateway (client.go). No provider keys involved.
 //   - Custom: the classic provider router over the user's providers and keys (config.json
 //     + keystore). A per-task pin (chat / code / vision) answers with exactly that model.
-//     When Custom fails Blaze says so plainly; it only asks Blaze Cloud instead when the
-//     user switched "Use Blaze Cloud as a backup" on, and then it says that too.
+//     When Custom fails Argus says so plainly; it only asks Argus Cloud instead when the
+//     user switched "Use Argus Cloud as a backup" on, and then it says that too.
 
 import (
 	"context"
 	"errors"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
-// Router routes requests between Blaze Cloud and Custom.
+// Router routes requests between Argus Cloud and Custom.
 type Router struct {
 	mu     sync.RWMutex
 	choice *Choice
@@ -101,7 +102,7 @@ func customLine(err error, fallbackOn bool) string {
 	}
 	line := "Your custom model couldn't answer: " + strings.TrimSuffix(llm.Plain(err), ".") + "."
 	if !fallbackOn {
-		line += " Blaze Cloud wasn't asked, because using it as a backup is off (Settings › Models)."
+		line += " " + brand.NAME + " Cloud wasn't asked, because using it as a backup is off (Settings › Models)."
 	}
 	return line
 }
@@ -133,7 +134,7 @@ func (r *Router) Complete(ctx context.Context, cfg *config.Config, msgs []llm.Me
 		return nil, &CustomFailed{Line: customLine(err, ch.FallbackToCloud), Err: err}, true
 	}
 	if o.OnStatus != nil {
-		o.OnStatus("Your custom model couldn't answer, so Blaze Cloud is answering")
+		o.OnStatus("Your custom model couldn't answer, so " + brand.NAME + " Cloud is answering")
 	}
 	cres, cerr := r.GW.Complete(ctx, msgs, tools, o.OnText, false)
 	if cerr != nil {
@@ -142,9 +143,9 @@ func (r *Router) Complete(ctx context.Context, cfg *config.Config, msgs []llm.Me
 		if errors.As(cerr, &ce) {
 			line = ce.Line
 		}
-		return nil, &CustomFailed{Line: "Your custom model couldn't answer (" + strings.TrimSuffix(llm.Plain(err), ".") + "), and neither could Blaze Cloud: " + line, Err: err}, true
+		return nil, &CustomFailed{Line: "Your custom model couldn't answer (" + strings.TrimSuffix(llm.Plain(err), ".") + "), and neither could " + brand.NAME + " Cloud: " + line, Err: err}, true
 	}
-	cres.Note = "Your custom model couldn't answer, so Blaze Cloud did."
+	cres.Note = "Your custom model couldn't answer, so " + brand.NAME + " Cloud did."
 	return cres, nil, true
 }
 

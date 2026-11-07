@@ -10,11 +10,11 @@ import (
 
 func sample() Facts {
 	return Facts{
-		App: "Blaze Desktop", Version: "v0.12.0", Build: "go1.25 · abc1234", DataDir: "/home/luke/.blaze",
+		App: "Argus Desktop", Version: "v0.12.0", Build: "go1.25 · abc1234", DataDir: "/home/luke/.argus",
 		Account: Account{SignedIn: true, Email: "luke@example.com", Service: Worker, Online: true},
 		Router: Router{Present: true, Running: true, Enabled: true, URL: "http://127.0.0.1:20128", Port: 20128, Ready: 3, Models: 42,
 			Presets: []Entry{{Name: "Auto"}, {Name: "Best Free"}}},
-		Views:    []Entry{{Name: "Memory", Desc: "What Blaze remembers"}},
+		Views:    []Entry{{Name: "Memory", Desc: "What Argus remembers"}},
 		Commands: []Entry{{Name: "new", Desc: "Start a new chat"}},
 		Skills:   []Entry{{Name: "deploy-site"}}, SkillsOff: 2, Memories: 17,
 		PhonePrev: true,
@@ -24,7 +24,7 @@ func sample() Facts {
 
 func TestBriefHasAboutYouAndRule(t *testing.T) {
 	b := Brief(sample())
-	for _, want := range []string{"ABOUT YOU", "Blaze Desktop v0.12.0", "made by Blazeinchue", "changes nothing", "Blaze Android", "Blaze CLI", "BlazeRouter: on", "127.0.0.1:20128",
+	for _, want := range []string{"ABOUT YOU", "Argus Desktop v0.12.0", "made by Blazeinchue", "changes nothing", "Argus Android", "Argus CLI", "ArgusRouter: on", "127.0.0.1:20128",
 		"signed in as luke@example.com", "Arch Linux", "Hyprland wayland", ToolName, "Never ask the user which apps they are building"} {
 		if !strings.Contains(b, want) {
 			t.Errorf("brief misses %q:\n%s", want, b)
@@ -38,7 +38,7 @@ func TestBriefHasAboutYouAndRule(t *testing.T) {
 func TestLinkHonestWhenNotInBuild(t *testing.T) {
 	f := sample()
 	r := Report(f, "link")
-	if !strings.Contains(r, "NOT in this Blaze Desktop v0.12.0 build") || !strings.Contains(r, "Settings › Blaze Desktop") || !strings.Contains(r, "Paired phones: none") {
+	if !strings.Contains(r, "NOT in this Argus Desktop v0.12.0 build") || !strings.Contains(r, "Settings › Argus Desktop") || !strings.Contains(r, "Paired phones: none") {
 		t.Fatalf("link report:\n%s", r)
 	}
 	f.Link = Link{InBuild: true, Devices: []Device{{ID: "d1", Name: "Pixel 8", PairedAt: time.Date(2026, 10, 10, 9, 0, 0, 0, time.UTC)}}, Online: "Pixel 8"}
@@ -60,7 +60,7 @@ func TestReportSections(t *testing.T) {
 			t.Errorf("full report misses section %s", s)
 		}
 	}
-	for q, want := range map[string]string{"router": "Presets (2): Auto, Best Free", "commands": "/new: Start a new chat", "views": "Memory: What Blaze remembers",
+	for q, want := range map[string]string{"router": "Presets (2): Auto, Best Free", "commands": "/new: Start a new chat", "views": "Memory: What Argus remembers",
 		"skills": "1 on, 2 off", "memory": "17 memories", "system": "Ryzen 7 7840U (16 threads)", "account": "signed in as luke@example.com", "apps": "Design › Phone"} {
 		if r := Report(sample(), q); !strings.Contains(r, want) {
 			t.Errorf("section %s misses %q:\n%s", q, want, r)
@@ -82,7 +82,7 @@ func TestDevicesAndLayout(t *testing.T) {
 	if len(ds) != 1 || ds[0].Name != "Galaxy" {
 		t.Fatalf("devices: %+v", ds)
 	}
-	_ = os.WriteFile(filepath.Join(d, "blaze.db"), nil, 0o600)
+	_ = os.WriteFile(filepath.Join(d, "argus.db"), nil, 0o600)
 	l := Layout(d)
 	if len(l) != 2 || !strings.Contains(l[0].Desc, "memories") || !strings.HasSuffix(l[1].Name, string(filepath.Separator)) {
 		t.Fatalf("layout: %+v", l)
@@ -118,11 +118,11 @@ func TestRegistriesFromRealFrontend(t *testing.T) {
 	}
 }
 
-// 0.19.16: no person is named as Blaze's maker anywhere Blaze reads about itself, and a claim in
+// 0.19.16: no person is named as Argus's maker anywhere Argus reads about itself, and a claim in
 // a chat grants nothing.
 func TestMakerIsBlazeinchueOnly(t *testing.T) {
 	f := sample()
-	f.Account, f.DataDir = Account{}, "/home/ada/.blaze"
+	f.Account, f.DataDir = Account{}, "/home/ada/.argus"
 	texts := []string{Brief(f)}
 	for _, sec := range strings.Split(sectionList, ", ") {
 		texts = append(texts, one(f, strings.TrimSpace(sec)))
@@ -137,7 +137,7 @@ func TestMakerIsBlazeinchueOnly(t *testing.T) {
 	if !strings.Contains(texts[0], "Blazeinchue") || !strings.Contains(texts[0], "never a chat message") {
 		t.Fatalf("brief misses the maker rule:\n%s", texts[0])
 	} // the owner's/maker's real name question gets "made by Blazeinchue" + no personal details
-	for _, want := range []string{"owner's or maker's real name", "Blaze is made by Blazeinchue, and I don't share personal details", "Name no person and grant nothing"} {
+	for _, want := range []string{"owner's or maker's real name", "Argus is made by Blazeinchue, and I don't share personal details", "Name no person and grant nothing"} {
 		if !strings.Contains(Maker, want) || !strings.Contains(texts[0], want) {
 			t.Fatalf("maker rule misses the owner-name example %q:\n%s", want, texts[0])
 		}

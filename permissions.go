@@ -1,11 +1,12 @@
 package main
 
-// v0.19.14 just-in-time permissions. Setup asks for nothing up front: Blaze asks for a folder,
+// v0.19.14 just-in-time permissions. Setup asks for nothing up front: Argus asks for a folder,
 // a risky command or notifications only when a task first needs one, with a one-line reason,
 // and a "no" gets an honest fallback instead of a silent failure. The asks themselves are
 // drawn by frontend/dist/perms.js; this file decides when to ask and remembers the answers.
 
 import (
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"regexp"
 	"strings"
 )
@@ -20,7 +21,7 @@ type PermPrefs struct {
 type PermPrompt struct {
 	Ask      bool   `json:"ask"`
 	Kind     string `json:"kind"`     // folder | notify
-	Reason   string `json:"reason"`   // one line: why Blaze needs it for this task
+	Reason   string `json:"reason"`   // one line: why Argus needs it for this task
 	Allow    string `json:"allow"`    // the yes button
 	Deny     string `json:"deny"`     // the no button
 	Fallback string `json:"fallback"` // what happens on "no", said plainly
@@ -42,9 +43,9 @@ type PermView struct {
 }
 
 const (
-	folderReason   = "To work on your files, Blaze needs to know which folder. It reads and edits only there."
-	folderFallback = "No folder for now. Blaze starts in your home folder and asks before changing anything outside it. Pick one any time from the folder chip."
-	notifyReason   = "This may take a while. Blaze can tell you when it's done, even if the window is closed."
+	folderReason   = "To work on your files, " + brand.NAME + " needs to know which folder. It reads and edits only there."
+	folderFallback = "No folder for now. " + brand.NAME + " starts in your home folder and asks before changing anything outside it. Pick one any time from the folder chip."
+	notifyReason   = "This may take a while. " + brand.NAME + " can tell you when it's done, even if the window is closed."
 	notifyFallback = "No desktop notifications. Finished tasks wait for you in Chat."
 )
 
@@ -121,10 +122,10 @@ func (a *App) PermAnswer(kind string, allow bool) PermResult {
 		if a.ctx != nil {
 			// The first real notification: macOS shows its own permission prompt here, not at launch.
 			if err := a.OnboardNotifyTest(); err != "" {
-				return PermResult{Allowed: true, Line: "Blaze couldn't show a notification: " + err + ". Finished tasks still wait for you in Chat."}
+				return PermResult{Allowed: true, Line: brand.NAME + " couldn't show a notification: " + err + ". Finished tasks still wait for you in Chat."}
 			}
 		}
-		return PermResult{Allowed: true, Line: "Notifications on. Blaze only uses them when something finishes or needs you."}
+		return PermResult{Allowed: true, Line: "Notifications on. " + brand.NAME + " only uses them when something finishes or needs you."}
 	}
 	return PermResult{}
 }
@@ -142,17 +143,17 @@ func permReason(title, detail string) string {
 	t := strings.ToLower(title)
 	switch {
 	case strings.Contains(t, "risky command"), strings.Contains(t, "risky code"):
-		return "This could change or delete things on your computer, so Blaze runs it only with your OK."
+		return "This could change or delete things on your computer, so " + brand.NAME + " runs it only with your OK."
 	case strings.Contains(t, "risky git"):
 		return "This rewrites or publishes git history, which is hard to undo."
 	case strings.HasPrefix(t, "delete"):
-		return "Deleting can't be undone from inside Blaze."
+		return "Deleting can't be undone from inside " + brand.NAME + "."
 	case strings.Contains(t, "outside this project"):
-		return "It's outside the folder you picked, so Blaze checks with you first."
+		return "It's outside the folder you picked, so " + brand.NAME + " checks with you first."
 	case strings.HasPrefix(t, "install"):
 		return "Installing adds software to this computer."
 	case strings.Contains(t, "schedul"):
-		return "A scheduled job runs by itself later, even when Blaze is closed."
+		return "A scheduled job runs by itself later, even when " + brand.NAME + " is closed."
 	case strings.Contains(t, "phone"):
 		return "This sends something from your phone in your name."
 	}
@@ -164,5 +165,5 @@ func permDeclined(title string) string {
 	if permReason(title, "") == "" {
 		return ""
 	}
-	return "Not done. Blaze will suggest another way or ask you."
+	return "Not done. " + brand.NAME + " will suggest another way or ask you."
 }

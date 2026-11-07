@@ -6,14 +6,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/keystore"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/keystore"
 )
 
-// Keys saved before BlazeRouter existed (Settings › Providers & keys, or Blaze CLI)
+// Keys saved before ArgusRouter existed (Settings › Providers & keys, or Argus CLI)
 // must show up on the dashboard and route without being re-entered.
 func TestOldCustomKeysCarryOver(t *testing.T) {
-	t.Setenv("BLAZE_HOME", t.TempDir())
+	t.Setenv("ARGUS_HOME", t.TempDir())
 	keystore.Keychain = &memKC{m: map[string]string{}}
 	var gotAuth string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

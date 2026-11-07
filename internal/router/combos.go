@@ -12,8 +12,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Strategies (a port of the most useful of OmniRoute's routing strategies).
@@ -76,7 +76,7 @@ var (
 	rr   = map[string]int{}
 )
 
-// ErrNoModel is returned when the model a client asked for isn't one BlazeRouter can serve.
+// ErrNoModel is returned when the model a client asked for isn't one ArgusRouter can serve.
 var ErrNoModel = errors.New("no such model")
 
 // isAuto is true for the names that mean one of the built-in auto/* presets.
@@ -91,14 +91,14 @@ func isAuto(m string) (bool, string) {
 	return true, StratPriority
 }
 
-// legacyAuto maps Blaze's pre-port aliases (blazerouter/fast…) onto auto/*.
+// legacyAuto maps Argus's pre-port aliases (argusrouter/fast…) onto auto/*.
 func legacyAuto(m string) string {
 	switch strings.ToLower(strings.TrimSpace(m)) {
-	case "blazerouter/fast":
+	case "argusrouter/fast":
 		return "auto/fast"
-	case "blazerouter/cheap":
+	case "argusrouter/cheap":
 		return "auto/cheap"
-	case "blazerouter/quota":
+	case "argusrouter/quota":
 		return "auto/quota"
 	}
 	return m
@@ -109,7 +109,7 @@ func (r *Router) plan(asked string, needTools bool) (Plan, error) {
 	cfg := r.cfg()
 	pl := Plan{Asked: asked}
 	m := strings.TrimSpace(asked)
-	m = strings.TrimPrefix(m, "blazerouter/")
+	m = strings.TrimPrefix(m, "argusrouter/")
 	if p, ok := autoPreset(legacyAuto(asked)); ok {
 		pl.Combo = p.ID
 		switch {
@@ -148,7 +148,7 @@ func (r *Router) plan(asked string, needTools bool) (Plan, error) {
 			return pl, nil
 		}
 	}
-	// A bare model id: every usable provider that lists it (Blaze's catalog or its chosen model).
+	// A bare model id: every usable provider that lists it (Argus's catalog or its chosen model).
 	var ts []Target
 	for _, p := range routable() {
 		if !llm.Usable(cfg, p.ID) {
@@ -169,7 +169,7 @@ func (r *Router) plan(asked string, needTools bool) (Plan, error) {
 	return pl, nil
 }
 
-// autoTargets is the zero-setup combo: Blaze's own Auto chain (the user's chain, or
+// autoTargets is the zero-setup combo: Argus's own Auto chain (the user's chain, or
 // every free tier with a key), then every other provider that has a key, so a key
 // added for any catalog provider joins in without any setup.
 func (r *Router) autoTargets(cfg *config.Config) []Target {

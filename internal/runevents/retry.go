@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/bgrun"
+	"github.com/lacksonkapapahue/argus-desktop/internal/bgrun"
 )
 
-// Offline retry: a create that can't reach Blaze (no HTTP status at all) is tried again with the
+// Offline retry: a create that can't reach Argus (no HTTP status at all) is tried again with the
 // SAME request, so the same client_msg_id: the gateway is idempotent on it, so a try that did land
 // before the network dropped is answered with that run (existing), never a second one.
 
@@ -22,7 +22,7 @@ var PerTry = 20 * time.Second
 var MaxTries = 12
 
 // Create posts req until the gateway answers. emit sees message_sending for each try (Offline set
-// when the try before it could not reach Blaze) and message_received on the answer. An HTTP error
+// when the try before it could not reach Argus) and message_received on the answer. An HTTP error
 // (the gateway answered) is returned at once, except 408 / 429; "couldn't reach it" is retried.
 func Create(ctx context.Context, api bgrun.API, req bgrun.CreateReq, emit func(Ev), sleep func(context.Context, time.Duration) error) (*bgrun.Created, error) {
 	if sleep == nil {

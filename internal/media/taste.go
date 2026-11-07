@@ -1,9 +1,10 @@
 package media
 
 // Taste (mobile Taste.kt): what's played and downloaded becomes Store ideas and one
-// line for Blaze's memory. Pure; persistence is in Media.
+// line for Argus's memory. Pure; persistence is in Media.
 
 import (
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"math"
 	"regexp"
 	"sort"
@@ -236,5 +237,5 @@ func TasteSummary(ev []TasteEvent, now int64) string {
 	if len(parts) == 0 || len(ev) < 5 {
 		return ""
 	}
-	return "Listens to / watches in Blaze Music and Video (learned from plays and downloads): " + strings.Join(parts, ". ") + "."
+	return "Listens to / watches in " + brand.NAME + " Music and Video (learned from plays and downloads): " + strings.Join(parts, ". ") + "."
 }

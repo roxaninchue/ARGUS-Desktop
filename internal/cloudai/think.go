@@ -1,6 +1,6 @@
 package cloudai
 
-// Port of Blaze Android's ThinkBudget.kt (v0.33.1): a tiny classifier from cheap features
+// Port of Argus Android's ThinkBudget.kt (v0.33.1): a tiny classifier from cheap features
 // (length, hard / easy cue words, maths, code, questions in a row). A QUICK turn goes to the
 // gateway's fast "quick" lineup; no model call, a few microseconds.
 

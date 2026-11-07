@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// ConvFiles is a ChatStore over Desktop's chat files (~/.blaze/desktop/chats/<id>.json, the
+// ConvFiles is a ChatStore over Desktop's chat files (~/.argus/desktop/chats/<id>.json, the
 // app's Conv: id, project, title, folder, updated (RFC 3339), messages [llm.Message]). Unknown
 // fields are kept as they are.
 //
@@ -138,7 +138,7 @@ func mobileRole(m map[string]any) string {
 			return ""
 		}
 		if optString(m, "content") != "" {
-			return RoleBlaze
+			return RoleArgus
 		}
 	}
 	return ""

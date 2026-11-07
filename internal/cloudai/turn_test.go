@@ -11,7 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Every step of one turn carries the same X-Blaze-Turn; X-Blaze-Prefer appears from step 2 on
@@ -62,7 +62,7 @@ func TestTurnHeadersAcrossSteps(t *testing.T) {
 		t.Fatalf("switches = %d", turn.Switches())
 	}
 
-	// No turn on the context (background calls, Blaze CLI): no headers.
+	// No turn on the context (background calls, Argus CLI): no headers.
 	if _, err := g.Complete(context.Background(), msgs, nil, nil, true); err != nil {
 		t.Fatal(err)
 	}

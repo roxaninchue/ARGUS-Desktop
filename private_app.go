@@ -1,6 +1,6 @@
 package main
 
-// Private chat (v0.19.1, Blaze Mobile's PrivateChat): the ghost button in the top bar opens a
+// Private chat (v0.19.1, Argus Mobile's PrivateChat): the ghost button in the top bar opens a
 // chat that is never written anywhere. No chat file, no long-chat index, no journal, no title,
 // no learning, no memories or skills: the tools that write them are not offered and are refused
 // if called anyway, and specialists (which keep files) aren't offered. Leaving throws it away.
@@ -8,7 +8,7 @@ package main
 import (
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 const privatePrefix = "private-"

@@ -2,10 +2,10 @@ package router
 
 // Format translation (OmniRoute's translator, simplified): clients that speak
 // Anthropic's Messages API (Claude Code, the Anthropic SDKs) or Gemini's
-// generateContent API can use BlazeRouter too. Their request becomes an OpenAI chat
+// generateContent API can use ArgusRouter too. Their request becomes an OpenAI chat
 // request, goes through the same routing, and the answer is turned back into their
 // format, streamed when they asked for a stream. Upstream every provider is spoken
-// to in the OpenAI format, as Blaze already does.
+// to in the OpenAI format, as Argus already does.
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 func str(v any) string {

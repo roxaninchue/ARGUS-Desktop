@@ -3,7 +3,7 @@ package studio
 // 3D mockups (three-d-design skill): a Three.js page keeps every part's numbers in one
 // JSON block,
 //
-//	<script type="application/json" id="blaze-parts">{"units": "mm", "parts": [{"id": "seat", …}]}</script>
+//	<script type="application/json" id="argus-parts">{"units": "mm", "parts": [{"id": "seat", …}]}</script>
 //
 // and builds the scene from it. A part picked in the Design tab is edited here: only the
 // changed keys of that one part are rewritten, so the diff stays a line or two and the
@@ -18,7 +18,7 @@ import (
 	"strings"
 )
 
-var partsBlock = regexp.MustCompile(`(?is)<script\b[^>]*\bid\s*=\s*["']blaze-parts["'][^>]*>(.*?)</script>`)
+var partsBlock = regexp.MustCompile(`(?is)<script\b[^>]*\bid\s*=\s*["']argus-parts["'][^>]*>(.*?)</script>`)
 
 // partKeys are the part fields the Design tab may set. Each value is a JSON literal.
 var partKeys = map[string]bool{
@@ -27,7 +27,7 @@ var partKeys = map[string]bool{
 	"opacity": true, "roughness": true, "metalness": true,
 }
 
-// HasParts reports whether a page is a 3D mockup built from a blaze-parts block.
+// HasParts reports whether a page is a 3D mockup built from an argus-parts block.
 func HasParts(src string) bool { return partsBlock.MatchString(src) }
 
 // ApplyPart sets props (key -> JSON literal, e.g. "color": `"#c0392b"`, "position": `[0, 420, 0]`)
@@ -46,7 +46,7 @@ func ApplyPart(src, id string, props map[string]string) (string, error) {
 		Parts []json.RawMessage `json:"parts"`
 	}
 	if err := json.Unmarshal([]byte(block), &top); err != nil {
-		return src, fmt.Errorf("the blaze-parts block isn't valid JSON: %w", err)
+		return src, fmt.Errorf("the argus-parts block isn't valid JSON: %w", err)
 	}
 	var raw string
 	for _, p := range top.Parts {

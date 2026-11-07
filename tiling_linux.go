@@ -4,7 +4,7 @@ package main
 
 // Tiling Wayland compositors ignore a window's own size and position requests, so
 // the orb (a compact mode of the one window) would fill the whole tile. On Hyprland
-// and sway Blaze asks the compositor itself: float the window, size it 400x560 and
+// and sway Argus asks the compositor itself: float the window, size it 400x560 and
 // move it bottom-right; Expand tiles it again. Other tiling WMs need a window rule
 // (Doctor says so).
 
@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"os/exec"
 	"strings"
@@ -27,7 +28,7 @@ type tilingWM struct {
 
 var tiling tilingWM
 
-// tilingName names the tiling compositor Blaze can drive, or "".
+// tilingName names the tiling compositor Argus can drive, or "".
 func tilingName() string {
 	switch {
 	case os.Getenv("HYPRLAND_INSTANCE_SIGNATURE") != "":
@@ -38,7 +39,7 @@ func tilingName() string {
 	return ""
 }
 
-// otherTiling spots tiling compositors Blaze can't drive yet (for Doctor).
+// otherTiling spots tiling compositors Argus can't drive yet (for Doctor).
 func otherTiling() string {
 	d := strings.ToLower(os.Getenv("XDG_CURRENT_DESKTOP") + " " + os.Getenv("XDG_SESSION_DESKTOP") + " " + os.Getenv("DESKTOP_SESSION"))
 	for _, n := range []string{"river", "niri", "qtile", "dwl", "i3", "bspwm", "awesome", "xmonad", "herbstluftwm", "leftwm", "wayfire", "labwc"} {
@@ -74,7 +75,7 @@ type hyprMonitor struct {
 	Reserved      []int `json:"reserved"`
 }
 
-// hyprWindow finds Blaze's window: by our pid first, then by its class.
+// hyprWindow finds Argus's window: by our pid first, then by its class.
 func hyprWindow() (hyprClient, bool) {
 	b, err := wmRun("hyprctl", "clients", "-j")
 	if err != nil {
@@ -91,7 +92,7 @@ func hyprWindow() (hyprClient, bool) {
 		}
 	}
 	for _, c := range cs {
-		if strings.Contains(strings.ToLower(c.Class), "blaze") && c.Mapped && !c.Hidden {
+		if strings.Contains(strings.ToLower(c.Class), "argus") && c.Mapped && !c.Hidden {
 			return c, true
 		}
 	}
@@ -265,7 +266,7 @@ func tilingFloat(w, h int) {
 	}()
 }
 
-// tilingRestore tiles the window again on Expand (only if Blaze floated it).
+// tilingRestore tiles the window again on Expand (only if Argus floated it).
 func tilingRestore() {
 	switch tilingName() {
 	case "hyprland":
@@ -280,21 +281,21 @@ func tilingCheck() (bool, string) {
 	switch tilingName() {
 	case "hyprland":
 		if _, err := exec.LookPath("hyprctl"); err != nil {
-			return false, "Hyprland, but hyprctl isn't on PATH, so the orb can't float. Add: windowrulev2 = float, class:^(blaze)$"
+			return false, "Hyprland, but hyprctl isn't on PATH, so the orb can't float. Add: windowrulev2 = float, class:^(argus)$"
 		}
-		cls := "blaze"
+		cls := "argus"
 		if c, ok := hyprWindow(); ok && c.Class != "" {
 			cls = c.Class
 		}
 		return true, "Hyprland · the orb floats bottom-right via hyprctl (window class " + cls + ")"
 	case "sway":
 		if _, err := exec.LookPath("swaymsg"); err != nil {
-			return false, "sway, but swaymsg isn't on PATH, so the orb can't float. Add: for_window [app_id=\"blaze\"] floating enable"
+			return false, "sway, but swaymsg isn't on PATH, so the orb can't float. Add: for_window [app_id=\"argus\"] floating enable"
 		}
 		return true, "sway · the orb floats bottom-right via swaymsg"
 	}
 	if n := otherTiling(); n != "" {
-		return false, n + " is a tiling window manager Blaze can't resize yet: the orb may fill the screen. Add a rule to float app id/class \"blaze\" (it floats the main window too)."
+		return false, n + " is a tiling window manager " + brand.NAME + " can't resize yet: the orb may fill the screen. Add a rule to float app id/class \"argus\" (it floats the main window too)."
 	}
 	return true, ""
 }

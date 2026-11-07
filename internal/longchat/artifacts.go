@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 // AsideOver is the size past which a tool result goes to an artifact file.
@@ -21,7 +21,7 @@ func artifactDir() string { return filepath.Join(config.Dir(), "artifacts") }
 
 var idRe = regexp.MustCompile(`^[a-f0-9]{12}$`)
 
-// Aside saves a big tool result to ~/.blaze/artifacts/<id>.txt and returns what the
+// Aside saves a big tool result to ~/.argus/artifacts/<id>.txt and returns what the
 // model sees instead: the first 40 lines, the last 20 and "artifact:<id> (N lines)".
 // Small results come back unchanged.
 func Aside(res string) string {

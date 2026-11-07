@@ -1,15 +1,15 @@
 package llm
 
-// Shared state for BlazeRouter (internal/router): the same health, cool-downs, key
-// rests and rate-limit budget Blaze's own chats use, so a model that is resting for
-// Blaze is resting for every tool that goes through the local gateway too, and the
+// Shared state for ArgusRouter (internal/router): the same health, cool-downs, key
+// rests and rate-limit budget Argus's own chats use, so a model that is resting for
+// Argus is resting for every tool that goes through the local gateway too, and the
 // other way round.
 
 import (
 	"errors"
 	"time"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/config"
+	"github.com/lacksonkapapahue/argus-desktop/internal/config"
 )
 
 // HealthOf is a copy of a provider|model's health (zero when never tried).
@@ -47,7 +47,7 @@ func ReportOK(provider, model string, ms int64) {
 	}
 }
 
-// ReportFail records a failed call and cools the model down the way Blaze's own
+// ReportFail records a failed call and cools the model down the way Argus's own
 // router does: rate limits for as long as the provider says, auth and missing models
 // for 30 minutes, outages for 20 seconds. Returns the cool-down it chose.
 func ReportFail(provider, model string, err error) time.Duration {
@@ -98,5 +98,5 @@ func IsDaily(msg string) bool { return dailyRe.MatchString(msg) }
 // unless it is local (Ollama) or the user's own service.
 func Usable(cfg *config.Config, provider string) bool { return usable(cfg, provider) }
 
-// Price is USD per million tokens (input, output) when Blaze knows the model's price.
+// Price is USD per million tokens (input, output) when Argus knows the model's price.
 func Price(provider, model string) (float64, float64, bool) { return price(provider, model) }

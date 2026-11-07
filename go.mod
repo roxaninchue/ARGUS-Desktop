@@ -1,4 +1,4 @@
-module github.com/lacksonkapapahue/blaze-desktop
+module github.com/lacksonkapapahue/argus-desktop
 
 go 1.26.0
 

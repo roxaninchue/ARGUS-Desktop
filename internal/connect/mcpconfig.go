@@ -1,7 +1,7 @@
 package connect
 
-// Shared MCP config (v0.8.1): ~/.blaze/mcp.json in the standard shape every MCP host
-// reads, so Blaze CLI and Blaze Desktop share one list of servers:
+// Shared MCP config (v0.8.1): ~/.argus/mcp.json in the standard shape every MCP host
+// reads, so Argus CLI and Argus Desktop share one list of servers:
 //
 //	{"mcpServers": {
 //	   "files":  {"command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "~"], "env": {"K": "v"}},
@@ -35,7 +35,7 @@ type MCPEntry struct {
 	Disabled bool              `json:"disabled,omitempty"`
 }
 
-// Transport is how Blaze talks to the server: stdio, http (Streamable HTTP) or sse.
+// Transport is how Argus talks to the server: stdio, http (Streamable HTTP) or sse.
 func (e MCPEntry) Transport() string {
 	t := strings.ToLower(strings.TrimSpace(e.Type))
 	switch {
@@ -51,7 +51,7 @@ func (e MCPEntry) Transport() string {
 
 var idRe = regexp.MustCompile(`[^a-z0-9-]+`)
 
-// MCPID turns a server's name in mcp.json into Blaze's id: lowercase letters, digits
+// MCPID turns a server's name in mcp.json into Argus's id: lowercase letters, digits
 // and single hyphens (never "_", so mcp__<id>__<tool> always splits one way).
 func MCPID(name string) string {
 	id := idRe.ReplaceAllString(strings.ToLower(strings.TrimSpace(name)), "-")
@@ -65,8 +65,8 @@ func MCPID(name string) string {
 	return id
 }
 
-// MCPConfigPath is the shared file in Blaze's config folder (~/.blaze/mcp.json).
-func MCPConfigPath(blazeDir string) string { return filepath.Join(blazeDir, "mcp.json") }
+// MCPConfigPath is the shared file in Argus's config folder (~/.argus/mcp.json).
+func MCPConfigPath(argusDir string) string { return filepath.Join(argusDir, "mcp.json") }
 
 // readMCPConfig reads the file as raw JSON so unknown keys survive a rewrite.
 func readMCPConfig(path string) (top map[string]json.RawMessage, servers map[string]map[string]json.RawMessage, err error) {

@@ -1,7 +1,7 @@
 package store
 
-// Sharing blaze.db with Blaze CLI: both apps creating it at the same moment, and a
-// database written by a newer Blaze.
+// Sharing argus.db with Argus CLI: both apps creating it at the same moment, and a
+// database written by a newer Argus.
 
 import (
 	"crypto/sha256"
@@ -45,7 +45,7 @@ func fileSum(t *testing.T, p string) string {
 // is applied exactly once.
 func TestConcurrentFirstRunInit(t *testing.T) {
 	for round := 0; round < 5; round++ {
-		p := filepath.Join(t.TempDir(), "blaze.db")
+		p := filepath.Join(t.TempDir(), "argus.db")
 		const n = 6
 		var wg sync.WaitGroup
 		start := make(chan struct{})
@@ -93,7 +93,7 @@ func TestConcurrentFirstRunInit(t *testing.T) {
 // user_version under the lock and skip the migration instead of failing with
 // "table memories already exists".
 func TestMigrateRechecksVersionUnderLock(t *testing.T) {
-	p := filepath.Join(t.TempDir(), "blaze.db")
+	p := filepath.Join(t.TempDir(), "argus.db")
 	cli := rawOpen(t, p)
 	if _, err := cli.Exec(`PRAGMA journal_mode=WAL`); err != nil {
 		t.Fatal(err)
@@ -146,16 +146,16 @@ func TestMigrateRechecksVersionUnderLock(t *testing.T) {
 	}
 }
 
-// A database from a newer Blaze is refused with ErrNewerSchema and left exactly
+// A database from a newer Argus is refused with ErrNewerSchema and left exactly
 // as it was.
 func TestNewerSchemaRefused(t *testing.T) {
-	p := filepath.Join(t.TempDir(), "blaze.db")
+	p := filepath.Join(t.TempDir(), "argus.db")
 	d, err := Open(p)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, _, _ = d.Add("Keep me safe", "", "", time.Time{})
-	// A future Blaze moves the schema on.
+	// A future Argus moves the schema on.
 	if _, err := d.sql.Exec(fmt.Sprintf(`CREATE TABLE future(x); PRAGMA user_version = %d`, SchemaVersion()+1)); err != nil {
 		t.Fatal(err)
 	}
@@ -166,8 +166,8 @@ func TestNewerSchemaRefused(t *testing.T) {
 	if !errors.Is(err, ErrNewerSchema) {
 		t.Fatalf("got %v, want ErrNewerSchema", err)
 	}
-	if !strings.Contains(err.Error(), "update Blaze") {
-		t.Fatalf("error should ask to update Blaze: %v", err)
+	if !strings.Contains(err.Error(), "update Argus") {
+		t.Fatalf("error should ask to update Argus: %v", err)
 	}
 	if fileSum(t, p) != before {
 		t.Fatal("refusing must not change the database")
@@ -184,7 +184,7 @@ func TestNewerSchemaRefused(t *testing.T) {
 
 // A file that claims the current schema but lacks its tables is refused.
 func TestBrokenSchemaRefused(t *testing.T) {
-	p := filepath.Join(t.TempDir(), "blaze.db")
+	p := filepath.Join(t.TempDir(), "argus.db")
 	s := rawOpen(t, p)
 	if _, err := s.Exec(`CREATE TABLE memories(id INTEGER PRIMARY KEY, other TEXT); PRAGMA user_version = 1`); err != nil {
 		t.Fatal(err)

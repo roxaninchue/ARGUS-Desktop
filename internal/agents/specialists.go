@@ -16,11 +16,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
 )
 
 // Specialist is Agent.Kind for a lead-briefed specialist.
@@ -206,7 +207,7 @@ func (m *Manager) prepare(a *Agent) error {
 	var rnd [3]byte
 	_, _ = rand.Read(rnd[:])
 	dest := filepath.Join(root, a.Handle+"-"+hex.EncodeToString(rnd[:]))
-	iso, err := Isolate(a.Workdir, dest, "blaze/"+a.Handle)
+	iso, err := Isolate(a.Workdir, dest, "argus/"+a.Handle)
 	if err != nil {
 		return fmt.Errorf("couldn't make an isolated copy of %s: %v", a.Workdir, err)
 	}
@@ -333,7 +334,7 @@ func (m *Manager) ApplySpecialist(name, action string) (string, error) {
 	var msg string
 	switch strings.ToLower(strings.TrimSpace(action)) {
 	case "apply":
-		out, err := iso.Apply("Blaze specialist " + a.Handle + ": " + clip(task, 60))
+		out, err := iso.Apply(brand.NAME + " specialist " + a.Handle + ": " + clip(task, 60))
 		if err == ErrNothing {
 			_ = iso.Remove(true)
 			m.setReview(a, "none")

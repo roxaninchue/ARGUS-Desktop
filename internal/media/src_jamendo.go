@@ -2,11 +2,12 @@ package media
 
 // Jamendo (mobile JamendoSource.kt): Creative Commons music through the v3 API. Needs
 // a free client_id (https://devportal.jamendo.com), pasted in the Store or saved by
-// the jamendo_setup tool into ~/.blaze/media/jamendo.json, or the JAMENDO_CLIENT_ID
+// the jamendo_setup tool into ~/.argus/media/jamendo.json, or the JAMENDO_CLIENT_ID
 // environment variable. Nothing is hard-coded.
 
 import (
 	"encoding/json"
+	"github.com/lacksonkapapahue/argus-desktop/internal/brand"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -150,10 +151,10 @@ func (j *jamendoSource) ID() string        { return "jamendo" }
 func (j *jamendoSource) Name() string      { return "Jamendo" }
 func (j *jamendoSource) Kinds() []string   { return []string{"audio"} }
 func (j *jamendoSource) Browsable() bool   { return true }
-func (j *jamendoSource) UserAgent() string { return blazeUA }
+func (j *jamendoSource) UserAgent() string { return argusUA }
 func (j *jamendoSource) SetupNeeded() string {
 	if j.ClientID() == "" {
-		return "Jamendo needs a free client_id. Blaze can get it for you, or make one on the Jamendo dev portal and paste it below."
+		return "Jamendo needs a free client_id. " + brand.NAME + " can get it for you, or make one on the Jamendo dev portal and paste it below."
 	}
 	return ""
 }

@@ -1,6 +1,6 @@
 package main
 
-// Memory screen (v0.5): Blaze's memories, skills and projects as a graph.
+// Memory screen (v0.5): Argus's memories, skills and projects as a graph.
 // Links are inferred locally and cheaply (shared rare words and names, same chat,
 // mentions of a project); categories come from a keyword guess, optionally replaced
 // by a model's sort that runs lazily in the background and is cached per fact.
@@ -19,8 +19,8 @@ import (
 
 	wr "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/lacksonkapapahue/blaze-desktop/internal/llm"
-	"github.com/lacksonkapapahue/blaze-desktop/internal/tools"
+	"github.com/lacksonkapapahue/argus-desktop/internal/llm"
+	"github.com/lacksonkapapahue/argus-desktop/internal/tools"
 )
 
 type MemNode struct {
@@ -60,7 +60,7 @@ type MemGraph struct {
 	Sorting  bool      `json:"sorting"`
 	Unsorted int       `json:"unsorted"`
 	CanSort  bool      `json:"can_sort"`
-	Notice   string    `json:"notice,omitempty"` // "please update Blaze" when blaze.db is newer than this build
+	Notice   string    `json:"notice,omitempty"` // "please update Argus" when argus.db is newer than this build
 }
 
 var memSort struct {
@@ -125,7 +125,7 @@ func localCategory(tokens []string) string {
 var stop = map[string]bool{}
 
 func init() {
-	for _, w := range strings.Fields(`the and for are but not you all any can had her was one our out has him his how its may new now old see two way who did get got let put say she too use uses used using with that this from they them then than when what will your into over also just only very more most some such like want wants user users blaze about after before their there these those which while where would could should been being have does doing done each make makes made keep keeps kept always never every much many here because via per it's i'm don't doesn't`) {
+	for _, w := range strings.Fields(`the and for are but not you all any can had her was one our out has him his how its may new now old see two way who did get got let put say she too use uses used using with that this from they them then than when what will your into over also just only very more most some such like want wants user users argus about after before their there these those which while where would could should been being have does doing done each make makes made keep keeps kept always never every much many here because via per it's i'm don't doesn't`) {
 		stop[w] = true
 	}
 }
@@ -238,7 +238,7 @@ func (a *App) MemoryGraph() MemGraph {
 
 	var toks [][]string
 	// One mind: the memories table is the source of truth. Its lines come first; a
-	// blaze.db line it mirrors (kept for Blaze CLI) isn't shown twice.
+	// argus.db line it mirrors (kept for Argus CLI) isn't shown twice.
 	mirrored := map[string]bool{}
 	if md := mindDB(); md != nil {
 		for _, m := range md.All() {
